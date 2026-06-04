@@ -418,7 +418,7 @@
         </div>
         <div class="header-actions">
           <button class="sort-toggle" onclick="toggleSort()" aria-label="Change sort order">
-            <span id="sort-label">📍 Nearest first</span>
+            <span id="sort-label">🕒 Most recent</span>
           </button>
         </div>
       </div>
@@ -827,6 +827,7 @@ function featureToAsset(feature) {
     screener:      p[FIELDS.screener]       || '',
     dateRaw:       p[FIELDS.date],
     dateStr:       dateVal ? dateVal.toLocaleDateString() : '',
+    editDate:      p['EditDate'] ?? p['edit_date'] ?? p[FIELDS.date] ?? null,
     use:           p[FIELDS.use]            || '',
     occupancy:     p[FIELDS.occupancy]      || '',
     storiesAbove:  p[FIELDS.storiesAbove],
@@ -990,7 +991,7 @@ let map, userMarker, userLat = null, userLng = null;
 let markerCluster, markerMap = {};
 let assets = [];
 let activeFilter = 'all', activeScoreFilter = 'all', searchTerm = '', selectedId = null;
-let sortMode = 'distance'; // 'distance' | 'name' | 'score'
+let sortMode = 'recent'; // 'recent' | 'distance' | 'name' | 'score'
 let refreshTimer = null;
 
 // ════════════════════════════════════════════════════════════════
@@ -1090,16 +1091,17 @@ function updateActiveFilterBar() {
 function onSearch() { searchTerm = document.getElementById('search-input').value.toLowerCase(); renderList(); }
 
 function toggleSort() {
-  const modes = ['distance', 'name', 'score'];
+  const modes = ['recent', 'distance', 'name', 'score'];
   const i = modes.indexOf(sortMode);
   sortMode = modes[(i + 1) % modes.length];
-  const labels = { distance: '📍 Nearest first', name: '🔤 A–Z', score: '📊 Score (low→high)' };
+  const labels = { recent: '🕒 Most recent', distance: '📍 Nearest first', name: '🔤 A–Z', score: '📊 Score (low→high)' };
   document.getElementById('sort-label').textContent = labels[sortMode];
   renderList();
 }
 
 function getFiltered() {
   let list = assets.filter(a => {
+    if (a.phase !== 'Complete') return false;
     if (activeFilter !== 'all' && a.facilityType !== activeFilter) return false;
     if (activeScoreFilter !== 'all') {
       const s = a.level1Score;
@@ -1113,7 +1115,8 @@ function getFiltered() {
     }
     return true;
   });
-  if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
+  if (sortMode === 'recent') list.sort((a,b) => (b.editDate??0) - (a.editDate??0));
+  else if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
   else if (sortMode === 'score') list.sort((a,b) => (a.level1Score??Infinity)-(b.level1Score??Infinity));
   else list.sort((a,b) => a.buildingName.localeCompare(b.buildingName));
   return list;
@@ -1129,9 +1132,10 @@ function renderList() {
   countEl.textContent = `${filtered.length} Record${filtered.length !== 1 ? 's' : ''}`;
 
   // Stats bar (always based on ALL assets, not filtered)
-  if (assets.length) {
-    const total = assets.length;
-    const atRisk = assets.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
+  const completeAssets = assets.filter(a => a.phase === 'Complete');
+  if (completeAssets.length) {
+    const total = completeAssets.length;
+    const atRisk = completeAssets.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
     statsBar.style.display = 'grid';
@@ -1233,7 +1237,7 @@ function toggleBasemap() {
 function renderMarkers() {
   markerCluster.clearLayers();
   markerMap = {};
-  assets.forEach(a => {
+  assets.filter(a => a.phase === 'Complete').forEach(a => {
     if (a.lat === null || a.lng === null) return;
     const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
     const sc = a.level1Score;
