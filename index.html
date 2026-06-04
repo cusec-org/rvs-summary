@@ -396,7 +396,6 @@
   <div id="offline-banner" class="offline-banner" hidden role="alert">
     ⚠️ Offline — showing cached data
   </div>
-  <div id="stats-bar" hidden style="display:grid;grid-template-columns:1fr 1fr;background:#1a1a2e;color:white;padding:0"></div>
   <div id="map-container" role="region" aria-label="Map">
     <div id="map"></div>
     <button id="basemap-toggle" onclick="toggleBasemap()" aria-label="Toggle basemap">
@@ -409,6 +408,7 @@
   </div>
 
   <section id="list-section" aria-label="Survey records">
+    <div id="stats-bar" hidden style="display:grid;grid-template-columns:1fr 1fr;background:#1a1a2e;color:white;padding:0"></div>
     <div class="list-controls">
       <div class="list-header">
         <div>
@@ -1130,7 +1130,7 @@ function renderList() {
   const countEl = document.getElementById('list-count');
   countEl.textContent = `${filtered.length} Record${filtered.length !== 1 ? 's' : ''}`;
 
-  // Stats bar (always based on ALL assets, not filtered)
+  // Stats bar
   const completeAssets = assets.filter(a => a.phase === 'Complete');
   if (completeAssets.length) {
     const total = completeAssets.length;
@@ -1140,11 +1140,11 @@ function renderList() {
     statsBar.style.display = 'grid';
     statsBar.innerHTML = `
       <div class="stats-tile">
-        <div class="stats-label">Screenings Complete:</div>
+        <div class="stats-label">Screenings Complete</div>
         <div class="stats-num">${total.toLocaleString()}</div>
       </div>
       <div class="stats-tile">
-        <div class="stats-label">L1 Score ≤2.0:</div>
+        <div class="stats-label">L1 Score ≤2.0</div>
         <div class="stats-num red">${atRisk.toLocaleString()}</div>
       </div>`;
   }
@@ -1165,7 +1165,7 @@ function cardHTML(a) {
   const addr = [a.city, a.state].filter(Boolean).join(', ');
   const distHtml = (userLat !== null && a.distance !== null)
     ? `<span class="dist-pill">${formatDist(a.distance)}</span>` : '';
-  const phaseBadge = a.phase ? `<span class="meta-badge phase">${a.phase}</span>` : '';
+  const phaseBadge = '';
   const femaLabel = a.femaType ? `Building Type: <strong>${escHtml(a.femaType)}</strong>` : '';
   return `
     <article class="asset-card${selectedId === a.id ? ' selected' : ''}" role="listitem"
