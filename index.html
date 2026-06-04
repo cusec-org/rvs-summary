@@ -1151,6 +1151,7 @@ function renderList() {
   const el = document.getElementById('asset-list');
   const countEl = document.getElementById('list-count');
   countEl.textContent = `${filtered.length} Record${filtered.length !== 1 ? 's' : ''}`;
+  if (typeof renderMarkers === 'function' && markerCluster) renderMarkers();
 
   // Stats bar
   const statsAssets = filtered.length ? filtered : assets.filter(a => a.phase === 'Complete');
@@ -1265,7 +1266,7 @@ function toggleBasemap() {
 function renderMarkers() {
   markerCluster.clearLayers();
   markerMap = {};
-  assets.filter(a => a.phase === 'Complete').forEach(a => {
+  getFiltered().forEach(a => {
     if (a.lat === null || a.lng === null) return;
     const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
     const sc = a.level1Score;
