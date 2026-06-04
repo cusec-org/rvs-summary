@@ -456,7 +456,8 @@ const CONFIG = {
   // ▼ Replace with your registered ArcGIS Online app client ID
   clientId:     'POwkS9wlRIsqBvrJ',
   // ▼ Must exactly match the redirect URI registered in your AGOL app
-  redirectUri:  'https://cusec-org.github.io/RVS/',
+  // Derived at runtime — just register this page's URL in your AGOL app settings
+  redirectUri:  window.location.origin + window.location.pathname,
   authorizeUrl: 'https://www.arcgis.com/sharing/rest/oauth2/authorize',
   tokenUrl:     'https://www.arcgis.com/sharing/rest/oauth2/token',
   signOutUrl:   'https://www.arcgis.com/sharing/rest/oauth2/signout',
