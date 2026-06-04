@@ -1256,7 +1256,8 @@ function renderMarkers() {
     const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
     const sc = a.level1Score;
     const ringColor = scoreColor(sc, a.surveyType);
-    const iconHtml = `<div style="width:32px;height:32px;border-radius:50%;background:${ft.color};border:3px solid ${ringColor};display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${ft.icon}</div>`;
+    const mapIcon = ft.icon.replace(/width:\d+px;height:\d+px/, 'width:21px;height:21px');
+    const iconHtml = `<div style="width:32px;height:32px;border-radius:50%;background:${ft.color};border:3px solid ${ringColor};display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${mapIcon}</div>`;
     const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [32,32], iconAnchor: [16,16] });
     const marker = L.marker([a.lat, a.lng], { icon })
       .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(a.facilityType)}</div>${sc !== null ? `<div class="pop-score" style="color:${ringColor}">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
