@@ -112,27 +112,31 @@
     font-family: 'DM Sans', sans-serif;
   }
   .active-chip-x { font-size: 13px; line-height: 1; opacity: 0.8; margin-left: 1px; }
-  #filter-drawer {
-    overflow: hidden; max-height: 0;
-    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
-    background: var(--cusec-blue);
-    padding: 0 16px;
+  /* ── Filter Dropdown ── */
+  .filter-dropdown-wrap { position: relative; }
+  #filter-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 500;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
   }
-  #filter-drawer.open { max-height: 360px; padding: 12px 16px 14px; }
-  .fg-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
-  @media (min-width: 480px) { .fg-row { grid-template-columns: repeat(4, 1fr); } }
-  .fgt {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    cursor: pointer; user-select: none; opacity: 0.65; transition: opacity 0.15s, transform 0.15s;
-    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.15);
-    padding: 7px 4px; border-radius: 10px; color: white;
-    font-family: 'DM Sans', sans-serif;
+  #filter-dropdown.open { display: block; }
+  .fdd-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
+    font-family: 'DM Sans', sans-serif; border-bottom: 1px solid var(--border); user-select: none;
+    transition: background 0.1s;
   }
-  .fgt:hover { opacity: 0.95; background: rgba(255,255,255,0.12); }
-  .fgt.active { opacity: 1; background: white; border-color: white; color: var(--cusec-blue); transform: scale(1.02); }
-  .fgt-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-  .fgt-icon svg { width: 100%; height: 100%; }
-  .fgt-label { font-size: 10px; font-weight: 700; text-align: center; line-height: 1.15; }
+  .fdd-item:last-child { border-bottom: none; }
+  .fdd-item:hover { background: var(--surface2); }
+  .fdd-item.selected { background: #eef3ff; color: var(--cusec-blue); }
+  .fdd-check {
+    width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: white; transition: all 0.1s;
+  }
+  .fdd-item.selected .fdd-check { background: var(--cusec-blue); border-color: var(--cusec-blue); }
+  .fdd-icon { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .fdd-icon img { width: 22px; height: 22px; object-fit: contain; }
 
   /* Loading bar */
   #loading-bar { height: 3px; background: var(--cusec-gold); position: relative; overflow: hidden; display: none; }
@@ -379,7 +383,7 @@
       <input id="search-input" type="search" placeholder="Search by name, address, city, county…" autocomplete="off" oninput="onSearch()">
     </div>
     <div class="filter-row">
-      <button id="filter-toggle-btn" class="filter-btn" onclick="toggleFilterDrawer()" aria-expanded="false" aria-controls="filter-drawer">
+      <button id="filter-toggle-btn" class="filter-btn" onclick="toggleFilterDropdown(event)" aria-expanded="false" aria-controls="filter-dropdown">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         Filter
       </button>
@@ -389,8 +393,8 @@
       </button>
       <div id="active-filters" class="active-filters" role="region" aria-label="Active filters"></div>
     </div>
-    <div id="filter-drawer" aria-hidden="true" inert>
-      <div id="filter-grid"></div>
+    <div class="filter-dropdown-wrap">
+      <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
     </div>
     <div id="loading-bar" aria-hidden="true"></div>
   </header>
@@ -1001,57 +1005,61 @@ function showError(msg) {
 let map, userMarker, userLat = null, userLng = null;
 let markerCluster, markerMap = {};
 let assets = [];
-let activeFilter = 'all', activeScoreFilter = 'all', searchTerm = '', selectedId = null;
+let activeFilters = new Set(), activeScoreFilter = 'all', searchTerm = '', selectedId = null;
 let sortMode = 'recent'; // 'recent' | 'distance' | 'name' | 'score'
 let refreshTimer = null;
 
 // ════════════════════════════════════════════════════════════════
-//  FILTERS
+//  FILTERS — multi-select dropdown
 // ════════════════════════════════════════════════════════════════
-function buildFilterGrid() {
-  const allBtn = `
-    <button class="fgt active" data-key="all" aria-pressed="true" onclick="setFilter(this,'all')">
-      <div class="fgt-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5" fill="white"/></svg>
-      </div>
-      <div class="fgt-label">All</div>
-    </button>`;
-  const btns = FACILITY_KEYS.map(key => {
+function buildFilterDropdown() {
+  const dd = document.getElementById('filter-dropdown');
+  dd.innerHTML = FACILITY_KEYS.map(key => {
     const ft = FACILITY_TYPES[key];
-    const shortLabel = key.replace('Emergency Operations Centers','EOC').replace('Fire/Emergency Medical','Fire/EMS').replace('Government Admin. Offices','Gov. Admin').replace('Medical Offices/Clinics','Medical').replace('Utility/Public Works','Utility').replace('Law Enforcement','Law Enf.').replace('Universities','University').replace('Nursing Homes','Nursing');
-    return `
-      <button class="fgt" data-key="${key}" aria-pressed="false" onclick="setFilter(this,'${CSS.escape(key)}')" aria-label="Filter: ${key}">
-        <div class="fgt-icon" aria-hidden="true" style="color:${ft.color}">${ft.icon}</div>
-        <div class="fgt-label">${shortLabel}</div>
-      </button>`;
+    const iconHtml = ft.icon.replace(/width:\d+px;height:\d+px/, 'width:22px;height:22px');
+    return `<div class="fdd-item" data-key="${key}" role="option" aria-selected="false">
+      <div class="fdd-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" style="display:none"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="fdd-icon">${iconHtml}</div>
+      <span>${key}</span>
+    </div>`;
   }).join('');
-  document.getElementById('filter-grid').innerHTML = `<div class="fg-row" role="group" aria-label="Filter by facility type">${allBtn}${btns}</div>`;
-
-  // Re-register click handlers using data-key (handles spaces)
-  document.querySelectorAll('.fgt[data-key]').forEach(btn => {
-    btn.onclick = null;
-    btn.addEventListener('click', () => {
-      const key = btn.dataset.key;
-      document.querySelectorAll('.fgt').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
-      activeFilter = key;
+  dd.querySelectorAll('.fdd-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      const key = item.dataset.key;
+      if (activeFilters.has(key)) { activeFilters.delete(key); } else { activeFilters.add(key); }
+      updateDropdownUI();
       updateActiveFilterBar();
       renderList();
-      if (key !== 'all') toggleFilterDrawer(true);
     });
   });
 }
 
-function toggleFilterDrawer(forceClose = false) {
-  const drawer = document.getElementById('filter-drawer');
-  const btn    = document.getElementById('filter-toggle-btn');
-  const isOpen = drawer.classList.contains('open');
-  if (forceClose || isOpen) {
-    drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); drawer.setAttribute('inert',''); btn.setAttribute('aria-expanded','false');
-  } else {
-    drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); drawer.removeAttribute('inert'); btn.setAttribute('aria-expanded','true');
-  }
+function updateDropdownUI() {
+  document.querySelectorAll('.fdd-item').forEach(item => {
+    const sel = activeFilters.has(item.dataset.key);
+    item.classList.toggle('selected', sel);
+    item.setAttribute('aria-selected', sel);
+    item.querySelector('.fdd-check svg').style.display = sel ? '' : 'none';
+  });
+  const btn = document.getElementById('filter-toggle-btn');
+  btn.classList.toggle('has-filter', activeFilters.size > 0);
+  btn.setAttribute('aria-expanded', document.getElementById('filter-dropdown').classList.contains('open'));
 }
+
+function toggleFilterDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('filter-dropdown');
+  const btn = document.getElementById('filter-toggle-btn');
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  btn.setAttribute('aria-expanded', !isOpen);
+}
+
+document.addEventListener('click', () => {
+  const dd = document.getElementById('filter-dropdown');
+  if (dd) { dd.classList.remove('open'); document.getElementById('filter-toggle-btn')?.setAttribute('aria-expanded','false'); }
+});
 
 function toggleScoreFilter() {
   const modes = ['all', 'green', 'orange', 'red'];
@@ -1067,10 +1075,8 @@ function toggleScoreFilter() {
 }
 
 function clearFacilityFilter() {
-  document.querySelectorAll('.fgt').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-  const allBtn = document.querySelector('.fgt[data-key="all"]');
-  if (allBtn) { allBtn.classList.add('active'); allBtn.setAttribute('aria-pressed','true'); }
-  activeFilter = 'all';
+  activeFilters.clear();
+  updateDropdownUI();
   updateActiveFilterBar();
   renderList();
 }
@@ -1079,24 +1085,28 @@ function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById
 function updateActiveFilterBar() {
   const bar = document.getElementById('active-filters');
   const chips = [];
-  if (activeFilter !== 'all') chips.push({ kind: 'facility', label: activeFilter });
+  activeFilters.forEach(f => chips.push({ kind: 'facility', key: f, label: f }));
   if (activeScoreFilter !== 'all') {
     const sl = { green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
     chips.push({ kind: 'score', label: sl[activeScoreFilter] });
   }
   bar.innerHTML = chips.map(c =>
-    `<button class="active-chip" type="button" data-clear="${c.kind}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
+    `<button class="active-chip" type="button" data-clear="${c.kind}" data-key="${c.key||''}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
   ).join('');
   if (!bar._bound) {
     bar._bound = true;
     bar.addEventListener('click', e => {
       const chip = e.target.closest('.active-chip[data-clear]');
       if (!chip) return;
-      if (chip.getAttribute('data-clear') === 'facility') clearFacilityFilter();
+      if (chip.getAttribute('data-clear') === 'facility') {
+        activeFilters.delete(chip.getAttribute('data-key'));
+        updateDropdownUI();
+        updateActiveFilterBar();
+        renderList();
+      }
       if (chip.getAttribute('data-clear') === 'score') clearScoreFilter();
     });
   }
-  document.getElementById('filter-toggle-btn').classList.toggle('has-filter', activeFilter !== 'all');
 }
 
 function onSearch() { searchTerm = document.getElementById('search-input').value.toLowerCase(); renderList(); }
@@ -1113,7 +1123,7 @@ function toggleSort() {
 function getFiltered() {
   let list = assets.filter(a => {
     if (a.phase !== 'Complete') return false;
-    if (activeFilter !== 'all' && a.facilityType !== activeFilter) return false;
+    if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
       const s = a.level1Score;
       if (activeScoreFilter === 'green'  && !(s !== null && s >= 2.0)) return false;
@@ -1143,10 +1153,13 @@ function renderList() {
   countEl.textContent = `${filtered.length} Record${filtered.length !== 1 ? 's' : ''}`;
 
   // Stats bar
-  const completeAssets = assets.filter(a => a.phase === 'Complete');
-  if (completeAssets.length) {
-    const total = completeAssets.length;
-    const atRisk = completeAssets.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
+  const statsAssets = filtered.length ? filtered : assets.filter(a => a.phase === 'Complete');
+  if (statsAssets.length || assets.filter(a=>a.phase==='Complete').length) {
+    const base = assets.filter(a => a.phase === 'Complete');
+    const total = (activeFilters.size > 0 || activeScoreFilter !== 'all' || searchTerm) ? filtered.length : base.length;
+    const atRisk = (activeFilters.size > 0 || activeScoreFilter !== 'all' || searchTerm)
+      ? filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length
+      : base.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
     statsBar.style.display = 'grid';
@@ -1543,7 +1556,7 @@ async function bootApp() {
   document.getElementById('login-screen').hidden = true;
   document.getElementById('app').hidden = false;
   initMap();
-  buildFilterGrid();
+  buildFilterDropdown();
   // Try cached data immediately for fast start
   const cached = loadCachedData();
   if (cached) {
@@ -1589,4 +1602,4 @@ init();
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
