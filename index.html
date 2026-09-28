@@ -256,7 +256,7 @@
     cursor: pointer; font-size: 18px; line-height: 1; color: var(--text2);
   }
   .sheet-score-banner {
-    margin: 14px 20px 0; border-radius: var(--radius-sm); padding: 14px 16px;
+    margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 14px 16px; /* right gap keeps the × button clear */
     display: flex; align-items: center; gap: 14px; color: white;
   }
   .banner-score-num { font-size: 32px; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; flex-shrink: 0; }
@@ -331,7 +331,21 @@
     #header        { grid-column: 1 / -1; grid-row: 1; }
     #list-section  { grid-column: 1; grid-row: 2; border-right: 1px solid var(--border); }
     #map-container { grid-column: 2; grid-row: 2; height: 100%; }
-    #detail-content { left: 0; right: auto; bottom: 0; width: 420px; max-width: 420px; margin: 0; max-height: calc(100vh - 60px); }
+    /* Detail panel docks over the map, on the opposite side from the list,
+       and slides in from the right (same as RVS-Side-by-Side). The panel's
+       exact top/left/width/height are set by positionDetailPanel() to
+       match #map-container's on-screen box. */
+    #detail-sheet { overflow: hidden; }
+    #detail-overlay { display: none; } /* list stays usable while the panel is open */
+    #detail-content {
+      position: absolute; inset: 0;
+      max-width: none; margin: 0; border-radius: 0; border-left: 1px solid var(--border);
+      box-shadow: -10px 0 28px rgba(0,0,0,0.14);
+      padding: 0 0 env(safe-area-inset-bottom,0px);
+      transform: translateX(100%); max-height: none; height: 100%;
+    }
+    #detail-sheet.open #detail-content { transform: translateX(0); }
+    .sheet-handle { display: none; } /* drag handle only makes sense on a bottom sheet */
   }
   @media (min-width: 600px) { #app { box-shadow: var(--shadow-lg); } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
@@ -1477,11 +1491,32 @@ function selectAsset(id, panMap = true) {
   openDetail(a);
 }
 
+const DESKTOP_MQ = window.matchMedia('(min-width: 900px)');
+// On wide screens, size the detail panel to exactly cover the map area
+// (right of the list). On phones, clear it so the bottom sheet CSS applies.
+function positionDetailPanel() {
+  const sheet = document.getElementById('detail-sheet');
+  if (DESKTOP_MQ.matches) {
+    const rect = document.getElementById('map-container').getBoundingClientRect();
+    Object.assign(sheet.style, { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+  } else {
+    Object.assign(sheet.style, { top: '', left: '', width: '', height: '' });
+  }
+}
+window.addEventListener('resize', positionDetailPanel);
+DESKTOP_MQ.addEventListener('change', () => {
+  positionDetailPanel();
+  const open = document.getElementById('detail-sheet').classList.contains('open');
+  document.body.style.overflow = (open && !DESKTOP_MQ.matches) ? 'hidden' : '';
+});
+
 function openDetail(a) {
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
+  document.getElementById('detail-content').scrollTop = 0;
+  positionDetailPanel();
   sheet.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  if (!DESKTOP_MQ.matches) document.body.style.overflow = 'hidden';
   // Load attachments
   loadAttachments(a.id);
 }
