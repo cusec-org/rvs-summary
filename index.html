@@ -263,6 +263,16 @@
   .banner-score-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
   .banner-score-desc { font-size: 12px; margin-top: 3px; opacity: 0.92; line-height: 1.35; }
   .sheet-header { padding: 14px 20px 10px; }
+  /* Detail grid — same look as the RVS-Side-by-Side diff grid, one value column */
+  .sec-label { display: flex; align-items: center; justify-content: space-between; }
+  .field-grid { display: grid; grid-template-columns: 150px 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: 12.5px; }
+  .field-grid > div { background: var(--surface); padding: 7px 9px; word-break: break-word; }
+  .field-head { background: var(--surface2) !important; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text3); }
+  .field-key { color: var(--text3); font-weight: 600; }
+  .field-val { color: var(--text); white-space: pre-line; }
+  .field-val.flag-yes { color: #842029; font-weight: 700; }
+  .field-val.flag-no { color: #1b5e20; font-weight: 600; }
+  .field-val.alert { color: #D22B2B; font-weight: 700; }
   .sheet-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 3px; }
   .sheet-addr { font-size: 13px; color: var(--text2); line-height: 1.4; }
   .sheet-dist { font-size: 12px; font-family: 'DM Mono',monospace; font-weight: 700; margin-top: 5px; color: #003a8c; }
@@ -569,13 +579,29 @@ const CHOICE_LABELS = {
   PlanIrregularitiesPresent: { torsion:'Torsion', non_parallel_system:'Non-Parallel System', reentrant_corner:'Re-entrant Corner', diaphragm_opening:'Diaphragm Opening', beams_misaligned:'Beams Misaligned' },
 };
 ['Liquefaction','Landslide','SurfaceRupture','Additions','DrawingsReviewed','YearBuiltEstimated',
+ 'EngineerReviewExterior','EngineerReviewVertical','EngineerReviewPlan','EngineerReviewInterior',
+ 'TorsionalIrr','NonParallelSystem','ReentrantCorner','DiaphragmOpening','C1C2BuildingOutofPlane','OtherPlanIrregularity',
+ 'PoundingAlign','PoundingTaller','PoundingEnd','S2Building','C1Building','PC1RM1BuildingQ1','PC1RM1BuildingQ2',
+ 'URMQ1','MHQ1','Redundancy','RetrofitQ1','EQ1','EQ2','EQ3','EQ4','EQ5','EQ6','EQ7','IQ1','IQ2','ObservableDamage',
  'PlanIrregularities','PreCodeQ','PostBenchmarkQ','PerformLevel2','EngineerReview']
   .forEach(f => { if (!CHOICE_LABELS[f]) CHOICE_LABELS[f] = YES_NO_LABELS; });
+// Coded-value domain labels read from the target layer's own schema at
+// load time ({ FieldName: { code: 'Label' } }). These are the labels set
+// in the Survey123 form, so they win over CHOICE_LABELS above. Cached so
+// the labels still show offline.
+let DOMAIN_LABELS = {};
+const DOMAIN_CACHE_KEY = 'rvs_domains_v1';
+try { DOMAIN_LABELS = JSON.parse(localStorage.getItem(DOMAIN_CACHE_KEY) || '{}') || {}; } catch { DOMAIN_LABELS = {}; }
+function _labelMap(field) {
+  const d = DOMAIN_LABELS[field], c = CHOICE_LABELS[field];
+  if (d && c) return Object.assign({}, c, d);
+  return d || c || null;
+}
 function _tidyCode(v) { return String(v).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
 // choiceLabel('Exterior', 'all_sides') → 'All Sides'; multi-select → comma list
 function choiceLabel(field, value) {
   if (value === null || value === undefined || value === '') return '';
-  const map = CHOICE_LABELS[field];
+  const map = _labelMap(field);
   const one = tok => (map && Object.prototype.hasOwnProperty.call(map, tok)) ? map[tok]
                      : (/^[a-z0-9]+(_[a-z0-9]+)+$/.test(tok) ? _tidyCode(tok) : tok);
   const str = String(value).trim();
@@ -585,6 +611,43 @@ function choiceLabel(field, value) {
   return one(str);
 }
 function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
+
+// ════════════════════════════════════════════════════════════════
+//  DETAIL-SHEET FIELD GROUPS  (copied from RVS-Side-by-Side so both
+//  apps read the same way). Rows with no value are hidden, and a
+//  section with no values at all is skipped.
+// ════════════════════════════════════════════════════════════════
+const DETAIL_IDENTITY_FIELDS = ['Address', 'City', 'ZIP', 'County', 'Screener', 'Date', 'ContactPerson', 'source'];
+const DETAIL_GROUPS = [
+  { title: 'Screening Type & Extent', fields: ['SurveyType', 'Exterior', 'Interior', 'NonstructuralReview', 'Phase', 'DnsReason', 'DnsOther'] },
+  { title: 'Building Details & Screening Information', fields: ['YearBuilt', 'YearBuiltEstimated', 'Additions', 'AdditionsYearBuilt', 'TotalFloorArea', 'StoriesAboveGrade', 'StoriesBelowGrade', 'Use', 'EssentialFacility', 'IsShelter', 'Occupancy', 'OccupancyOthers', 'HAZUSOccupancy', 'FEMABuildingType', 'Units', 'Seismicity', 'SeismicitySource', 'SsSpectralAcc', 'SeismicitySs', 'S1SpectralAcc', 'SeismicityS1', 'SoilType', 'CodeYear', 'DrawingsReviewed', 'OnsiteGenerator', 'OtherIdentifiers'] },
+  { title: 'Score Modifiers', fields: ['VertIrregularities', 'VertIrregularitiesType', 'VertIrregularitiesPresent', 'PlanIrregularities', 'PlanIrregularitiesType', 'PlanIrregularitiesPresent', 'TorsionalIrr', 'NonParallelSystem', 'ReentrantCorner', 'DiaphragmOpening', 'C1C2BuildingOutofPlane', 'OtherPlanIrregularity', 'PoundingAlign', 'PoundingTaller', 'PoundingEnd', 'PoundingSeparationGap', 'PoundingStories', 'S2Building', 'C1Building', 'PC1RM1BuildingQ1', 'PC1RM1BuildingQ2', 'URMQ1', 'MHQ1', 'Redundancy', 'RetrofitQ1', 'PreCodeQ', 'PostBenchmarkQ', 'WeakSoftStory', 'Adjacency', 'Anchored', 'Isolators'] },
+  { title: 'Hazards', fields: ['OtherHazards', 'ExtFallingHazards', 'FallingHazardsOther', 'Landslide', 'SurfaceRupture', 'Liquefaction', 'NaturalGas', 'GasShutoff', 'FlexibleGasLines', 'EmergencyWaterandFoodSupplies', 'FurnitureFixturesEquipment', 'WaterHeaters', 'FireSuppression', 'DropCeilings', 'LayInLightFixtures', 'BoilersChillersHVACsystems', 'HeavyEquipment', 'GasFiredEquipment', 'OtherMEPEquipment', 'FuelorPropaneTanks', 'EgressRoutes', 'OtherNonstructural', 'NonstructuralSeismicPerformance', 'EQ1', 'EQ2', 'EQ3', 'EQ4', 'EQ5', 'EQ6', 'EQ7', 'IQ1', 'IQ2', 'ObservableDamage'] },
+  { title: 'Score', fields: ['BasicScore', 'Level1Score', 'FinalSL1Score', 'VL1', 'PL1', 'AdjustedBaselineScore', 'PerformLevel2', 'Level2Score', 'DetailedEvalRecommended', 'DetailedEvalRequired', 'IsDetailedRequired'] },
+  { title: 'Comments', fields: ['Level1Comments', 'Level2Comments', 'ReviewComments', 'ScreenerCommentsBuilding', 'ScreenerCommentsExterior', 'ScreenerCommentsInterior', 'EngineerCommentsExterior', 'EngineerCommentsVertical', 'EngineerCommentsPlan', 'EngineerCommentsInterior', 'EngineerReview', 'EngineerReviewExterior', 'EngineerReviewVertical', 'EngineerReviewPlan', 'EngineerReviewInterior'] },
+];
+const DETAIL_LABELS = {
+  SsSpectralAcc: 'SS Spectral Acc (g)', S1SpectralAcc: 'S1 Spectral Acc (g)', VL1: 'Vertical Irr. (VL1)',
+  PL1: 'Plan Irr. (PL1)', AdjustedBaselineScore: "Adjusted Baseline Score (S')", FinalSL1Score: 'Final SL1 Score',
+  DnsReason: 'Did-Not-Screen Reason', DnsOther: 'DNS — Other', PC1RM1BuildingQ1: 'PC1/RM1: roof-to-wall ties',
+  PC1RM1BuildingQ2: 'PC1/RM1: closely spaced walls', URMQ1: 'URM: gable walls present', MHQ1: 'MH: seismic bracing present',
+  C1C2BuildingOutofPlane: 'C1/C2: beams out-of-plane', EQ1: 'Ext. Q1: URM parapet/chimney', EQ2: 'Ext. Q2: heavy cladding/veneer',
+  EQ3: 'Ext. Q3: heavy canopy', EQ4: 'Ext. Q4: URM appendage', EQ5: 'Ext. Q5: hazmat sign', EQ6: 'Ext. Q6: taller adjacent URM',
+  EQ7: 'Ext. Q7: other falling hazard', IQ1: 'Int. Q1: hollow clay tile/brick', IQ2: 'Int. Q2: other falling hazard',
+  VL1_2: 'VL1', SsSpectralAcc2: 'SS',
+  // Friendlier names for the fields the field app always showed
+  SurveyType: 'Screening Type', NonstructuralReview: 'Nonstructural Review', TotalFloorArea: 'Square Feet',
+  StoriesAboveGrade: '# of Stories Above Grade', StoriesBelowGrade: '# of Stories Below Grade', EssentialFacility: 'Facility Type',
+  IsShelter: 'Is Shelter', HAZUSOccupancy: 'HAZUS Occupancy', FEMABuildingType: 'FEMA Building Type', ZIP: 'ZIP',
+  Date: 'Date of Screening', ContactPerson: 'Contact Person', source: 'Source', PreCodeQ: 'Pre-Code', PostBenchmarkQ: 'Post-Benchmark',
+  Level1Score: 'Final Level 1 Score', Level2Score: 'Final Level 2 Score', ExtFallingHazards: 'Exterior Falling Hazards',
+  OtherHazards: 'Other Observed Hazards', IsDetailedRequired: 'Detailed Structural Evaluation Recommended?',
+  Level1Comments: 'Level 1 Comments', Level2Comments: 'Level 2 Comments', ReviewComments: 'Review Comments',
+  VertIrregularitiesPresent: 'Vertical Irregularities Present', PlanIrregularitiesPresent: 'Plan Irregularities Present',
+};
+function detailLabel(field) {
+  return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
+}
 
 // ════════════════════════════════════════════════════════════════
 //  FACILITY TYPES  (EssentialFacility field)
@@ -935,6 +998,7 @@ function featureToAsset(feature) {
     planIrr:       p[FIELDS.planIrr]        || '',
     vertIrrPresent:p[FIELDS.vertIrrPresent] || '',
     planIrrPresent:p[FIELDS.planIrrPresent] || '',
+    attrs:         Object.fromEntries(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')),
     preCode:       p[FIELDS.preCode]        || '',
     postBenchmark: p[FIELDS.postBenchmark]  || '',
     hazus:         p[FIELDS.hazus]          || '',
@@ -973,7 +1037,25 @@ async function resolveServiceUrl() {
   let url = String(data.url).replace(/\/+$/, '');
   if (!/\/\d+$/.test(url)) url += `/${CONFIG.layerIndex}`;
   CONFIG.serviceUrl = url;
+  await loadDomainLabels();
   return url;
+}
+async function loadDomainLabels() {
+  try {
+    const info = await arcgisFetch(`${CONFIG.serviceUrl}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+    const out = {};
+    const add = (fname, domain) => {
+      if (!domain || domain.type !== 'codedValue' || !domain.codedValues) return;
+      out[fname] = out[fname] || {};
+      domain.codedValues.forEach(cv => { out[fname][String(cv.code)] = cv.name; });
+    };
+    (info.fields || []).forEach(f => add(f.name, f.domain));
+    (info.types || []).forEach(t => Object.entries(t.domains || {}).forEach(([fname, dom]) => add(fname, dom)));
+    DOMAIN_LABELS = out;
+    try { localStorage.setItem(DOMAIN_CACHE_KEY, JSON.stringify(out)); } catch {}
+  } catch (e) {
+    console.warn('Could not load field domains; using built-in labels.', e);
+  }
 }
 
 async function fetchAssets() {
@@ -1258,7 +1340,7 @@ function cardHTML(a) {
   const distHtml = (userLat !== null && a.distance !== null)
     ? `<span class="dist-pill">${formatDist(a.distance)}</span>` : '';
   const phaseBadge = '';
-  const femaLabel = a.femaType ? `Building Type: <strong>${escHtml(a.femaType)}</strong>` : '';
+  const femaLabel = a.femaType ? `Building Type: <strong>${escHtml(choiceLabel(FIELDS.femaType, a.femaType))}</strong>` : '';
   return `
     <article class="asset-card${selectedId === a.id ? ' selected' : ''}" role="listitem"
       onclick="selectAsset(${a.id})" tabindex="0"
@@ -1341,7 +1423,7 @@ function renderMarkers() {
     const iconHtml = `<div style="width:32px;height:32px;border-radius:50%;background:${ft.color};border:3px solid ${ringColor};display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${mapIcon}</div>`;
     const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [32,32], iconAnchor: [16,16] });
     const marker = L.marker([a.lat, a.lng], { icon })
-      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(a.facilityType)}</div>${sc !== null ? `<div class="pop-score" style="color:${ringColor}">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
+      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(choiceLabel(FIELDS.essentialFacility, a.facilityType))}</div>${sc !== null ? `<div class="pop-score" style="color:${ringColor}">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
       .on('click', () => selectAsset(a.id, false));
     markerCluster.addLayer(marker);
     markerMap[a.id] = marker;
@@ -1440,7 +1522,7 @@ function buildDetailHTML(a) {
   const extentParts = [];
   if (a.exterior) extentParts.push(`Exterior: ${choiceLabel('Exterior', a.exterior)}`);
   if (a.interior) extentParts.push(`Interior: ${choiceLabel('Interior', a.interior)}`);
-  if (a.nonstructReview) extentParts.push(`Nonstructural Review: ${a.nonstructReview}`);
+  if (a.nonstructReview) extentParts.push(`Nonstructural Review: ${choiceLabel(FIELDS.nonstructReview, a.nonstructReview)}`);
   const extentStr = extentParts.join('\n');
 
   // Detailed eval text
@@ -1452,7 +1534,46 @@ function buildDetailHTML(a) {
     else detailedEvalText = choiceLabel('DetailedEvalRequired', a.detailedReq);
   }
 
+  const attrs = a.attrs || {};
+  function fieldValue(f) {
+    if (f === 'Date') return a.dateStr || '';
+    if (f === 'County') return a.county || '';
+    if (f === 'IsDetailedRequired') return detailedEvalText;
+    const raw = attrs[f];
+    if (raw === undefined || raw === null || String(raw).trim() === '') return '';
+    if (typeof raw === 'number' && !Number.isInteger(raw)) return String(Number(raw.toFixed(3)));
+    return choiceLabel(f, raw);
+  }
+  function fieldSection(title, fields, extraHtml) {
+    const rows = fields.map(f => {
+      const v = fieldValue(f);
+      if (!v && v !== 0) return '';
+      const raw = String(attrs[f] ?? '').toLowerCase();
+      const cls = f === 'IsDetailedRequired' && v.startsWith('Yes') ? ' alert'
+                : raw === 'yes' ? ' flag-yes' : raw === 'no' ? ' flag-no' : '';
+      return `<div class="field-key">${escHtml(detailLabel(f))}</div><div class="field-val${cls}">${escHtml(String(v))}</div>`;
+    }).join('');
+    if (!rows && !extraHtml) return '';
+    return `
+    <div class="sec">
+      <div class="sec-label">${escHtml(title)}</div>
+      ${extraHtml || ''}
+      ${rows ? `<div class="field-grid"><div class="field-head">Field</div><div class="field-head">Value</div>${rows}</div>` : ''}
+    </div>`;
+  }
+  const scoreBar = (sc !== null && a.surveyType !== 'Nonstructural Screening') ? `
+      <div class="score-bar-wrap" style="margin:0 0 10px">
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:${barPct}%;background:${scColor}"></div></div>
+        <div class="score-bar-labels"><span>0</span><span>1.0</span><span>2.0 ✂</span><span>3.0</span><span>4.0+</span></div>
+      </div>` : '';
+
   return `
+    <!-- Score banner (same slot as the side-by-side's status banner) -->
+    <div class="sheet-score-banner" style="background:${scColor};color:${scTextColor}">
+      <div class="banner-score-num">${scInfo.short}</div>
+      <div><div class="banner-score-label">Final Level 1 Score</div><div class="banner-score-desc">${escHtml(scInfo.desc)}</div></div>
+    </div>
+
     <!-- Name + address -->
     <div class="sheet-header">
       <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
@@ -1462,102 +1583,8 @@ function buildDetailHTML(a) {
     </div>
 
     <div class="sdiv"></div>
-
-    <!-- Screening Type & Extent -->
-    <div class="sec">
-      <div class="kv-grid">
-        ${kv('Screening Type', a.surveyType || 'P-154 Rapid Visual Screening')}
-        ${extentStr ? `<span class="kv-key">Extent of Review</span><span class="kv-val" style="white-space:pre-line">${escHtml(extentStr)}</span>` : ''}
-        ${kv('Date of Screening', a.dateStr)}
-        ${kv('Screener', a.screener)}
-        ${kv('Contact Person', a.contactPerson)}
-        ${kv('Phase', a.phase)}
-        ${kv('Source', a.source)}
-      </div>
-    </div>
-
-    <div class="sdiv"></div>
-
-    <!-- Building Details -->
-    <div class="sec">
-      <div class="sec-label">Building Details &amp; Screening Information</div>
-      <div class="kv-grid">
-        ${kv('Year Built', a.yearBuilt)}
-        ${kv('Additions', choiceLabel('Additions', a.additions))}
-        ${kv('Square Feet', a.floorArea)}
-        ${kv('# of Stories', a.storiesAbove)}
-        ${kv('Facility Type', a.facilityType)}
-        ${kv('Is Shelter', a.isShelter)}
-        ${kv('Occupancy', choiceLabel('Occupancy', a.occupancy))}
-        ${kv('FEMA Building Type', a.femaType)}
-        ${kv('Seismicity', a.seismicity)}
-        ${kv('Soil Type', choiceLabel('SoilType', a.soilType))}
-        ${kv('Code Year', a.codeYear)}
-        ${kv('Drawings Reviewed', choiceLabel('DrawingsReviewed', a.drawingsReviewed))}
-        ${kv('Onsite Generator', a.onsiteGenerator)}
-      </div>
-    </div>
-
-    <div class="sdiv"></div>
-
-    <!-- Score Modifiers -->
-    <div class="sec">
-      <div class="sec-label">Score Modifiers</div>
-      <div class="kv-grid">
-        ${kv('Vertical Irregularities', a.vertIrrPresent ? choiceLabel('VertIrregularitiesPresent', a.vertIrrPresent) : choiceLabel('VertIrregularities', a.vertIrr))}
-        ${kv('Plan Irregularities', a.planIrrPresent ? choiceLabel('PlanIrregularitiesPresent', a.planIrrPresent) : choiceLabel('PlanIrregularities', a.planIrr))}
-        ${a.preCode ? `<span class="kv-key">Pre-Code</span><span class="kv-val">${isYes(a.preCode) ? 'Yes' : 'No'}</span>` : ''}
-        ${a.postBenchmark ? `<span class="kv-key">Post-Benchmark</span><span class="kv-val">${isYes(a.postBenchmark) ? 'Yes' : 'No'}</span>` : ''}
-      </div>
-    </div>
-
-    <div class="sdiv"></div>
-
-    <!-- Hazards -->
-    <div class="sec">
-      <div class="kv-grid">
-        ${kv('Other Observed Hazards', choiceLabel('OtherHazards', a.otherHazards) || 'None')}
-        ${kv('Exterior Falling Hazards', choiceLabel('ExtFallingHazards', a.extFallingHazards) || 'None')}
-        ${a.liquifaction || a.landslide || a.surfaceRupture
-          ? `<span class="kv-key">Geologic Hazards</span><span class="kv-val">${[
-              isYes(a.liquifaction) ? 'Liquefaction' : null,
-              isYes(a.landslide) ? 'Landslide' : null,
-              isYes(a.surfaceRupture) ? 'Surface Rupture' : null,
-            ].filter(Boolean).join(', ') || 'None'}</span>` : `${kv('Geologic Hazards', 'None')}`}
-      </div>
-    </div>
-
-    <div class="sdiv"></div>
-
-    <!-- Score -->
-    <div class="sec">
-      <div class="score-bar-wrap" style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Final Level 1 Score</div>
-          <div class="score-pill" style="background:${scColor};color:${scTextColor};font-size:14px;padding:4px 12px">${scInfo.short}</div>
-        </div>
-        ${sc !== null && a.surveyType !== 'Nonstructural Screening' ? `
-        <div class="score-bar-track">
-          <div class="score-bar-fill" style="width:${barPct}%;background:${scColor}"></div>
-        </div>
-        <div class="score-bar-labels"><span>0</span><span>1.0</span><span>2.0 ✂</span><span>3.0</span><span>4.0+</span></div>` : ''}
-      </div>
-      <div class="kv-grid">
-        ${a.level2Score !== null ? kv('Final Level 2 Score', a.level2Score.toFixed(2)) : ''}
-        ${kv('Basic Score', a.basicScore)}
-        <span class="kv-key">Detailed Structural Evaluation Recommended?</span>
-        <span class="kv-val" style="font-weight:600;color:${detailedEvalText.startsWith('Yes') ? '#D22B2B' : 'var(--text)'}">${escHtml(detailedEvalText || '—')}</span>
-      </div>
-    </div>
-
-    ${(a.level1Comments || a.level2Comments || a.reviewComments) ? `
-    <div class="sdiv"></div>
-    <div class="sec">
-      <div class="sec-label">Comments</div>
-      ${a.level1Comments ? `<p style="font-size:13px;color:var(--text);margin-bottom:8px"><strong>Level 1:</strong> ${escHtml(a.level1Comments)}</p>` : ''}
-      ${a.level2Comments ? `<p style="font-size:13px;color:var(--text);margin-bottom:8px"><strong>Level 2:</strong> ${escHtml(a.level2Comments)}</p>` : ''}
-      ${a.reviewComments ? `<p style="font-size:13px;color:var(--text)"><strong>Review:</strong> ${escHtml(a.reviewComments)}</p>` : ''}
-    </div>` : ''}
+    ${[fieldSection('Identification', DETAIL_IDENTITY_FIELDS), ...DETAIL_GROUPS.map(g => fieldSection(g.title, g.fields, g.title === 'Score' ? scoreBar : ''))]
+      .filter(Boolean).join('<div class="sdiv"></div>')}
 
     <div class="sdiv"></div>
 
