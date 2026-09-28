@@ -240,6 +240,7 @@
   .pop { padding: 11px 13px; min-width: 160px; }
   .pop-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
   .pop-type { font-size: 11px; font-weight: 600; }
+  .pop-date { font-size: 11px; color: var(--text2); margin-top: 3px; }
   .pop-score { font-size: 11px; font-family: 'DM Mono', monospace; margin-top: 4px; font-weight: 700; }
 
   /* ── Detail Sheet ── */
@@ -593,7 +594,7 @@ const CONFIG = {
   refreshBufferMs: 5 * 60 * 1000,
   refreshInterval: 5 * 60 * 1000,
   tokenKey:    'rvs_token_v1',
-  cacheKey:    'rvs_cache_v4', // bumped: old cache holds Simple Form records
+  cacheKey:    'rvs_cache_v5', // bumped: old cache holds Simple Form records
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -610,7 +611,7 @@ const FIELDS = {
   lat:              'Latitude',
   lng:              'Longitude',
   screener:         'Screener',
-  date:             'Date',
+  date:             'SurveyDate', // Date of Screening
   use:              'Use',
   occupancy:        'Occupancy',
   storiesAbove:     'StoriesAboveGrade',
@@ -752,7 +753,7 @@ function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
 //  apps read the same way). Rows with no value are hidden, and a
 //  section with no values at all is skipped.
 // ════════════════════════════════════════════════════════════════
-const DETAIL_IDENTITY_FIELDS = ['Address', 'City', 'ZIP', 'County', 'Screener', 'Date', 'ContactPerson', 'source'];
+const DETAIL_IDENTITY_FIELDS = ['Address', 'City', 'ZIP', 'County', 'Screener', 'SurveyDate', 'ContactPerson', 'source'];
 const DETAIL_GROUPS = [
   { title: 'Screening Type & Extent', fields: ['SurveyType', 'Exterior', 'Interior', 'NonstructuralReview', 'Phase', 'DnsReason', 'DnsOther'] },
   { title: 'Building Details & Screening Information', fields: ['YearBuilt', 'YearBuiltEstimated', 'Additions', 'AdditionsYearBuilt', 'TotalFloorArea', 'StoriesAboveGrade', 'StoriesBelowGrade', 'Use', 'EssentialFacility', 'IsShelter', 'Occupancy', 'OccupancyOthers', 'HAZUSOccupancy', 'FEMABuildingType', 'Units', 'Seismicity', 'SeismicitySource', 'SsSpectralAcc', 'SeismicitySs', 'S1SpectralAcc', 'SeismicityS1', 'SoilType', 'CodeYear', 'DrawingsReviewed', 'OnsiteGenerator', 'OtherIdentifiers'] },
@@ -774,7 +775,7 @@ const DETAIL_LABELS = {
   SurveyType: 'Screening Type', NonstructuralReview: 'Nonstructural Review', TotalFloorArea: 'Square Feet',
   StoriesAboveGrade: '# of Stories Above Grade', StoriesBelowGrade: '# of Stories Below Grade', EssentialFacility: 'Facility Type',
   IsShelter: 'Is Shelter', HAZUSOccupancy: 'HAZUS Occupancy', FEMABuildingType: 'FEMA Building Type', ZIP: 'ZIP',
-  Date: 'Date of Screening', ContactPerson: 'Contact Person', source: 'Source', PreCodeQ: 'Pre-Code', PostBenchmarkQ: 'Post-Benchmark',
+  Date: 'Date of Screening', SurveyDate: 'Date of Screening', ContactPerson: 'Contact Person', source: 'Source', PreCodeQ: 'Pre-Code', PostBenchmarkQ: 'Post-Benchmark',
   Level1Score: 'Final Level 1 Score', Level2Score: 'Final Level 2 Score', ExtFallingHazards: 'Exterior Falling Hazards',
   OtherHazards: 'Other Observed Hazards', IsDetailedRequired: 'Detailed Structural Evaluation Recommended?',
   Level1Comments: 'Level 1 Comments', Level2Comments: 'Level 2 Comments', ReviewComments: 'Review Comments',
@@ -1204,9 +1205,10 @@ async function resolveServiceUrl() {
 // new v3 submissions don't necessarily fill the same field, so picking one
 // field for the whole layer left some records with no date at all.
 let LAYER_DATES = { screenFields: [FIELDS.date], creationField: 'CreationDate', editField: 'EditDate' };
+const SCREEN_DATE_FIELDS = [FIELDS.date]; // SurveyDate — the populated Date of Screening
 try {
-  const c = JSON.parse(localStorage.getItem('rvs_datefields_v2') || '{}');
-  if (c && Array.isArray(c.screenFields)) LAYER_DATES = c;
+  const c = JSON.parse(localStorage.getItem('rvs_datefields_v3') || '{}');
+  if (c && Array.isArray(c.screenFields)) LAYER_DATES = Object.assign(c, { screenFields: SCREEN_DATE_FIELDS });
 } catch {}
 function _pickDateFields(info) {
   const efi = info.editFieldsInfo || {};
@@ -1235,8 +1237,8 @@ async function loadDomainLabels() {
       domain.codedValues.forEach(cv => { out[fname][String(cv.code)] = cv.name; });
     };
     (info.fields || []).forEach(f => add(f.name, f.domain));
-    LAYER_DATES = _pickDateFields(info);
-    try { localStorage.setItem('rvs_datefields_v2', JSON.stringify(LAYER_DATES)); } catch {}
+    LAYER_DATES = Object.assign(_pickDateFields(info), { screenFields: SCREEN_DATE_FIELDS });
+    try { localStorage.setItem('rvs_datefields_v3', JSON.stringify(LAYER_DATES)); } catch {}
     (info.types || []).forEach(t => Object.entries(t.domains || {}).forEach(([fname, dom]) => add(fname, dom)));
     DOMAIN_LABELS = out;
     try { localStorage.setItem(DOMAIN_CACHE_KEY, JSON.stringify(out)); } catch {}
@@ -1525,8 +1527,10 @@ function getFiltered() {
   // Records with a real screening date come first (newest on top); records
   // without one follow, ordered by created/edited date, so a migration-run
   // timestamp can never push an undated record above a dated screening.
+  // Most recent = SurveyDate, newest first. Records with no SurveyDate go to
+  // the bottom (newest record first among those).
   if (sortMode === 'recent') list.sort((a,b) => ((b.hasScreenDate ? 1 : 0) - (a.hasScreenDate ? 1 : 0))
-    || ((b.editDate ?? -Infinity) - (a.editDate ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
+    || ((b.dateRaw ?? -Infinity) - (a.dateRaw ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
   else if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
   else if (sortMode === 'score') list.sort((a,b) => (a.level1Score??Infinity)-(b.level1Score??Infinity));
   else list.sort((a,b) => a.buildingName.localeCompare(b.buildingName));
@@ -1665,7 +1669,7 @@ function renderMarkers() {
     const iconHtml = `<div style="width:32px;height:32px;border-radius:50%;background:${ft.color};border:3px solid ${ringColor};display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${mapIcon}</div>`;
     const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [32,32], iconAnchor: [16,16] });
     const marker = L.marker([a.lat, a.lng], { icon })
-      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(choiceLabel(FIELDS.essentialFacility, a.facilityType))}</div>${sc !== null ? `<div class="pop-score" style="color:var(--text2)">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
+      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(choiceLabel(FIELDS.essentialFacility, a.facilityType))}</div>${a.dateStr ? `<div class="pop-date">Screened: ${escHtml(a.dateStr)}</div>` : ''}${sc !== null ? `<div class="pop-score" style="color:var(--text2)">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
       .on('click', () => selectAsset(a.id, false));
     markerCluster.addLayer(marker);
     markerMap[a.id] = marker;
@@ -1826,7 +1830,7 @@ function buildDetailHTML(a) {
 
   const attrs = a.attrs || {};
   function fieldValue(f) {
-    if (f === 'Date') return a.dateStr || '';
+    if (f === 'Date' || f === 'SurveyDate') return a.dateStr || '';
     if (f === 'County') return a.county || '';
     if (f === 'IsDetailedRequired') return detailedEvalText;
     const raw = attrs[f];
