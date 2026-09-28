@@ -101,7 +101,7 @@
     cursor: pointer; transition: all 0.15s; white-space: nowrap; min-height: 32px;
   }
   .filter-btn:hover { border-color: var(--cusec-blue); color: var(--cusec-blue); }
-  .filter-btn.has-filter { background: var(--cusec-blue); border-color: var(--cusec-blue); color: white; }
+  .filter-btn.has-filter { background: #fff4d6; border-color: var(--cusec-gold); color: #1a1000; box-shadow: inset 0 0 0 1px var(--cusec-gold); } /* visible against the blue header */
   .active-filters { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; padding: 0; flex: 1; min-width: 0; overflow: hidden; }
   .active-filters:empty { display: none; }
   .active-chip {
@@ -120,6 +120,14 @@
     box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
   }
   #filter-dropdown.open { display: block; }
+  #phase-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 500;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
+  }
+  #phase-dropdown.open { display: block; }
+  .fdd-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); font-weight: 600; }
+  .fdd-empty { padding: 12px 14px; font-size: 12px; color: var(--text3); font-style: italic; }
   .fdd-item {
     display: flex; align-items: center; gap: 10px; padding: 9px 14px;
     cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
@@ -255,6 +263,17 @@
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; font-size: 18px; line-height: 1; color: var(--text2);
   }
+  .sheet-ribbon {
+    margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 13px 16px;
+    background: var(--cusec-blue); color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.2px;
+  }
+  .sheet-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .sheet-header-text { min-width: 0; flex: 1; }
+  .sheet-score { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .sheet-score-label { font-size: 12px; color: var(--text3); font-weight: 700; letter-spacing: 0.3px; }
+  a.addr-link { color: var(--cusec-blue); text-decoration: underline; text-underline-offset: 2px; display: inline; }
+  a.addr-link:hover { text-decoration-thickness: 2px; }
+  a.sheet-addr.addr-link { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
   .sheet-score-banner {
     margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 14px 16px; /* right gap keeps the × button clear */
     display: flex; align-items: center; gap: 14px; color: white;
@@ -364,14 +383,14 @@
     #detail-sheet.open #detail-content { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
     .sheet-handle { display: none; }
     #sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    #sheet-body .sheet-score-banner { flex: none; margin: 0; border-radius: 0; padding: 14px 60px 14px 18px; }
+    #sheet-body .sheet-ribbon { flex: none; margin: 0; border-radius: 0; padding: 20px 60px 20px 20px; }
     .sheet-close-btn { top: 17px; right: 14px; z-index: 2; background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.55); color: #fff; }
     .sheet-close-btn:hover { background: rgba(0,0,0,0.32); }
     .summary-grid { grid-template-columns: 190px 1fr; }
     .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 17px; right: 54px; z-index: 2;
       width: 32px; height: 32px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
     .sheet-dock-btn:hover { background: rgba(0,0,0,0.32); }
-    #sheet-body .sheet-score-banner { padding-right: 100px; }
+    #sheet-body .sheet-ribbon { padding-right: 100px; }
     /* Docked: flush to the right edge of the map, full height */
     #detail-sheet.docked #detail-content {
       top: 0; bottom: 0; left: auto; right: 0; width: min(760px, 100%);
@@ -459,10 +478,15 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Score
       </button>
+      <button class="filter-btn" id="phase-filter-btn" onclick="togglePhaseDropdown(event)" aria-expanded="false" aria-controls="phase-dropdown" title="Filter by phase">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Phase
+      </button>
       <div id="active-filters" class="active-filters" role="region" aria-label="Active filters"></div>
     </div>
     <div class="filter-dropdown-wrap">
       <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
+      <div id="phase-dropdown" class="phase-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by phase"></div>
     </div>
     <div id="loading-bar" aria-hidden="true"></div>
   </header>
@@ -819,16 +843,10 @@ const FACILITY_KEYS = Object.keys(FACILITY_TYPES);
 
 // ── Score helpers ────────────────────────────────────────────────
 // Matches Arcade logic: ≤2.0 = red, >2.0 = green, Nonstructural = amber
-function scoreColor(score, surveyType) {
-  if (surveyType === 'Nonstructural Screening') return CONFIG_SCORE.amber.color;
-  if (score === null || score === undefined || isNaN(score)) return CONFIG_SCORE.gray.color;
-  if (score > 2.0) return CONFIG_SCORE.green.color;
-  return CONFIG_SCORE.red.color;
-}
-function scoreTextColor(score, surveyType) {
-  if (surveyType === 'Nonstructural Screening') return '#000000';
-  return '#ffffff';
-}
+// Score colors removed (red/green/amber) — every score uses one neutral style.
+const SCORE_NEUTRAL = '#3a4150';
+function scoreColor(score, surveyType) { return SCORE_NEUTRAL; }
+function scoreTextColor(score, surveyType) { return '#ffffff'; }
 function scoreDisplay(score, surveyType) {
   if (surveyType === 'Nonstructural Screening') return 'N/A';
   if (score === null || score === undefined || isNaN(score)) return '—';
@@ -1285,6 +1303,10 @@ let map, userMarker, userLat = null, userLng = null;
 let markerCluster, markerMap = {};
 let assets = [];
 let activeFilters = new Set(), activeScoreFilter = 'all', searchTerm = '', selectedId = null;
+let activePhases = new Set(); // empty = all phases (no Phase filter)
+const NO_PHASE = '__none__';
+const phaseKey = a => a.phase || NO_PHASE;
+const phaseName = k => k === NO_PHASE ? 'No Phase' : k;
 let sortMode = 'recent'; // 'recent' | 'distance' | 'name' | 'score'
 let refreshTimer = null;
 
@@ -1331,6 +1353,7 @@ function toggleFilterDropdown(e) {
   const dd = document.getElementById('filter-dropdown');
   const btn = document.getElementById('filter-toggle-btn');
   const isOpen = dd.classList.contains('open');
+  document.getElementById('phase-dropdown').classList.remove('open');
   dd.classList.toggle('open', !isOpen);
   btn.setAttribute('aria-expanded', !isOpen);
 }
@@ -1338,6 +1361,8 @@ function toggleFilterDropdown(e) {
 document.addEventListener('click', () => {
   const dd = document.getElementById('filter-dropdown');
   if (dd) { dd.classList.remove('open'); document.getElementById('filter-toggle-btn')?.setAttribute('aria-expanded','false'); }
+  const pd = document.getElementById('phase-dropdown');
+  if (pd) { pd.classList.remove('open'); document.getElementById('phase-filter-btn')?.setAttribute('aria-expanded','false'); }
 });
 
 function toggleScoreFilter() {
@@ -1345,7 +1370,7 @@ function toggleScoreFilter() {
   const i = modes.indexOf(activeScoreFilter);
   activeScoreFilter = modes[(i + 1) % modes.length];
   const btn = document.getElementById('score-filter-btn');
-  const labels = { all: 'Score', green: '🟢 Score', orange: '🟠 Score', red: '🔴 Score' };
+  const labels = { all: 'Score', green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
   btn.textContent = '';
   btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ${labels[activeScoreFilter]}`;
   btn.classList.toggle('has-filter', activeScoreFilter !== 'all');
@@ -1361,16 +1386,57 @@ function clearFacilityFilter() {
 }
 function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById('score-filter-btn').classList.remove('has-filter'); updateActiveFilterBar(); renderList(); }
 
+// ── Phase filter ────────────────────────────────────────────────
+// Lists every phase present in the data (with counts). Nothing checked =
+// all phases shown. Replaces the old hard-coded "Complete only" rule.
+function buildPhaseDropdown() {
+  const dd = document.getElementById('phase-dropdown');
+  const counts = new Map();
+  assets.forEach(a => counts.set(phaseKey(a), (counts.get(phaseKey(a)) || 0) + 1));
+  activePhases.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
+  const keys = [...counts.keys()].sort((x, y) => x === NO_PHASE ? 1 : y === NO_PHASE ? -1 : x.localeCompare(y));
+  if (!keys.length) { dd.innerHTML = '<div class="fdd-empty">No records loaded yet</div>'; return; }
+  dd.innerHTML = keys.map(k => `<div class="fdd-item${activePhases.has(k) ? ' selected' : ''}" data-phase="${escHtml(k)}" role="option" aria-selected="${activePhases.has(k)}">
+      <div class="fdd-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" style="${activePhases.has(k) ? '' : 'display:none'}"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <span>${escHtml(phaseName(k))}</span><span class="fdd-count">${counts.get(k).toLocaleString()}</span>
+    </div>`).join('');
+  dd.querySelectorAll('.fdd-item').forEach(item => item.addEventListener('click', e => {
+    e.stopPropagation();
+    const k = item.dataset.phase;
+    activePhases.has(k) ? activePhases.delete(k) : activePhases.add(k);
+    buildPhaseDropdown(); updatePhaseBtn(); updateActiveFilterBar(); renderList();
+  }));
+}
+function updatePhaseBtn() {
+  document.getElementById('phase-filter-btn').classList.toggle('has-filter', activePhases.size > 0);
+}
+function togglePhaseDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('phase-dropdown');
+  const btn = document.getElementById('phase-filter-btn');
+  const open = !dd.classList.contains('open');
+  document.getElementById('filter-dropdown').classList.remove('open');
+  document.getElementById('filter-toggle-btn').setAttribute('aria-expanded', 'false');
+  if (open) { buildPhaseDropdown(); dd.style.left = `${btn.offsetLeft}px`; }
+  dd.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', open);
+}
+function clearPhaseFilter(k) {
+  k ? activePhases.delete(k) : activePhases.clear();
+  updatePhaseBtn(); updateActiveFilterBar(); renderList();
+}
+
 function updateActiveFilterBar() {
   const bar = document.getElementById('active-filters');
   const chips = [];
+  activePhases.forEach(k => chips.push({ kind: 'phase', key: k, label: `Phase: ${phaseName(k)}` }));
   activeFilters.forEach(f => chips.push({ kind: 'facility', key: f, label: f }));
   if (activeScoreFilter !== 'all') {
     const sl = { green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
     chips.push({ kind: 'score', label: sl[activeScoreFilter] });
   }
   bar.innerHTML = chips.map(c =>
-    `<button class="active-chip" type="button" data-clear="${c.kind}" data-key="${c.key||''}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
+    `<button class="active-chip" type="button" data-clear="${c.kind}" data-key="${escHtml(c.key||'')}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
   ).join('');
   if (!bar._bound) {
     bar._bound = true;
@@ -1384,6 +1450,7 @@ function updateActiveFilterBar() {
         renderList();
       }
       if (chip.getAttribute('data-clear') === 'score') clearScoreFilter();
+      if (chip.getAttribute('data-clear') === 'phase') clearPhaseFilter(chip.getAttribute('data-key'));
     });
   }
 }
@@ -1401,7 +1468,7 @@ function toggleSort() {
 
 function getFiltered() {
   let list = assets.filter(a => {
-    if (a.phase !== 'Complete') return false;
+    if (activePhases.size > 0 && !activePhases.has(phaseKey(a))) return false;
     if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
       const s = a.level1Score;
@@ -1433,24 +1500,24 @@ function renderList() {
   if (typeof renderMarkers === 'function' && markerCluster) renderMarkers();
 
   // Stats bar
-  const statsAssets = filtered.length ? filtered : assets.filter(a => a.phase === 'Complete');
-  if (statsAssets.length || assets.filter(a=>a.phase==='Complete').length) {
-    const base = assets.filter(a => a.phase === 'Complete');
-    const total = (activeFilters.size > 0 || activeScoreFilter !== 'all' || searchTerm) ? filtered.length : base.length;
-    const atRisk = (activeFilters.size > 0 || activeScoreFilter !== 'all' || searchTerm)
-      ? filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length
-      : base.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
+  // Stats bar — counts follow the current filters (including Phase)
+  if (assets.length) {
+    const total = filtered.length;
+    const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
+    const phases = [...activePhases];
+    const totalLabel = phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings — ${phaseName(phases[0])}`)
+                     : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
     statsBar.style.display = 'grid';
     statsBar.innerHTML = `
       <div class="stats-tile">
-        <div class="stats-label">Screenings Complete</div>
+        <div class="stats-label">${escHtml(totalLabel)}</div>
         <div class="stats-num">${total.toLocaleString()}</div>
       </div>
       <div class="stats-tile">
         <div class="stats-label">L1 Score ≤2.0</div>
-        <div class="stats-num red">${atRisk.toLocaleString()}</div>
+        <div class="stats-num">${atRisk.toLocaleString()}</div>
       </div>`;
   }
 
@@ -1549,12 +1616,12 @@ function renderMarkers() {
     if (a.lat === null || a.lng === null) return;
     const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
     const sc = a.level1Score;
-    const ringColor = scoreColor(sc, a.surveyType);
+    const ringColor = '#ffffff'; // neutral marker ring (no score color)
     const mapIcon = ft.icon.replace(/width:\d+px;height:\d+px/, 'width:21px;height:21px');
     const iconHtml = `<div style="width:32px;height:32px;border-radius:50%;background:${ft.color};border:3px solid ${ringColor};display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${mapIcon}</div>`;
     const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [32,32], iconAnchor: [16,16] });
     const marker = L.marker([a.lat, a.lng], { icon })
-      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(choiceLabel(FIELDS.essentialFacility, a.facilityType))}</div>${sc !== null ? `<div class="pop-score" style="color:${ringColor}">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
+      .bindPopup(`<div class="pop"><div class="pop-name">${escHtml(a.buildingName)}</div><div class="pop-type" style="color:${ft.color}">${escHtml(choiceLabel(FIELDS.essentialFacility, a.facilityType))}</div>${sc !== null ? `<div class="pop-score" style="color:var(--text2)">Score: ${sc.toFixed(1)}</div>` : ''}</div>`, { maxWidth: 220 })
       .on('click', () => selectAsset(a.id, false));
     markerCluster.addLayer(marker);
     markerMap[a.id] = marker;
@@ -1728,8 +1795,7 @@ function buildDetailHTML(a) {
       const v = fieldValue(f);
       if (!v && v !== 0) return '';
       const raw = String(attrs[f] ?? '').toLowerCase();
-      const cls = f === 'IsDetailedRequired' && v.startsWith('Yes') ? ' alert'
-                : raw === 'yes' ? ' flag-yes' : raw === 'no' ? ' flag-no' : '';
+      const cls = raw === 'yes' ? ' flag-yes' : raw === 'no' ? ' flag-no' : '';
       return `<div class="field-key">${escHtml(detailLabel(f))}</div><div class="field-val${cls}">${escHtml(String(v))}</div>`;
     }).join('');
     if (!rows && !extraHtml) return '';
@@ -1746,6 +1812,9 @@ function buildDetailHTML(a) {
         <div class="score-bar-labels"><span>0</span><span>1.0</span><span>2.0 ✂</span><span>3.0</span><span>4.0+</span></div>
       </div>` : '';
 
+  const streetViewUrl = (a.lat && a.lng)
+    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${a.lat},${a.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addrFull)}`;
   // ── Summary tab (matches the AGOL pop-up layout) ──
   const fmtShort = v => { const t = typeof v === 'number' ? v : Date.parse(v); if (!v || isNaN(t)) return ''; const d = new Date(t); return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`; };
   const line = (label, v) => (v || v === 0) ? `${label}: ${v}` : '';
@@ -1757,8 +1826,7 @@ function buildDetailHTML(a) {
   const summaryRows = [
     ['Screening Type', [choiceLabel(FIELDS.surveyType, attrs.SurveyType) || 'P-154 Rapid Visual Screening']],
     ['Extent of Review', [line('Exterior', fieldValue('Exterior')), line('Interior', fieldValue('Interior')), line('Nonstructural Review', fieldValue('NonstructuralReview'))]],
-    ['Address', [a.buildingName, a.address, [[a.city, a.state].filter(Boolean).join(', '), a.zip].filter(Boolean).join(' ') + (a.county ? ` (${a.county})` : '')]],
-    ['Date of Screening', [fmtShort(a.dateRaw) || a.dateStr]],
+    ['Date of Screening', [fmtShort(a.dateRaw) || a.dateStr || 'Not recorded']],
     ['Building Details & Screening Information', [
       line('Year Built', fieldValue('YearBuilt')), line('Additions', fieldValue('Additions')), line('Additions Year Built', addlYear),
       line('Square Feet', fieldValue('TotalFloorArea')), line('# of Stories', fieldValue('StoriesAboveGrade')),
@@ -1777,25 +1845,30 @@ function buildDetailHTML(a) {
   const summaryHTML = `<div class="sec"><div class="field-grid summary-grid">${summaryRows.map(([k, vals]) => {
       const v = vals.filter(x => x && String(x).trim() && !/^\s*\(\s*\)\s*$/.test(x));
       if (!v.length) return '';
-      const alert = k.startsWith('Detailed Structural') && String(v[0]).startsWith('Yes') ? ' alert' : '';
-      return `<div class="field-key">${escHtml(k)}</div><div class="field-val${alert}">${v.map(escHtml).join('<br>')}</div>`;
+      const alert = '';
+      const body = v.map(escHtml).join('<br>');
+      const val = body;
+      return `<div class="field-key">${escHtml(k)}</div><div class="field-val${alert}">${val}</div>`;
     }).join('')}</div></div>`;
 
   return `
-    <!-- Score banner (same slot as the side-by-side's status banner) -->
-    <div class="sheet-score-banner" style="background:${scColor};color:${scTextColor}">
-      <div class="banner-score-num">${scInfo.short}</div>
-      <div><div class="banner-score-label">Final Level 1 Score</div><div class="banner-score-desc">${escHtml(scInfo.desc)}</div></div>
-    </div>
+    <!-- Title ribbon -->
+    <div class="sheet-ribbon">Rapid Visual Screening Summary</div>
 
     <div class="detail-cols">
     <div class="detail-main">
     <!-- Name + address -->
-    <div class="sheet-header">
-      <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
-      ${addrFull ? `<div class="sheet-addr">${escHtml(addrFull)}</div>` : ''}
-      ${a.county ? `<div class="sheet-addr" style="margin-top:1px">${escHtml(a.county)} County</div>` : ''}
-      ${distHtml}
+    <div class="sheet-header sheet-header-row">
+      <div class="sheet-header-text">
+        <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
+        ${addrFull ? `<a class="sheet-addr addr-link" href="${streetViewUrl}" target="_blank" rel="noopener" title="Open in Google Street View">${escHtml(addrFull)}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
+        ${a.county ? `<div class="sheet-addr" style="margin-top:1px">${escHtml(a.county)} County</div>` : ''}
+        ${distHtml}
+      </div>
+      <div class="sheet-score" title="${escHtml(scInfo.desc)}">
+        <div class="sheet-score-label">L1 Score</div>
+        <div class="score-pill" style="background:${scColor};color:${scTextColor}">${scInfo.short}</div>
+      </div>
     </div>
 
     <div class="detail-tabs" role="tablist" aria-label="Record details">
@@ -1819,18 +1892,6 @@ function buildDetailHTML(a) {
       <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
     </div>
 
-    <!-- Navigation buttons -->
-    ${a.lat && a.lng ? `
-    <div class="nav-btns">
-      <a class="nav-btn goo" href="https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Google Maps
-      </a>
-      <a class="nav-btn apl" href="https://maps.apple.com/?daddr=${a.lat},${a.lng}" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Apple Maps
-      </a>
-    </div>` : ''}
     </div>
     </div>
   `;
