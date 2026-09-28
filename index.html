@@ -348,7 +348,20 @@
   /* ── Lightbox ── */
   #lightbox { position: fixed; inset: 0; z-index: 5500; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 24px; }
   #lightbox[hidden] { display: none; }
-  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+  #lightbox { flex-direction: column; gap: 12px; }
+  .lb-stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none; }
+  .lb-bar { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; text-align: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .lb-caption { font-size: 13px; font-weight: 700; }
+  .lb-caption:empty { display: none; }
+  .lb-count { font-size: 12px; font-family: 'DM Mono', monospace; opacity: 0.8; }
+  .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%;
+            background: rgba(0,0,0,0.55); border: 1.5px solid rgba(255,255,255,0.85); color: #fff; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+  .lb-nav:hover { background: rgba(255,255,255,0.2); }
+  .lb-nav[hidden] { display: none; }
+  .lb-prev { left: 16px; } .lb-next { right: 16px; }
+  @media (max-width: 600px) { .lb-nav { width: 42px; height: 42px; } .lb-prev { left: 8px; } .lb-next { right: 8px; } }
   #lightbox .close { position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px; background: rgba(0,0,0,0.6); border: 1.5px solid white; color: white; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center; }
 
   /* ── Stats Bar ── */
@@ -536,9 +549,19 @@
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Image viewer">
-  <img id="lightbox-img" src="" alt="">
-  <button class="close" onclick="closeLightbox()" aria-label="Close image">×</button>
+<div id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo viewer" tabindex="-1">
+  <div class="lb-stage"><img id="lightbox-img" src="" alt=""></div>
+  <div class="lb-bar">
+    <div id="lightbox-caption" class="lb-caption"></div>
+    <div id="lightbox-count" class="lb-count" aria-live="polite"></div>
+  </div>
+  <button class="lb-nav lb-prev" id="lb-prev" onclick="lightboxStep(-1)" aria-label="Previous photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="lb-nav lb-next" id="lb-next" onclick="lightboxStep(1)" aria-label="Next photo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+  <button class="close" onclick="closeLightbox()" aria-label="Close photo viewer">×</button>
 </div>
 
 <script>
@@ -570,7 +593,7 @@ const CONFIG = {
   refreshBufferMs: 5 * 60 * 1000,
   refreshInterval: 5 * 60 * 1000,
   tokenKey:    'rvs_token_v1',
-  cacheKey:    'rvs_cache_v3', // bumped: old cache holds Simple Form records
+  cacheKey:    'rvs_cache_v4', // bumped: old cache holds Simple Form records
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -1066,10 +1089,14 @@ function featureToAsset(feature) {
   const score2 = (p[FIELDS.level2Score] !== null && p[FIELDS.level2Score] !== undefined)
     ? parseFloat(p[FIELDS.level2Score]) : null;
   const _ms = v => { if (v === null || v === undefined || v === '') return null; const t = typeof v === 'number' ? v : Date.parse(v); return isNaN(t) ? null : t; };
-  const screenMs = LAYER_DATES.screenField ? _ms(p[LAYER_DATES.screenField]) : null;
+  let screenMs = null, screenField = null;
+  for (const f of (LAYER_DATES.screenFields || [])) {
+    const t = _ms(p[f]);
+    if (t !== null && t > Date.UTC(1950, 0, 1) && t < Date.now() + 366 * 864e5) { screenMs = t; screenField = f; break; }
+  }
   const createdMs = LAYER_DATES.creationField ? _ms(p[LAYER_DATES.creationField]) : null;
   const editedMs = LAYER_DATES.editField ? _ms(p[LAYER_DATES.editField]) : null;
-  const dateVal = screenMs !== null ? new Date(screenMs) : null;
+
   return {
     id:            p[FIELDS.objectId],
     buildingName:  p[FIELDS.buildingName]   || 'Unnamed Building',
@@ -1079,8 +1106,10 @@ function featureToAsset(feature) {
     zip:           p[FIELDS.zip]            || '',
     county:        p[FIELDS.county]         || '',
     screener:      p[FIELDS.screener]       || '',
-    dateRaw:       LAYER_DATES.screenField ? p[LAYER_DATES.screenField] : null,
-    dateStr:       dateVal ? dateVal.toLocaleDateString() : '',
+    dateRaw:       screenMs,
+    hasScreenDate: screenMs !== null,
+    dateField:     screenField || (createdMs !== null ? LAYER_DATES.creationField : null),
+    dateStr:       screenMs !== null ? new Date(screenMs).toLocaleDateString() : '',
     // Sort key for "Most recent": screening date → created → last edited
     editDate:      screenMs ?? createdMs ?? editedMs ?? null,
     use:           p[FIELDS.use]            || '',
@@ -1170,20 +1199,31 @@ async function resolveServiceUrl() {
 // "Most recent" sorts by the screening date first, because EditDate on
 // migrated records is the date the migration script ran, not the date
 // the building was screened.
-let LAYER_DATES = { screenField: FIELDS.date, creationField: 'CreationDate', editField: 'EditDate' };
-try { Object.assign(LAYER_DATES, JSON.parse(localStorage.getItem('rvs_datefields_v1') || '{}')); } catch {}
+// Candidate screening-date fields, in priority order. Each record uses the
+// FIRST one it actually has a value in — migrated Simple Form records and
+// new v3 submissions don't necessarily fill the same field, so picking one
+// field for the whole layer left some records with no date at all.
+let LAYER_DATES = { screenFields: [FIELDS.date], creationField: 'CreationDate', editField: 'EditDate' };
+try {
+  const c = JSON.parse(localStorage.getItem('rvs_datefields_v2') || '{}');
+  if (c && Array.isArray(c.screenFields)) LAYER_DATES = c;
+} catch {}
 function _pickDateFields(info) {
   const efi = info.editFieldsInfo || {};
-  const dateFields = (info.fields || []).filter(f => f.type === 'esriFieldTypeDate').map(f => f.name);
-  const creationField = efi.creationDateField || dateFields.find(n => /^creation_?date$/i.test(n)) || null;
-  const editField = efi.editDateField || dateFields.find(n => /^edit_?date$/i.test(n)) || null;
-  const userDates = dateFields.filter(n => n !== creationField && n !== editField);
-  const screenField =
-    userDates.find(n => n === FIELDS.date) ||
-    userDates.find(n => /screen|survey|inspect/i.test(n)) ||
-    userDates.find(n => /date/i.test(n)) ||
-    userDates[0] || null;
-  return { screenField, creationField, editField };
+  const fields = info.fields || [];
+  const dateTyped = fields.filter(f => f.type === 'esriFieldTypeDate').map(f => f.name);
+  const creationField = efi.creationDateField || dateTyped.find(n => /^creation_?date$/i.test(n)) || null;
+  const editField = efi.editDateField || dateTyped.find(n => /^edit_?date$/i.test(n)) || null;
+  const skip = n => n === creationField || n === editField || /^(created|last_edited)_?(date|user)?$/i.test(n) || /year|calc|output/i.test(n);
+  // Real date fields first, then text fields whose name says "date"
+  const cands = [
+    ...dateTyped.filter(n => !skip(n)),
+    ...fields.filter(f => f.type === 'esriFieldTypeString' && /date/i.test(f.name) && !skip(f.name)).map(f => f.name),
+  ];
+  const rank = n => n === FIELDS.date ? 0 : /screen/i.test(n) ? 1 : /survey|inspect/i.test(n) ? 2 : /date/i.test(n) ? 3 : 4;
+  const screenFields = [...new Set(cands)].sort((a, b) => rank(a) - rank(b));
+  console.info('[RVS] screening-date fields (priority order):', screenFields, '| created:', creationField, '| edited:', editField);
+  return { screenFields, creationField, editField };
 }
 async function loadDomainLabels() {
   try {
@@ -1196,7 +1236,7 @@ async function loadDomainLabels() {
     };
     (info.fields || []).forEach(f => add(f.name, f.domain));
     LAYER_DATES = _pickDateFields(info);
-    try { localStorage.setItem('rvs_datefields_v1', JSON.stringify(LAYER_DATES)); } catch {}
+    try { localStorage.setItem('rvs_datefields_v2', JSON.stringify(LAYER_DATES)); } catch {}
     (info.types || []).forEach(t => Object.entries(t.domains || {}).forEach(([fname, dom]) => add(fname, dom)));
     DOMAIN_LABELS = out;
     try { localStorage.setItem(DOMAIN_CACHE_KEY, JSON.stringify(out)); } catch {}
@@ -1482,7 +1522,11 @@ function getFiltered() {
     }
     return true;
   });
-  if (sortMode === 'recent') list.sort((a,b) => ((b.editDate ?? -Infinity) - (a.editDate ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
+  // Records with a real screening date come first (newest on top); records
+  // without one follow, ordered by created/edited date, so a migration-run
+  // timestamp can never push an undated record above a dated screening.
+  if (sortMode === 'recent') list.sort((a,b) => ((b.hasScreenDate ? 1 : 0) - (a.hasScreenDate ? 1 : 0))
+    || ((b.editDate ?? -Infinity) - (a.editDate ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
   else if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
   else if (sortMode === 'score') list.sort((a,b) => (a.level1Score??Infinity)-(b.level1Score??Infinity));
   else list.sort((a,b) => a.buildingName.localeCompare(b.buildingName));
@@ -1915,12 +1959,15 @@ async function loadAttachments(objectId) {
   const tile = info => {
     const tag = kind(info);
     const tagHtml = tag ? `<div class="attachment-tag">${tag}</div>` : '';
-    if (info.isImage) return `<div class="attachment-tile loading" onclick="openLightbox('${escHtml(info.url)}','${escHtml(info.name)}')" data-url="${escHtml(info.url)}"><img src="${escHtml(info.url)}" alt="${escHtml(tag || info.name)}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading');this.remove()">${tagHtml}</div>`;
+    if (info.isImage) return `<div class="attachment-tile loading" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === info.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" data-url="${escHtml(info.url)}"><img src="${escHtml(info.url)}" alt="${escHtml(tag || info.name)}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading');this.remove()">${tagHtml}</div>`;
     return `<div class="attachment-tile" onclick="window.open('${escHtml(info.url)}','_blank')"><div class="fileinfo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><br>${escHtml(info.name)}</div>${tagHtml}</div>`;
   };
   const order = { 'Building Photo': 0, 'Sketch': 1 };
   const featured = result.infos.filter(i => kind(i)).sort((x, y) => order[kind(x)] - order[kind(y)]);
   const rest = result.infos.filter(i => !kind(i));
+  // Photo viewer walks through every image for this record: Building Photo,
+  // Sketch, then the rest (including ones hidden behind "Show all").
+  LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
   if (!featured.length) { area.innerHTML = `<div class="attachment-grid">${rest.map(tile).join('')}</div>`; return; }
   area.innerHTML = `<div class="attachment-grid">${featured.map(tile).join('')}</div>` + (rest.length ? `
     <button class="show-all-photos" onclick="const g=this.nextElementSibling; g.hidden=!g.hidden; this.textContent = g.hidden ? 'Show all photos (${rest.length} more)' : 'Hide other photos';">Show all photos (${rest.length} more)</button>
@@ -1928,18 +1975,66 @@ async function loadAttachments(objectId) {
 }
 
 // ── Lightbox ──────────────────────────────────────────────────
-function openLightbox(url, alt) {
+let LB_ITEMS = [], LB_INDEX = 0;
+function openLightboxAt(idx) {
+  if (!LB_ITEMS.length) return;
+  LB_INDEX = Math.max(0, Math.min(idx, LB_ITEMS.length - 1));
   const lb = document.getElementById('lightbox');
-  document.getElementById('lightbox-img').src = url;
-  document.getElementById('lightbox-img').alt = alt || '';
   lb.hidden = false;
-  lb.addEventListener('keydown', lbKeydown);
+  showLightboxItem();
+  lb.focus();
+}
+// Kept for any older callers: open by URL
+function openLightbox(url, alt) {
+  let idx = LB_ITEMS.findIndex(x => x.url === url);
+  if (idx < 0) { LB_ITEMS = [{ url, name: alt || '', tag: '' }]; idx = 0; }
+  openLightboxAt(idx);
+}
+function showLightboxItem() {
+  const item = LB_ITEMS[LB_INDEX];
+  const img = document.getElementById('lightbox-img');
+  img.src = item.url;
+  img.alt = item.tag || item.name || 'Photo';
+  document.getElementById('lightbox-caption').textContent = item.tag || '';
+  const multi = LB_ITEMS.length > 1;
+  document.getElementById('lightbox-count').textContent = multi ? `${LB_INDEX + 1} / ${LB_ITEMS.length}` : '';
+  document.getElementById('lb-prev').hidden = !multi;
+  document.getElementById('lb-next').hidden = !multi;
+  // Preload neighbours so clicking through feels instant
+  [LB_INDEX - 1, LB_INDEX + 1].forEach(n => { const it = LB_ITEMS[(n + LB_ITEMS.length) % LB_ITEMS.length]; if (it) new Image().src = it.url; });
+}
+function lightboxStep(d) {
+  if (LB_ITEMS.length < 2) return;
+  LB_INDEX = (LB_INDEX + d + LB_ITEMS.length) % LB_ITEMS.length; // wraps around
+  showLightboxItem();
 }
 function closeLightbox() {
-  document.getElementById('lightbox').hidden = true;
-  document.getElementById('lightbox').removeEventListener('keydown', lbKeydown);
+  const lb = document.getElementById('lightbox');
+  lb.hidden = true;
+  document.getElementById('lightbox-img').src = '';
 }
-function lbKeydown(e) { if (e.key === 'Escape') closeLightbox(); }
+function lbKeydown(e) {
+  if (document.getElementById('lightbox').hidden) return;
+  if (e.key === 'Escape') { closeLightbox(); e.stopImmediatePropagation(); }
+  else if (e.key === 'ArrowRight') { lightboxStep(1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { lightboxStep(-1); e.preventDefault(); }
+}
+// Capture phase so Esc closes only the photo viewer, not the detail panel too
+document.addEventListener('keydown', lbKeydown, true);
+(function () {
+  const lb = document.getElementById('lightbox');
+  // Tap the dark background (not the photo or buttons) to close
+  lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lb-stage')) closeLightbox(); });
+  // Swipe left/right on touch screens
+  let x0 = null, y0 = null;
+  lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  lb.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) lightboxStep(dx < 0 ? 1 : -1);
+    x0 = y0 = null;
+  }, { passive: true });
+})();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
 // ── Utility ──────────────────────────────────────────────────
