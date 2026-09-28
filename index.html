@@ -273,6 +273,21 @@
   .field-val.flag-yes { color: #842029; font-weight: 700; }
   .field-val.flag-no { color: #1b5e20; font-weight: 600; }
   .field-val.alert { color: #D22B2B; font-weight: 700; }
+  .summary-grid .field-val { white-space: normal; line-height: 1.5; }
+  /* Detail tabs */
+  .detail-tabs { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--border); }
+  .dtab { background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 10px 12px 8px;
+          font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--text3); cursor: pointer; }
+  .dtab:hover { color: var(--cusec-blue); }
+  .dtab.active { color: var(--cusec-blue); border-bottom-color: var(--cusec-blue); }
+  .dtab-panel[hidden] { display: none; }
+  /* Photo captions + show-all */
+  .attachment-tag { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.62); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 6px; text-align: center; }
+  .show-all-photos { width: 100%; margin-top: 8px; padding: 9px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--cusec-blue); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .show-all-photos:hover { border-color: var(--cusec-blue); }
+  .show-all-photos + .attachment-grid { margin-top: 8px; }
+  .attachment-grid[hidden] { display: none; }
+  .sheet-dock-btn { display: none; }
   .sheet-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 3px; }
   .sheet-addr { font-size: 13px; color: var(--text2); line-height: 1.4; }
   .sheet-dist { font-size: 12px; font-family: 'DM Mono',monospace; font-weight: 700; margin-top: 5px; color: #003a8c; }
@@ -331,21 +346,50 @@
     #header        { grid-column: 1 / -1; grid-row: 1; }
     #list-section  { grid-column: 1; grid-row: 2; border-right: 1px solid var(--border); }
     #map-container { grid-column: 2; grid-row: 2; height: 100%; }
-    /* Detail panel docks over the map, on the opposite side from the list,
-       and slides in from the right (same as RVS-Side-by-Side). The panel's
-       exact top/left/width/height are set by positionDetailPanel() to
-       match #map-container's on-screen box. */
-    #detail-sheet { overflow: hidden; }
-    #detail-overlay { display: none; } /* list stays usable while the panel is open */
+    /* Detail card floats over the map, opposite the list, with the map
+       still visible (and usable) around it. Score banner runs across the
+       top; details scroll on the left, photos scroll on the right.
+       #detail-sheet's box is sized to the map by positionDetailPanel(). */
+    #detail-sheet { overflow: hidden; pointer-events: none !important; }
+    #detail-overlay { display: none; }
     #detail-content {
-      position: absolute; inset: 0;
-      max-width: none; margin: 0; border-radius: 0; border-left: 1px solid var(--border);
-      box-shadow: -10px 0 28px rgba(0,0,0,0.14);
-      padding: 0 0 env(safe-area-inset-bottom,0px);
-      transform: translateX(100%); max-height: none; height: 100%;
+      position: absolute; top: clamp(16px, 8%, 80px); bottom: clamp(16px, 8%, 80px);
+      left: 50%; width: min(920px, calc(100% - 48px)); max-width: none; max-height: none; height: auto;
+      margin: 0; padding: 0; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+      display: flex; flex-direction: column;
+      opacity: 0; transform: translateX(calc(-50% + 60px));
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1), opacity 0.2s;
     }
-    #detail-sheet.open #detail-content { transform: translateX(0); }
-    .sheet-handle { display: none; } /* drag handle only makes sense on a bottom sheet */
+    #detail-sheet.open #detail-content { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+    .sheet-handle { display: none; }
+    #sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    #sheet-body .sheet-score-banner { flex: none; margin: 0; border-radius: 0; padding: 14px 60px 14px 18px; }
+    .sheet-close-btn { top: 17px; right: 14px; z-index: 2; background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.55); color: #fff; }
+    .sheet-close-btn:hover { background: rgba(0,0,0,0.32); }
+    .summary-grid { grid-template-columns: 190px 1fr; }
+    .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 17px; right: 54px; z-index: 2;
+      width: 32px; height: 32px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
+    .sheet-dock-btn:hover { background: rgba(0,0,0,0.32); }
+    #sheet-body .sheet-score-banner { padding-right: 100px; }
+    /* Docked: flush to the right edge of the map, full height */
+    #detail-sheet.docked #detail-content {
+      top: 0; bottom: 0; left: auto; right: 0; width: min(760px, 100%);
+      border-radius: 0; opacity: 1; transform: translateX(100%);
+      box-shadow: -10px 0 28px rgba(0,0,0,0.18); border-left: 1px solid var(--border);
+    }
+    #detail-sheet.docked.open #detail-content { transform: translateX(0); }
+    .detail-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 36%); }
+    .detail-main, .detail-media { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+    .detail-media { border-left: 1px solid var(--border); }
+    .detail-media > .sdiv:first-child { display: none; }
+    .detail-media .attachment-grid { grid-template-columns: 1fr; }
+    .detail-media .attachment-tile { aspect-ratio: 4 / 3; }
+    /* Map area too narrow for two columns → one scrolling column */
+    #detail-sheet.panel-narrow .detail-cols { display: block; overflow-y: auto; }
+    #detail-sheet.panel-narrow .detail-main, #detail-sheet.panel-narrow .detail-media { overflow: visible; }
+    #detail-sheet.panel-narrow .detail-media { border-left: none; }
+    #detail-sheet.panel-narrow .detail-media > .sdiv:first-child { display: block; }
   }
   @media (min-width: 600px) { #app { box-shadow: var(--shadow-lg); } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
@@ -462,6 +506,7 @@
   <div id="detail-content">
     <div class="sheet-handle" aria-hidden="true"></div>
     <button class="sheet-close-btn" onclick="closeDetail()" aria-label="Close">×</button>
+    <button class="sheet-dock-btn" id="sheet-dock-btn" onclick="toggleDock()" aria-label="Dock panel to the right" title="Dock to the right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14" y1="4" x2="14" y2="20"/></svg></button>
     <div id="sheet-body"></div>
   </div>
 </div>
@@ -593,6 +638,7 @@ const CHOICE_LABELS = {
   PlanIrregularitiesPresent: { torsion:'Torsion', non_parallel_system:'Non-Parallel System', reentrant_corner:'Re-entrant Corner', diaphragm_opening:'Diaphragm Opening', beams_misaligned:'Beams Misaligned' },
 };
 ['Liquefaction','Landslide','SurfaceRupture','Additions','DrawingsReviewed','YearBuiltEstimated',
+ 'NonstructuralReview','OnsiteGenerator','IsShelter',
  'EngineerReviewExterior','EngineerReviewVertical','EngineerReviewPlan','EngineerReviewInterior',
  'TorsionalIrr','NonParallelSystem','ReentrantCorner','DiaphragmOpening','C1C2BuildingOutofPlane','OtherPlanIrregularity',
  'PoundingAlign','PoundingTaller','PoundingEnd','S2Building','C1Building','PC1RM1BuildingQ1','PC1RM1BuildingQ2',
@@ -623,6 +669,34 @@ function choiceLabel(field, value) {
   const toks = str.split(/\s+/);
   if (toks.length > 1 && map && toks.every(t => Object.prototype.hasOwnProperty.call(map, t))) return toks.map(one).join(', ');
   return one(str);
+}
+// ── Normalizers ────────────────────────────────────────────────
+// The app's filters compare against exact strings ('Complete',
+// 'Nonstructural Screening', the FACILITY_TYPES names). Records migrated
+// from the Simple Form still carry those old strings, but records
+// submitted through the v3 form store v3's choice codes (e.g. 'complete'),
+// which the exact match silently dropped. These map raw code OR label,
+// case-insensitively, back to the strings the app expects.
+function _norm(v) { return String(v ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+function normPhase(raw) {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const lbl = choiceLabel(FIELDS.phase, raw);
+  if (_norm(raw) === 'complete' || _norm(raw) === 'completed' || _norm(lbl) === 'complete' || _norm(lbl) === 'completed') return 'Complete';
+  return lbl;
+}
+function normSurveyType(raw) {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const lbl = choiceLabel(FIELDS.surveyType, raw);
+  if (/nonstructural/.test(_norm(raw)) || /nonstructural/.test(_norm(lbl))) return 'Nonstructural Screening';
+  return lbl;
+}
+function normFacility(raw) {
+  if (raw === null || raw === undefined || raw === '') return 'Other';
+  if (typeof FACILITY_TYPES !== 'undefined' && FACILITY_TYPES[raw]) return raw;
+  const lbl = choiceLabel(FIELDS.essentialFacility, raw);
+  const keys = typeof FACILITY_KEYS !== 'undefined' ? FACILITY_KEYS : [];
+  const hit = keys.find(k => _norm(k) === _norm(lbl) || _norm(k) === _norm(raw));
+  return hit || lbl || 'Other';
 }
 function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
 
@@ -659,6 +733,21 @@ const DETAIL_LABELS = {
   Level1Comments: 'Level 1 Comments', Level2Comments: 'Level 2 Comments', ReviewComments: 'Review Comments',
   VertIrregularitiesPresent: 'Vertical Irregularities Present', PlanIrregularitiesPresent: 'Plan Irregularities Present',
 };
+const FEMA_TYPE_DESC = {
+  W1: 'Light wood frame single- or multiple-family dwellings', W1A: 'Light wood frame multi-unit, multi-story residential buildings',
+  W2: 'Wood frame commercial and industrial buildings', S1: 'Steel moment-resisting frame buildings', S2: 'Braced steel frame buildings',
+  S3: 'Light metal buildings', S4: 'Steel frame buildings with cast-in-place concrete shear walls',
+  S5: 'Steel frame buildings with unreinforced masonry infill walls', C1: 'Concrete moment-resisting frame buildings',
+  C2: 'Concrete shear wall buildings', C3: 'Concrete frame buildings with unreinforced masonry infill walls',
+  PC1: 'Tilt-up buildings', PC2: 'Precast concrete frame buildings',
+  RM1: 'Reinforced masonry buildings with flexible floor and roof diaphragms',
+  RM2: 'Reinforced masonry buildings with rigid floor and roof diaphragms',
+  URM: 'Unreinforced masonry bearing-wall buildings', MH: 'Manufactured housing',
+};
+function switchDetailTab(tab) {
+  document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
+  document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
+}
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
 }
@@ -988,8 +1077,8 @@ function featureToAsset(feature) {
     level1Score:   isNaN(score) ? null : score,
     level2Score:   isNaN(score2) ? null : score2,
     basicScore:    p[FIELDS.basicScore],
-    facilityType:  p[FIELDS.essentialFacility] || 'Other',
-    phase:         p[FIELDS.phase]          || '',
+    facilityType:  normFacility(p[FIELDS.essentialFacility]),
+    phase:         normPhase(p[FIELDS.phase]),
     source:        p[FIELDS.source]         || '',
     detailedReq:   p[FIELDS.detailedEvalReq]|| '',
     otherHazards:  p[FIELDS.otherHazards]   || '',
@@ -1010,7 +1099,7 @@ function featureToAsset(feature) {
     codeYear:      p[FIELDS.codeYear]       || '',
     nonstructReview:p[FIELDS.nonstructReview]    || '',
     performLevel2: p[FIELDS.performLevel2]  || '',
-    surveyType:    p[FIELDS.surveyType]     || '',
+    surveyType:    normSurveyType(p[FIELDS.surveyType]),
     exterior:      p[FIELDS.exterior]       || '',
     interior:      p[FIELDS.interior]       || '',
     vertIrr:       p[FIELDS.vertIrr]        || '',
@@ -1148,9 +1237,11 @@ async function fetchAssets() {
 
 async function fetchAttachments(objectId) {
   if (!TOKEN) return { state: 'error', infos: [] };
+  // queryAttachments first: it returns each photo's `keywords` (the Survey123
+  // question it was taken for), which is how Building Photo / Sketch are found.
   const urls = [
+    `${CONFIG.serviceUrl}/queryAttachments?objectIds=${objectId}&returnMetadata=true&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
     `${CONFIG.serviceUrl}/${objectId}/attachments?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
-    `${CONFIG.serviceUrl}/queryAttachments?objectIds=${objectId}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
   ];
   for (const url of urls) {
     try {
@@ -1160,7 +1251,7 @@ async function fetchAttachments(objectId) {
       const infos = raw.map(a => {
         let attUrl = a.url || `${CONFIG.serviceUrl}/${objectId}/attachments/${a.id}`;
         if (!/[?&]token=/.test(attUrl)) attUrl += (attUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN.accessToken);
-        return { id: a.id, name: a.name, contentType: a.contentType, size: a.size, url: attUrl, isImage: (a.contentType||'').startsWith('image/') };
+        return { id: a.id, name: a.name, keywords: a.keywords || '', contentType: a.contentType, size: a.size, url: attUrl, isImage: (a.contentType||'').startsWith('image/') };
       });
       return { state: 'ok', infos };
     } catch {}
@@ -1520,13 +1611,39 @@ function selectAsset(id, panMap = true) {
 const DESKTOP_MQ = window.matchMedia('(min-width: 900px)');
 // On wide screens, size the detail panel to exactly cover the map area
 // (right of the list). On phones, clear it so the bottom sheet CSS applies.
+// Floating card (default) or docked flush to the right edge of the map.
+// The choice is remembered on this device.
+const DOCK_KEY = 'rvs_panel_docked_v1';
+function applyDockState(docked) {
+  const sheet = document.getElementById('detail-sheet');
+  sheet.classList.toggle('docked', docked);
+  const btn = document.getElementById('sheet-dock-btn');
+  if (btn) {
+    btn.title = docked ? 'Float over the map' : 'Dock to the right';
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = docked
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="7" y="8" width="10" height="8" rx="1"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14" y1="4" x2="14" y2="20"/></svg>';
+  }
+}
+function toggleDock() {
+  const docked = !document.getElementById('detail-sheet').classList.contains('docked');
+  try { localStorage.setItem(DOCK_KEY, docked ? '1' : '0'); } catch {}
+  applyDockState(docked);
+  positionDetailPanel();
+}
+try { applyDockState(localStorage.getItem(DOCK_KEY) === '1'); } catch { applyDockState(false); }
+
 function positionDetailPanel() {
   const sheet = document.getElementById('detail-sheet');
   if (DESKTOP_MQ.matches) {
     const rect = document.getElementById('map-container').getBoundingClientRect();
     Object.assign(sheet.style, { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+    const panelW = sheet.classList.contains('docked') ? Math.min(760, rect.width) : Math.min(920, rect.width - 48);
+    sheet.classList.toggle('panel-narrow', panelW < 650);
   } else {
     Object.assign(sheet.style, { top: '', left: '', width: '', height: '' });
+    sheet.classList.remove('panel-narrow');
   }
 }
 window.addEventListener('resize', positionDetailPanel);
@@ -1540,6 +1657,7 @@ function openDetail(a) {
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
+  document.querySelectorAll('#sheet-body .detail-main, #sheet-body .detail-media, #sheet-body .detail-cols').forEach(el => { el.scrollTop = 0; });
   positionDetailPanel();
   sheet.classList.add('open');
   if (!DESKTOP_MQ.matches) document.body.style.overflow = 'hidden';
@@ -1628,6 +1746,41 @@ function buildDetailHTML(a) {
         <div class="score-bar-labels"><span>0</span><span>1.0</span><span>2.0 ✂</span><span>3.0</span><span>4.0+</span></div>
       </div>` : '';
 
+  // ── Summary tab (matches the AGOL pop-up layout) ──
+  const fmtShort = v => { const t = typeof v === 'number' ? v : Date.parse(v); if (!v || isNaN(t)) return ''; const d = new Date(t); return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`; };
+  const line = (label, v) => (v || v === 0) ? `${label}: ${v}` : '';
+  const femaCode = String(attrs.FEMABuildingType || a.femaType || '').toUpperCase().match(/^[A-Z]+\d*A?/);
+  const constructionType = attrs.ConstructionType ? choiceLabel('ConstructionType', attrs.ConstructionType)
+    : (femaCode ? (FEMA_TYPE_DESC[femaCode[0]] || '') : '');
+  const addlYear = isYes(attrs.Additions) ? (attrs.AdditionsYearBuilt || 'Unknown') : attrs.AdditionsYearBuilt;
+  const geo = [isYes(attrs.Liquefaction) ? 'Liquefaction' : null, isYes(attrs.Landslide) ? 'Landslide' : null, isYes(attrs.SurfaceRupture) ? 'Surface Rupture' : null].filter(Boolean).join(', ');
+  const summaryRows = [
+    ['Screening Type', [choiceLabel(FIELDS.surveyType, attrs.SurveyType) || 'P-154 Rapid Visual Screening']],
+    ['Extent of Review', [line('Exterior', fieldValue('Exterior')), line('Interior', fieldValue('Interior')), line('Nonstructural Review', fieldValue('NonstructuralReview'))]],
+    ['Address', [a.buildingName, a.address, [[a.city, a.state].filter(Boolean).join(', '), a.zip].filter(Boolean).join(' ') + (a.county ? ` (${a.county})` : '')]],
+    ['Date of Screening', [fmtShort(a.dateRaw) || a.dateStr]],
+    ['Building Details & Screening Information', [
+      line('Year Built', fieldValue('YearBuilt')), line('Additions', fieldValue('Additions')), line('Additions Year Built', addlYear),
+      line('Square Feet', fieldValue('TotalFloorArea')), line('# of Stories', fieldValue('StoriesAboveGrade')),
+      line('Facility Type', a.facilityType), line('Is Shelter', fieldValue('IsShelter')), line('Construction Type', constructionType),
+      line('FEMA Building Type', fieldValue('FEMABuildingType')), line('Seismicity', fieldValue('Seismicity')), line('Soil Type', fieldValue('SoilType'))]],
+    ['Score Modifiers', [
+      line('Vertical Irregularities', fieldValue('VertIrregularitiesPresent') || fieldValue('VertIrregularities')),
+      line('Plan Irregularities', fieldValue('PlanIrregularitiesPresent') || fieldValue('PlanIrregularities')),
+      line('Pre-Code', fieldValue('PreCodeQ')), line('Post-Benchmark', fieldValue('PostBenchmarkQ'))]],
+    ['Hazards', [line('Other Observed Hazards', fieldValue('OtherHazards') || 'None'), line('Exterior Falling Hazards', fieldValue('ExtFallingHazards') || 'None'), line('Geologic Hazards', geo || 'None')]],
+    ['Final Level 1 Score', [scInfo.short]],
+    ['Final Level 2 Score', [a.level2Score !== null && a.level2Score !== undefined ? a.level2Score.toFixed(2) : '']],
+    ['Detailed Structural Evaluation Recommended?', [detailedEvalText]],
+    ['Comments', [line('Level 1', attrs.Level1Comments), line('Level 2', attrs.Level2Comments), line('Review', attrs.ReviewComments)]],
+  ];
+  const summaryHTML = `<div class="sec"><div class="field-grid summary-grid">${summaryRows.map(([k, vals]) => {
+      const v = vals.filter(x => x && String(x).trim() && !/^\s*\(\s*\)\s*$/.test(x));
+      if (!v.length) return '';
+      const alert = k.startsWith('Detailed Structural') && String(v[0]).startsWith('Yes') ? ' alert' : '';
+      return `<div class="field-key">${escHtml(k)}</div><div class="field-val${alert}">${v.map(escHtml).join('<br>')}</div>`;
+    }).join('')}</div></div>`;
+
   return `
     <!-- Score banner (same slot as the side-by-side's status banner) -->
     <div class="sheet-score-banner" style="background:${scColor};color:${scTextColor}">
@@ -1635,6 +1788,8 @@ function buildDetailHTML(a) {
       <div><div class="banner-score-label">Final Level 1 Score</div><div class="banner-score-desc">${escHtml(scInfo.desc)}</div></div>
     </div>
 
+    <div class="detail-cols">
+    <div class="detail-main">
     <!-- Name + address -->
     <div class="sheet-header">
       <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
@@ -1643,12 +1798,21 @@ function buildDetailHTML(a) {
       ${distHtml}
     </div>
 
-    <div class="sdiv"></div>
+    <div class="detail-tabs" role="tablist" aria-label="Record details">
+      <button class="dtab active" role="tab" aria-selected="true" data-tab="summary" onclick="switchDetailTab('summary')">Summary</button>
+      <button class="dtab" role="tab" aria-selected="false" data-tab="all" onclick="switchDetailTab('all')">All Fields</button>
+    </div>
+    <div class="dtab-panel" data-panel="summary" role="tabpanel">
+      ${summaryHTML}
+    </div>
+    <div class="dtab-panel" data-panel="all" role="tabpanel" hidden>
     ${[fieldSection('Identification', DETAIL_IDENTITY_FIELDS), ...DETAIL_GROUPS.map(g => fieldSection(g.title, g.fields, g.title === 'Score' ? scoreBar : ''))]
       .filter(Boolean).join('<div class="sdiv"></div>')}
+    </div>
+    </div>
 
+    <div class="detail-media">
     <div class="sdiv"></div>
-
     <!-- Attachments -->
     <div class="sec">
       <div class="sec-label">Photos &amp; Attachments</div>
@@ -1667,6 +1831,8 @@ function buildDetailHTML(a) {
         Apple Maps
       </a>
     </div>` : ''}
+    </div>
+    </div>
   `;
 }
 
@@ -1678,10 +1844,26 @@ async function loadAttachments(objectId) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
     return;
   }
-  area.innerHTML = `<div class="attachment-grid">${result.infos.map(info => {
-    if (info.isImage) return `<div class="attachment-tile loading" onclick="openLightbox('${escHtml(info.url)}','${escHtml(info.name)}')" data-url="${escHtml(info.url)}"><img src="${escHtml(info.url)}" alt="${escHtml(info.name)}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.innerHTML='<div class=\\'fileinfo\\'>${escHtml(info.name)}</div>'"></div>`;
-    return `<div class="attachment-tile"><div class="fileinfo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><br>${escHtml(info.name)}</div></div>`;
-  }).join('')}</div>`;
+  // Building Photo and Sketch show first; everything else sits behind "Show all".
+  const kind = info => {
+    const k = `${info.keywords || ''} ${info.name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (/sketch/.test(k)) return 'Sketch';
+    if (/buildingphoto|bldgphoto|photobuilding|buildingimage/.test(k)) return 'Building Photo';
+    return '';
+  };
+  const tile = info => {
+    const tag = kind(info);
+    const tagHtml = tag ? `<div class="attachment-tag">${tag}</div>` : '';
+    if (info.isImage) return `<div class="attachment-tile loading" onclick="openLightbox('${escHtml(info.url)}','${escHtml(info.name)}')" data-url="${escHtml(info.url)}"><img src="${escHtml(info.url)}" alt="${escHtml(tag || info.name)}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading');this.remove()">${tagHtml}</div>`;
+    return `<div class="attachment-tile" onclick="window.open('${escHtml(info.url)}','_blank')"><div class="fileinfo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><br>${escHtml(info.name)}</div>${tagHtml}</div>`;
+  };
+  const order = { 'Building Photo': 0, 'Sketch': 1 };
+  const featured = result.infos.filter(i => kind(i)).sort((x, y) => order[kind(x)] - order[kind(y)]);
+  const rest = result.infos.filter(i => !kind(i));
+  if (!featured.length) { area.innerHTML = `<div class="attachment-grid">${rest.map(tile).join('')}</div>`; return; }
+  area.innerHTML = `<div class="attachment-grid">${featured.map(tile).join('')}</div>` + (rest.length ? `
+    <button class="show-all-photos" onclick="const g=this.nextElementSibling; g.hidden=!g.hidden; this.textContent = g.hidden ? 'Show all photos (${rest.length} more)' : 'Hide other photos';">Show all photos (${rest.length} more)</button>
+    <div class="attachment-grid" hidden>${rest.map(tile).join('')}</div>` : '');
 }
 
 // ── Lightbox ──────────────────────────────────────────────────
