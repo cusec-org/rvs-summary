@@ -69,7 +69,7 @@
   .skip-link:focus { top: 0; }
 
   /* ── Header ── */
-  #header { background: var(--cusec-blue); padding: 12px 16px 10px; flex-shrink: 0; z-index: 100; padding-top: max(12px, env(safe-area-inset-top)); }
+  #header { background: #0B2E6B; padding: 12px 16px 10px; flex-shrink: 0; z-index: 100; padding-top: max(12px, env(safe-area-inset-top)); }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
   .app-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .cusec-badge { width: 38px; height: 38px; display: block; flex-shrink: 0; }
@@ -332,7 +332,7 @@
   }
   .sheet-ribbon {
     margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 13px 16px;
-    background: var(--cusec-blue); color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.2px;
+    background: #993333; color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.2px; /* panel header color */
   }
   .sheet-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
   .sheet-header-text { min-width: 0; flex: 1; }
@@ -1738,19 +1738,7 @@ function cardHTML(a) {
           </div>
         </div>
       </div>
-      <div class="card-footer">
-        <button class="card-action primary" onclick="event.stopPropagation();selectAsset(${a.id})">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          View Details
-        </button>
-        ${a.lat && a.lng ? `
-        <a class="card-action"
-          href="https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}"
-          target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Navigate in Google Maps">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          Navigate
-        </a>` : ''}
-      </div>
+      <!-- View Details / Navigate removed: tapping the card opens the details -->
     </article>`;
 }
 
