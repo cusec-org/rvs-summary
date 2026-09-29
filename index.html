@@ -349,7 +349,16 @@
   .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
   .view-all-link:hover { text-decoration: underline; }
   /* P-154 Screening Details tab */
-  .p154-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 38%); gap: 16px; padding: 18px 20px 22px; align-items: start; }
+  .p154-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; padding: 18px 20px 22px; align-items: start; }
+  .p154-photos { position: sticky; top: 12px; }
+  #p154-photos { display: flex; flex-direction: column; gap: 12px; }
+  .rp-item { margin: 0; }
+  .rp-item .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  .rp-cap { margin-top: 6px; }
+  .rp-title { font-size: 12.5px; font-weight: 700; color: #13233d; }
+  .rp-desc { font-size: 11.5px; color: #4a5363; line-height: 1.4; margin-top: 2px; }
+  .rp-none { font-size: 12px; color: var(--text3); font-style: italic; padding: 8px 0 4px; line-height: 1.45; }
+  @container (max-width: 760px) { .p154-grid { grid-template-columns: 1fr; } .p154-photos { position: static; } #p154-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
   .p154-side { display: flex; flex-direction: column; gap: 16px; }
   .p154-card { padding: 16px 18px 14px; }
   .sb-table { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12.5px; }
@@ -361,6 +370,37 @@
   .sb-sc { font-weight: 700; color: #13233d; font-variant-numeric: tabular-nums; }
   .sb-strong > div:first-child { font-weight: 700; color: #13233d; }
   .sb-final { background: #f3f5f8; }
+  .sb-has-sub { padding-bottom: 4px; }
+  .sb-sub { padding: 0 12px 10px 24px; display: flex; }
+  .sb-sub > div { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .sb-chip { font-size: 11.5px; background: #eef1f5; border: 1px solid #dfe3ea; color: #13233d; border-radius: 999px; padding: 2px 9px; }
+  .sb-irr { font-size: 12px; color: #13233d; background: #eef1f5; border: 1px solid #dfe3ea; border-radius: 6px; padding: 3px 10px; }
+  .sb-irr b { font-weight: 800; }
+  .sb-irr.sev-severe { background: #fbe0dc; border-color: #f0b3aa; color: #7f1d12; }   /* severe vertical irregularity */
+  .sb-irr.sev-moderate { background: #fdf0d5; border-color: #f0d49a; color: #6b4600; } /* moderate vertical irregularity */
+  .sb-sev { font-size: 11px; font-weight: 700; color: #7a4b00; background: #fbe3b9; border-radius: 999px; padding: 2px 9px; }
+  .sb-note { margin-top: 12px; font-size: 12.5px; color: #13233d; background: #f7f8fa; border: 1px solid #e6e9ef; border-left: 3px solid var(--cusec-gold); border-radius: 6px; padding: 9px 12px; line-height: 1.45; }
+  .sb-note-k { font-weight: 700; color: #3a4453; }
+  /* Hazard checklists + evaluation card */
+  .nb-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+  .nb-card { border: 1px solid #dfe3ea; border-radius: 8px; padding: 12px 14px; background: #fff; }
+  .nb-title { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; margin-bottom: 6px; }
+  .nb-title2 { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6e9ef; }
+  .nb-check { display: flex; align-items: flex-end; gap: 8px; font-size: 12.5px; color: #6b7384; padding: 3px 0; }
+  .nb-check.on { color: #13233d; font-weight: 700; }
+  .nb-blank { display: inline-block; min-width: 18px; border-bottom: 1.5px solid #4a5363; text-align: center; font-weight: 800; color: #13233d; line-height: 1.1; height: 15px; flex-shrink: 0; }
+  .nb-status { font-size: 20px; font-weight: 800; margin: 2px 0 10px; }
+  .nb-status.yes { color: #13233d; } .nb-status.no { color: #4a5363; } .nb-status.unk { color: var(--text3); font-size: 15px; }
+  .nb-sub { font-size: 11px; font-weight: 700; color: #6b7384; margin-bottom: 2px; }
+  @container (max-width: 640px) { .nb-grid { grid-template-columns: 1fr; } }
+  .sb-note-line + .sb-note-line { margin-top: 7px; padding-top: 7px; border-top: 1px solid #e6e9ef; }
+  .sb-note-line .sb-chip { display: inline-block; margin: 2px 2px 0 0; }
+  .sb-dse { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+  .sb-dse-badge { font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 2px 10px; }
+  .sb-dse-badge.yes { background: #13233d; color: #fff; }
+  .sb-dse-badge.no { background: #e6e9ef; color: #13233d; }
+  .sb-dse-badge.unk { background: #f3f5f8; color: var(--text3); font-weight: 700; }
+  .sb-dse-why { font-size: 12px; color: #4a5363; }
   .sb-final > div:first-child { font-weight: 700; color: #13233d; }
   .sp-wrap { position: relative; padding: 30px 4px 4px; }
   .sp-track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #f1d9a8, #e6e1d8 55%, #e3e7ee); }
@@ -2344,13 +2384,56 @@ function buildDetailHTML(a) {
   const basicLbl = `Basic score${femaCodeTxt || seisTxt ? ` (${[femaCodeTxt, seisTxt ? seisTxt.toLowerCase() + ' seismicity' : ''].filter(Boolean).join(', ')})` : ''}`;
   const vertAny = attrs.VertIrregularities !== undefined ? yn(attrs.VertIrregularities) : (attrs.VertIrregularitiesPresent ? 'Yes' : '—');
   const planAny = attrs.PlanIrregularities !== undefined ? yn(attrs.PlanIrregularities) : (attrs.PlanIrregularitiesPresent ? 'Yes' : '—');
+  // Which irregularities were marked (plus severity when recorded)
+  const irrList = (presentField, typeField) => {
+    const items = attrs[presentField] ? choiceLabel(presentField, attrs[presentField]).split(/,\s*/).filter(Boolean) : [];
+    const sevRaw = attrs[typeField] ? choiceLabel(typeField, attrs[typeField]) : '';
+    const sev = sevRaw ? sevRaw.charAt(0).toUpperCase() + sevRaw.slice(1) : '';
+    return { items, sev };
+  };
+  const vertDetail = irrList('VertIrregularitiesPresent', 'VertIrregularitiesType');
+  const planDetail = irrList('PlanIrregularitiesPresent', 'PlanIrregularitiesType');
+  const fallItems = attrs.ExtFallingHazards ? choiceLabel('ExtFallingHazards', attrs.ExtFallingHazards).split(/,\s*/).filter(Boolean) : [];
+  const fallOther = attrs.FallingHazardsOther ? String(attrs.FallingHazardsOther).trim() : '';
+  const fallText = fallItems.length || fallOther
+    ? [...fallItems.filter(t => t !== 'Other' || !fallOther), fallOther ? (fallItems.includes('Other') ? `Other (${fallOther})` : fallOther) : ''].filter(Boolean).join(', ')
+    : 'None marked';
+  // Other hazards that trigger a detailed structural evaluation (OtherHazards)
+  const trigItems = attrs.OtherHazards ? choiceLabel('OtherHazards', attrs.OtherHazards).split(/,\s*/).filter(Boolean) : [];
+  // Detailed structural evaluation required? (IsDetailedRequired / DetailedEvalRequired)
+  const dReqRaw = String(attrs.IsDetailedRequired ?? attrs.DetailedEvalRequired ?? a.detailedReq ?? '').trim();
+  const dReq = !dReqRaw ? null : (/^y/i.test(dReqRaw) ? true : /^n/i.test(dReqRaw) ? false : null);
+  const dReqWhy = dReq ? (detailedEvalText || '').replace(/^Yes,?\s*/i, '') : '';
+  // Full option lists so the checklists show marked vs not marked
+  const optList = f => Object.entries(_labelMap(f) || {});
+  const rawSet = f => new Set(String(attrs[f] || '').split(/\s+/).filter(Boolean));
+  const fallSet = rawSet('ExtFallingHazards'), trigSet = rawSet('OtherHazards');
+  const fallOpts = optList('ExtFallingHazards').map(([code, lbl]) => ({ lbl: code === 'other' && fallOther ? `Other (${fallOther})` : lbl, on: fallSet.has(code) }));
+  const trigOpts = optList('OtherHazards').map(([code, lbl]) => ({ lbl, on: trigSet.has(code) }));
+  const reasonOpts = optList('DetailedEvalRequired').filter(([c]) => c !== 'no').map(([code, lbl]) => ({
+    lbl: lbl.replace(/^Yes,\s*/i, '').replace(/^./, c => c.toUpperCase()),
+    on: dReq === true && (dReqRaw === code || (/^y(es)?$/i.test(dReqRaw) && code === 'yes_low_score')) }));
+  const mark = on => `<span class="nb-blank">${on ? 'X' : ''}</span>`;
+  const dseWord = dReq === null ? 'Not recorded' : dReq ? 'Required' : 'Not required';
+  // Hazard checklists | Detailed Structural Evaluation result with reasons
+  const noteB = `<div class="nb-grid">
+      <div class="nb-card"><div class="nb-title">Exterior Falling Hazards</div>
+        ${fallOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
+        <div class="nb-title nb-title2">Other Hazards (trigger detailed evaluation)</div>
+        ${trigOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
+      </div>
+      <div class="nb-card nb-dse"><div class="nb-title">Detailed Structural Evaluation</div>
+        <div class="nb-status ${dReq ? 'yes' : dReq === false ? 'no' : 'unk'}">${dseWord}</div>
+        <div class="nb-sub">Reason</div>
+        ${reasonOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  const fallNote = noteB;
   const soilApplies = soilM ? `${soilM[1].toUpperCase()} - ${soilM[2]}` : (soilLbl || '—');
   const sbRows = [
     [basicLbl, '', fmtScore(num(attrs.BasicScore)), 'sb-strong'],
-    ['Mid rise (4 to 7 stories)', storiesN === null ? '—' : (storiesN >= 4 && storiesN <= 7 ? 'Yes' : 'No'), '—'],
-    ['High rise (more than 7 stories)', storiesN === null ? '—' : (storiesN > 7 ? 'Yes' : 'No'), '—'],
-    ['Vertical irregularity', vertAny, fmtMod(num(attrs.VL1))],
-    ['Plan irregularity', planAny, fmtMod(num(attrs.PL1))],
+    ['Vertical irregularity', vertAny, fmtMod(num(attrs.VL1)), '', vertDetail],
+    ['Plan irregularity', planAny, fmtMod(num(attrs.PL1)), '', planDetail],
     ['Pre-code', yn(attrs.PreCodeQ), '—'],
     ['Post-benchmark', yn(attrs.PostBenchmarkQ), '—'],
     ['Soil type', soilApplies, '—'],
@@ -2374,14 +2457,13 @@ function buildDetailHTML(a) {
       <div class="ov-card p154-card"><div class="ov-card-title">Score Breakdown</div>
         <div class="sb-table" role="table">
           <div class="sb-row sb-head" role="row"><div role="columnheader">Item</div><div role="columnheader">Applies</div><div role="columnheader">Score</div></div>
-          ${sbRows.map(([k, ap, sco, cls]) => `<div class="sb-row${cls ? ' ' + cls : ''}" role="row"><div role="cell">${escHtml(k)}</div><div role="cell" class="sb-ap">${escHtml(ap)}</div><div role="cell" class="sb-sc">${escHtml(sco)}</div></div>`).join('')}
+          ${sbRows.map(([k, ap, sco, cls, det]) => `<div class="sb-row${cls ? ' ' + cls : ''}${det && (det.items.length || det.sev) ? ' sb-has-sub' : ''}" role="row"><div role="cell">${escHtml(k)}</div><div role="cell" class="sb-ap">${escHtml(ap)}</div><div role="cell" class="sb-sc">${escHtml(sco)}</div></div>` +
+            (det && (det.items.length || det.sev) ? `<div class="sb-sub" role="row"><div role="cell"><span class="sb-irr${/severe/i.test(det.sev) ? ' sev-severe' : /moderate/i.test(det.sev) ? ' sev-moderate' : ''}">${det.sev ? `<b>${escHtml(det.sev)}</b>${det.items.length ? ': ' : ''}` : ''}${escHtml(det.items.join(', '))}</span></div></div>` : '')).join('')}
         </div>
+        ${fallNote}
       </div>
-      <div class="p154-side">
-        <div class="ov-card p154-card"><div class="ov-card-title">L1 Score Position</div>${positionHTML}</div>
-        <div class="ov-card p154-card"><div class="ov-card-title">Screening Inputs</div>${kvRows([
-          ['Building type', fieldValue('FEMABuildingType')], ['Seismicity', seisTxt], ['Soil type', soilApplies === '—' ? '' : soilApplies],
-          ['Exterior', fieldValue('Exterior')], ['Interior', fieldValue('Interior')]])}</div>
+      <div class="ov-card p154-card p154-photos"><div class="ov-card-title">Related Photos</div>
+        <div id="p154-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
       </div>
     </div>`;
   const nsHazards = groupFields('Hazards').filter(f => !GEO.includes(f) && f !== 'NonstructuralSeismicPerformance');
@@ -2442,6 +2524,31 @@ function buildDetailHTML(a) {
   `;
 }
 
+// Which screening topic a photo belongs to, from its Survey123 question
+// (keywords) or file name, with a plain-language description that pulls in
+// what was marked on this record.
+function photoTopic(info, attrs) {
+  attrs = attrs || {};
+  const k = `${info.keywords || ''} ${info.name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const lbl = f => attrs[f] ? choiceLabel(f, attrs[f]) : '';
+  const sev = attrs.VertIrregularitiesType ? choiceLabel('VertIrregularitiesType', attrs.VertIrregularitiesType).replace(/^./, c => c.toUpperCase()) : '';
+  const geo = ['Liquefaction', 'Landslide', 'SurfaceRupture'].filter(f => isYes(attrs[f])).map(f => f === 'SurfaceRupture' ? 'Surface rupture' : f);
+  const T = (tab, title, desc) => ({ tab, title, desc });
+  if (/vert|softstory|weakstory|slopingsite|shortcolumn|splitlevel|setback|cripple/.test(k))
+    return T('p154', 'Vertical Irregularity', [sev, lbl('VertIrregularitiesPresent')].filter(Boolean).join(': ') || 'Shows the vertical irregularity noted by the screener.');
+  if (/planirr|torsion|reentrant|diaphragm|nonparallel/.test(k))
+    return T('p154', 'Plan Irregularity', lbl('PlanIrregularitiesPresent') || 'Shows the plan irregularity noted by the screener.');
+  if (/falling|parapet|chimney|cladding|veneer|appendage/.test(k))
+    return T('p154', 'Exterior Falling Hazard', lbl('ExtFallingHazards') || 'Shows an exterior falling hazard noted by the screener.');
+  if (/pounding|adjacen/.test(k))
+    return T('p154', 'Pounding / Adjacent Building', lbl('Adjacency') || 'Shows the gap or height difference with an adjacent building.');
+  if (/geolog|landslide|liquef|rupture/.test(k))
+    return T('p154', 'Geologic Hazard', geo.join(', ') || 'Shows site conditions related to a geologic hazard.');
+  if (/damage|deteriorat|crack/.test(k))
+    return T('p154', 'Structural Damage', 'Shows damage or deterioration to the structural system.');
+  return null;
+}
+
 async function loadAttachments(objectId) {
   const area = document.getElementById('attachment-area');
   const ov = document.getElementById('overview-photos');
@@ -2449,6 +2556,7 @@ async function loadAttachments(objectId) {
   const result = await fetchAttachments(objectId);
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
+    const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = `<div class="rp-none">No photos attached to this screening.</div>`;
     if (ov) ov.innerHTML = `<div class="ov-nophoto">No photos</div>`;
     return;
   }
@@ -2473,6 +2581,20 @@ async function loadAttachments(objectId) {
   LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
   // Photos tab: everything, Building Photo + Sketch first
   area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
+  // P-154 tab: photos of the things the score breakdown covers, with a description of each
+  const p154El = document.getElementById('p154-photos');
+  if (p154El) {
+    const rec = (typeof assets !== 'undefined' ? assets : []).find(x => String(x.id) === String(objectId));
+    const related = result.infos.filter(i => i.isImage).map(i => ({ i, t: photoTopic(i, rec && rec.attrs) })).filter(x => x.t && x.t.tab === 'p154');
+    p154El.innerHTML = related.length ? related.map(({ i, t }) => `
+      <figure class="rp-item">
+        <div class="attachment-tile" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === i.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <img src="${escHtml(i.url)}" alt="${escHtml(t.title)}: ${escHtml(t.desc)}" onerror="this.remove()">
+        </div>
+        <figcaption class="rp-cap"><div class="rp-title">${escHtml(t.title)}</div><div class="rp-desc">${escHtml(t.desc)}</div></figcaption>
+      </figure>`).join('')
+      : `<div class="rp-none">No photos of irregularities, falling hazards, or other P-154 items were attached to this screening.</div>`;
+  }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
   if (ov) {
     const pick = featured.length ? featured : result.infos.filter(i => i.isImage).slice(0, 2);
