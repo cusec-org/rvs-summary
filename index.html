@@ -162,8 +162,30 @@
     display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,48,135,0.4);
     transition: transform 0.15s; z-index: 1000;
   }
+  .map-tools { position: absolute; top: 12px; left: 12px; z-index: 1000; display: flex; gap: 8px; align-items: flex-start; }
+  .layers-wrap { position: relative; }
+  #layers-toggle {
+    background: white; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px;
+    display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.18); min-height: 36px; transition: background 0.15s, color 0.15s;
+  }
+  #layers-toggle:hover, #layers-toggle[aria-expanded="true"] { background: var(--cusec-blue); color: white; border-color: var(--cusec-blue); }
+  #layers-toggle.has-on::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--cusec-gold); margin-left: 2px; }
+  #layers-panel { position: absolute; top: calc(100% + 6px); left: 0; min-width: 250px; max-width: 300px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px 0; font-family: 'DM Sans', sans-serif; }
+  .lp-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); padding: 4px 14px 6px; }
+  .lp-item { display: flex; align-items: flex-start; gap: 9px; padding: 7px 14px; cursor: pointer; font-size: 13px; color: var(--text); }
+  .lp-item:hover { background: var(--surface2); }
+  .lp-item input { margin-top: 2px; accent-color: var(--cusec-blue); width: 15px; height: 15px; flex-shrink: 0; }
+  .lp-status { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .lp-status.err { color: #b3261e; }
+  .lp-legend { padding: 2px 14px 6px 38px; display: flex; flex-direction: column; gap: 3px; }
+  .lp-leg-row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text2); }
+  .lp-swatch { width: 16px; height: 11px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; }
+  .ov-pop b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .ov-pop span { font-size: 12px; color: #444; }
   #basemap-toggle {
-    position: absolute; top: 12px; left: 12px; z-index: 1000;
+    position: relative;
     background: white; color: var(--text); border: 1px solid var(--border);
     border-radius: 8px; padding: 7px 11px;
     display: flex; align-items: center; gap: 6px;
@@ -294,9 +316,12 @@
   .ov-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .ov-card { background: var(--surface); border: 1px solid #dfe3ea; border-radius: 10px; }
   .ov-stat { padding: 12px 14px; }
-  .ov-stat-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; }
+  .ov-stat-label { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #3a4453; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ov-stat-val { font-size: 19px; font-weight: 700; color: #13233d; margin-top: 4px; line-height: 1.2; word-break: break-word; }
   .ov-stat-sub { font-size: 11.5px; color: var(--text2); margin-top: 3px; }
+  .ov-stat-sub sub { font-size: 0.75em; vertical-align: sub; line-height: 0; }
+  .ov-sep { margin: 0 5px; color: var(--text3); }
+  .ov-accel { white-space: nowrap; }
   .ov-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: stretch; }
   .ov-cards > .ov-card { padding: 16px 18px 12px; }
   .ov-card-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3a4453; margin-bottom: 8px; }
@@ -304,6 +329,11 @@
   .ov-row:last-child { border-bottom: none; }
   .ov-k { color: #4a5363; }
   .ov-v { color: #13233d; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ov-occ-others { display: grid; grid-template-columns: repeat(3, max-content); justify-content: space-between; gap: 6px 10px; padding: 10px 0 4px; border-top: 1px solid #e6e9ef; font-size: 12px; }
+  .ov-occ-head { grid-column: 1 / -1; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #3a4453; margin-bottom: -2px; }
+  .ov-occ { display: inline-flex; align-items: flex-end; gap: 5px; white-space: nowrap; }
+  .ov-occ-lbl { color: #4a5363; }
+  .ov-blank { display: inline-block; min-width: 18px; border-bottom: 1.5px solid #4a5363; text-align: center; font-weight: 800; color: #13233d; line-height: 1.1; height: 15px; }
   .ov-missing { background: #fbe3b9; color: #7a4b00; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .ov-photos { display: flex; flex-direction: column; gap: 8px; }
   #overview-photos { display: flex; flex-direction: column; gap: 8px; }
@@ -315,7 +345,7 @@
   .tab-card .sec { padding: 16px 18px; }
   .tab-empty { padding: 28px 18px; text-align: center; color: var(--text3); font-size: 13px; font-style: italic; }
   /* Narrower panels (docked, small laptops, phones) */
-  @container (max-width: 900px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov-grid { grid-template-columns: minmax(0, 1fr) 260px; } }
+  @container (max-width: 980px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov-grid { grid-template-columns: minmax(0, 1fr) 260px; } }
   @container (max-width: 820px) { .ov-cards { grid-template-columns: 1fr; } }
   @container (max-width: 720px) {
     .ov-grid { grid-template-columns: 1fr; }
@@ -586,10 +616,19 @@
   </div>
   <div id="map-container" role="region" aria-label="Map">
     <div id="map"></div>
+    <div class="map-tools">
     <button id="basemap-toggle" onclick="toggleBasemap()" aria-label="Toggle basemap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
       <span id="basemap-label">Satellite</span>
     </button>
+    <div class="layers-wrap">
+      <button id="layers-toggle" onclick="toggleLayersPanel(event)" aria-expanded="false" aria-controls="layers-panel" aria-label="Map layers">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>Layers</span>
+      </button>
+      <div id="layers-panel" hidden onclick="event.stopPropagation()"></div>
+    </div>
+    </div>
   </div>
 
   <section id="list-section" aria-label="Survey records">
@@ -652,6 +691,20 @@ const CONFIG = {
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
   reportUrls: { p154: '', nonstructural: '' },
+  // Map overlay layers users can turn on/off (Layers button beside the
+  // basemap switch). Public layers only; they load the first time they're
+  // switched on. styleField colors polygons low→high; labelField/rangeField
+  // feed the pop-up and legend.
+  overlays: [
+    { id: 'usgs2023', name: '2023 USGS National Seismic Hazard',
+      url: 'https://services1.arcgis.com/utFj6xjAHT9GdIit/arcgis/rest/services/2023_USGS_National_Hazard/FeatureServer/0',
+      styleField: 'Integer_RL', labelField: 'RiskLevel', rangeField: 'range_cont', popupPrefix: 'Risk level: ', on: false },
+    // useLayerStyle: take colors + legend labels from the layer's own
+    // ArcGIS symbology (its unique-value renderer and transparency).
+    { id: 'liquefaction', name: 'Soil Liquefaction Susceptibility',
+      url: 'https://services1.arcgis.com/utFj6xjAHT9GdIit/arcgis/rest/services/Soil_Liquefaction_Susceptibility_Map/FeatureServer/0',
+      styleField: 'TYPE', labelField: 'TypeDescription', popupPrefix: 'Liquefaction risk: ', useLayerStyle: true, on: false },
+  ],
   layerIndex:   0,
   itemInfoUrl:  'https://www.arcgis.com/sharing/rest/content/items',
   serviceUrl:   null, // set by resolveServiceUrl()
@@ -863,16 +916,25 @@ const DETAIL_LABELS = {
   VertIrregularitiesPresent: 'Vertical Irregularities Present', PlanIrregularitiesPresent: 'Plan Irregularities Present',
 };
 const FEMA_TYPE_DESC = {
-  W1: 'Light wood frame single- or multiple-family dwellings', W1A: 'Light wood frame multi-unit, multi-story residential buildings',
-  W2: 'Wood frame commercial and industrial buildings', S1: 'Steel moment-resisting frame buildings', S2: 'Braced steel frame buildings',
-  S3: 'Light metal buildings', S4: 'Steel frame buildings with cast-in-place concrete shear walls',
-  S5: 'Steel frame buildings with unreinforced masonry infill walls', C1: 'Concrete moment-resisting frame buildings',
-  C2: 'Concrete shear wall buildings', C3: 'Concrete frame buildings with unreinforced masonry infill walls',
-  PC1: 'Tilt-up buildings', PC2: 'Precast concrete frame buildings',
-  RM1: 'Reinforced masonry buildings with flexible floor and roof diaphragms',
-  RM2: 'Reinforced masonry buildings with rigid floor and roof diaphragms',
-  URM: 'Unreinforced masonry bearing-wall buildings', MH: 'Manufactured housing',
+  // Classification scheme for the FEMA Building Type card
+  S1: 'Steel moment frame', S2: 'Steel braced frame', S3: 'Light metal building',
+  S4: 'Steel frame w/concrete shear walls', S5: 'Steel frame w/URM infill walls',
+  C1: 'Concrete moment frame', C2: 'Concrete shear wall', C3: 'Concrete w/URM infill walls',
+  PC1: 'Concrete tilt-up building', PC2: 'Precast concrete frame',
+  RM1: 'Reinforced masonry w/flexible diaphragms', RM2: 'Reinforced masonry w/rigid diaphragms',
+  URM: 'Unreinforced masonry', MH: 'Manufactured housing',
+  // Wood types (not in the list provided) keep their FEMA P-154 wording
+  W1: 'Light wood frame single- or multiple-family dwellings',
+  W1A: 'Light wood frame multi-unit, multi-story residential buildings',
+  W2: 'Wood frame commercial and industrial buildings',
 };
+// Singular facility type names for the Facility Details card
+const FACILITY_SINGULAR = {
+  'Schools': 'School', 'Hospitals': 'Hospital', 'Universities': 'University', 'Nursing Homes': 'Nursing Home',
+  'Government Admin. Offices': 'Government Admin. Office', 'Emergency Operations Centers': 'Emergency Operations Center',
+  'Medical Offices/Clinics': 'Medical Office/Clinic',
+};
+function singularFacility(t) { return FACILITY_SINGULAR[t] || t; }
 function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
@@ -1758,7 +1820,128 @@ function initMap() {
   basemapStreet.addTo(map);
   markerCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 50 });
   map.addLayer(markerCluster);
+  initOverlays();
 }
+// ── Overlay layers (Layers button) ─────────────────────────────
+const OVERLAY_STATE = {}; // id → { layer, status, classes }
+const OVERLAY_KEY = 'rvs_overlays_on_v1';
+const OVERLAY_RAMP = ['#ffffb2', '#fed976', '#feb24c', '#fd8d3c', '#f03b20', '#bd0026'];
+function _rampColor(t) {
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const x = Math.max(0, Math.min(1, t)) * (OVERLAY_RAMP.length - 1), i = Math.min(Math.floor(x), OVERLAY_RAMP.length - 2), f = x - i;
+  const a = hex(OVERLAY_RAMP[i]), b = hex(OVERLAY_RAMP[i + 1]);
+  return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * f).toString(16).padStart(2, '0')).join('');
+}
+// Pulls the whole layer as GeoJSON in WGS84 (paged, lightly generalized).
+async function fetchOverlayGeoJSON(ov) {
+  const fields = [ov.styleField, ov.labelField, ov.rangeField].filter(Boolean).join(',') || '*';
+  const all = [];
+  for (let offset = 0; offset < 100000; offset += 2000) {
+    const url = `${ov.url}/query?where=1%3D1&outFields=${encodeURIComponent(fields)}&returnGeometry=true&outSR=4326` +
+                `&geometryPrecision=5&maxAllowableOffset=0.002&resultOffset=${offset}&resultRecordCount=2000&f=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const gj = await res.json();
+    if (gj.error) throw new Error(gj.error.message || 'Layer query failed');
+    all.push(...(gj.features || []));
+    const more = gj.exceededTransferLimit || (gj.properties && gj.properties.exceededTransferLimit);
+    if (!more || !(gj.features || []).length) break;
+  }
+  return { type: 'FeatureCollection', features: all };
+}
+// Reads the layer's own symbology (used when useLayerStyle is set).
+async function fetchOverlayInfo(ov) {
+  const res = await fetch(`${ov.url}?f=json`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+function _esriColor(c) { return c ? '#' + c.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join('') : null; }
+async function loadOverlay(ov) {
+  const st = OVERLAY_STATE[ov.id] || (OVERLAY_STATE[ov.id] = {});
+  if (st.layer || st.status === 'loading') return;
+  st.status = 'loading'; renderLayersPanel();
+  try {
+    const gj = await fetchOverlayGeoJSON(ov);
+    let colorOf, fillOpacity = 0.38, outline = null;
+    const renderer = ov.useLayerStyle ? ((await fetchOverlayInfo(ov)).drawingInfo || {}) : null;
+    if (renderer && renderer.renderer && renderer.renderer.type === 'uniqueValue') {
+      // Layer's own categories, colors and labels
+      const r = renderer.renderer, map2 = new Map();
+      (r.uniqueValueInfos || []).forEach(u => map2.set(String(u.value), { color: _esriColor(u.symbol && u.symbol.color) || '#999999', label: u.label || String(u.value) }));
+      colorOf = v => (map2.get(String(v)) || { color: _esriColor(r.defaultSymbol && r.defaultSymbol.color) || '#999999' }).color;
+      const present = new Set(gj.features.map(f => String((f.properties || {})[ov.styleField])));
+      st.classes = [...map2.entries()].filter(([v]) => present.has(v)).map(([, c]) => c);
+      if (typeof renderer.transparency === 'number') fillOpacity = Math.max(0.15, Math.min(0.9, 1 - renderer.transparency / 100));
+      outline = '#6e6e6e';
+    } else if (renderer && renderer.renderer && renderer.renderer.type === 'simple') {
+      const c = _esriColor(renderer.renderer.symbol && renderer.renderer.symbol.color) || OVERLAY_RAMP[3];
+      colorOf = () => c; st.classes = [{ label: ov.name, color: c }];
+    } else {
+      // Color classes low → high on styleField (legend labels from labelField)
+      const byVal = new Map();
+      gj.features.forEach(f => { const p = f.properties || {}; const v = Number(p[ov.styleField]);
+        if (isFinite(v) && !byVal.has(v)) byVal.set(v, p[ov.labelField] || p[ov.rangeField] || String(v)); });
+      const vals = [...byVal.keys()].sort((a, b) => a - b);
+      colorOf = v => vals.length < 2 ? OVERLAY_RAMP[3] : _rampColor(vals.indexOf(Number(v)) / (vals.length - 1));
+      st.classes = vals.map(v => ({ label: byVal.get(v), color: colorOf(v) }));
+    }
+    if (!map.getPane('overlays')) { map.createPane('overlays'); map.getPane('overlays').style.zIndex = 350; }
+    if (!OVERLAY_STATE._canvas) OVERLAY_STATE._canvas = L.canvas({ pane: 'overlays', padding: 0.3 });
+    st.layer = L.geoJSON(gj, {
+      pane: 'overlays', renderer: OVERLAY_STATE._canvas,
+      style: f => { const c = colorOf((f.properties || {})[ov.styleField]); return { color: outline || c, weight: outline ? 0.4 : 0.6, fillColor: c, fillOpacity, opacity: 0.8 }; },
+      onEachFeature: (f, lyr) => { const p = f.properties || {};
+        const lines = [p[ov.labelField] ? `<b>${escHtml(ov.popupPrefix || '')}${escHtml(p[ov.labelField])}</b>` : '',
+                       p[ov.rangeField] ? `<span>Range: ${escHtml(p[ov.rangeField])}</span>` : ''].filter(Boolean).join('');
+        lyr.bindPopup(`<div class="ov-pop"><div style="font-size:10.5px;color:#777;margin-bottom:3px">${escHtml(ov.name)}</div>${lines || escHtml(ov.name)}</div>`); },
+    });
+    st.status = 'ready';
+  } catch (e) {
+    console.warn('Overlay failed:', ov.name, e);
+    st.status = 'error'; st.error = e.message || String(e);
+  }
+  applyOverlayVisibility(); renderLayersPanel();
+}
+function applyOverlayVisibility() {
+  (CONFIG.overlays || []).forEach(ov => { const st = OVERLAY_STATE[ov.id]; if (!st || !st.layer || !map) return;
+    if (ov.on && !map.hasLayer(st.layer)) st.layer.addTo(map);
+    if (!ov.on && map.hasLayer(st.layer)) map.removeLayer(st.layer); });
+  document.getElementById('layers-toggle')?.classList.toggle('has-on', (CONFIG.overlays || []).some(o => o.on));
+}
+function setOverlay(id, on) {
+  const ov = (CONFIG.overlays || []).find(o => o.id === id); if (!ov) return;
+  ov.on = on;
+  try { localStorage.setItem(OVERLAY_KEY, JSON.stringify((CONFIG.overlays || []).filter(o => o.on).map(o => o.id))); } catch {}
+  if (on) loadOverlay(ov);
+  applyOverlayVisibility(); renderLayersPanel();
+}
+function renderLayersPanel() {
+  const panel = document.getElementById('layers-panel'); if (!panel) return;
+  panel.innerHTML = `<div class="lp-title">Map layers</div>` + (CONFIG.overlays || []).map(ov => {
+    const st = OVERLAY_STATE[ov.id] || {};
+    const status = st.status === 'loading' ? '<div class="lp-status">Loading…</div>'
+                 : st.status === 'error' ? `<div class="lp-status err">Couldn't load this layer</div>` : '';
+    const legend = ov.on && st.classes && st.classes.length ? `<div class="lp-legend">${st.classes.map(c =>
+      `<div class="lp-leg-row"><span class="lp-swatch" style="background:${c.color}"></span>${escHtml(c.label)}</div>`).join('')}</div>` : '';
+    return `<label class="lp-item"><input type="checkbox" ${ov.on ? 'checked' : ''} onchange="setOverlay('${ov.id}', this.checked)"><div><div>${escHtml(ov.name)}</div>${status}</div></label>${legend}`;
+  }).join('');
+}
+function toggleLayersPanel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('layers-panel'), btn = document.getElementById('layers-toggle');
+  const open = panel.hidden;
+  if (open) renderLayersPanel();
+  panel.hidden = !open; btn.setAttribute('aria-expanded', open);
+}
+document.addEventListener('click', () => { const p = document.getElementById('layers-panel');
+  if (p && !p.hidden) { p.hidden = true; document.getElementById('layers-toggle')?.setAttribute('aria-expanded', 'false'); } });
+function initOverlays() {
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem(OVERLAY_KEY) || '[]'); } catch {}
+  (CONFIG.overlays || []).forEach(ov => { if (saved.includes(ov.id)) ov.on = true; if (ov.on) loadOverlay(ov); });
+  applyOverlayVisibility();
+}
+
 function toggleBasemap() {
   usingSat = !usingSat;
   if (usingSat) { map.removeLayer(basemapStreet); basemapSat.addTo(map); document.getElementById('basemap-label').textContent = 'Street'; }
@@ -2056,29 +2239,62 @@ function buildDetailHTML(a) {
   const soilM = String(soilLbl).match(/^([A-F])\s*[:\-–]\s*(.+)$/i);
   const femaLbl = fieldValue('FEMABuildingType');
   const yb = fieldValue('YearBuilt');
-  const addlNote = isYes(attrs.Additions) ? `Additions${attrs.AdditionsYearBuilt ? ': ' + attrs.AdditionsYearBuilt : ' (year unknown)'}`
-                 : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'No additions' : '');
-  const statCard = (label, big, sub) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(String(dash(big)))}</div>${sub ? `<div class="ov-stat-sub">${escHtml(sub)}</div>` : ''}</div>`;
+  const addlNote = isYes(attrs.Additions) ? 'with additions'
+                 : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'with no additions' : '');
+  const statCard = (label, big, sub, subHtml) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(String(dash(big)))}</div>${subHtml ? `<div class="ov-stat-sub">${subHtml}</div>` : sub ? `<div class="ov-stat-sub">${escHtml(sub)}</div>` : ''}</div>`;
+  // Ss / S1 spectral accelerations, shown inline with subscripts under Seismicity
+  const accel = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : String(Number(Number(v).toFixed(3)));
+  const ss = accel(attrs.SsSpectralAcc), s1 = accel(attrs.S1SpectralAcc);
+  const seisSub = [ss !== null ? `<span class="ov-accel">S<sub>s</sub> ${escHtml(ss)} g</span>` : '', s1 !== null ? `<span class="ov-accel">S<sub>1</sub> ${escHtml(s1)} g</span>` : ''].filter(Boolean).join('<span class="ov-sep">·</span>');
   const kvRows = rows => rows.map(([k, v, extra]) => `<div class="ov-row"><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(String(dash(v)))}${extra || ''}</div></div>`).join('');
   const sqft = attrs.TotalFloorArea !== undefined && attrs.TotalFloorArea !== null && isFinite(Number(attrs.TotalFloorArea)) ? Number(attrs.TotalFloorArea).toLocaleString() : fieldValue('TotalFloorArea');
   const screenDate = fmtShort(a.dateRaw);
+  // Screening Type: Nonstructural Only / P-154 Level 1 & 2 / P-154 Level 1
+  const didL2 = isYes(attrs.PerformLevel2) || (a.level2Score !== null && a.level2Score !== undefined && !isNaN(a.level2Score));
+  const screeningTypeStr = a.surveyType === 'Nonstructural Screening' ? 'Nonstructural Only' : (didL2 ? 'P-154 Level 1 & 2' : 'P-154 Level 1');
+  // Source + contact fields. The v3 field names aren't confirmed yet, so the
+  // first attribute whose name matches is used (e.g. SoilTypeSource).
+  const findAttr = (...patterns) => { for (const re of patterns) { const k = Object.keys(attrs).find(n => re.test(n)); if (k) return fieldValue(k); } return ''; };
+  const soilSrc = findAttr(/^soil_?type_?source$/i, /^soil_?source$/i, /soil.*source/i);
+  const geoSrc = findAttr(/^geolog(ic|ical)?_?hazards?_?source$/i, /^geo_?haz.*source$/i, /geolog.*source/i);
+  const contactStr = findAttr(/^facility_?contact$/i, /^contact_?person$/i, /^contact_?name$/i, /facility.*contact/i);
+  // Facility Details values
+  // "Other" occupancy checkboxes: an X when the record has it marked
+  // (OccupancyOthers multi-select; Shelter also counts IsShelter = Yes).
+  const occOther = (String(attrs.OccupancyOthers || '') + ' ' + choiceLabel('OccupancyOthers', attrs.OccupancyOthers || '')).toLowerCase();
+  const occMark = { Shelter: /shelter/.test(occOther) || isYes(attrs.IsShelter), Historic: /historic/.test(occOther), Government: /government/.test(occOther) };
+  // Geologic hazards as a row: the ones marked Yes, "None" if all answered No
+  const geoAns = [['Liquefaction', attrs.Liquefaction], ['Landslide', attrs.Landslide], ['Surface Rupture', attrs.SurfaceRupture]];
+  const geoYes = geoAns.filter(([, v]) => isYes(v)).map(([k]) => k);
+  const geoHazStr = geoYes.length ? geoYes.join(', ') : (geoAns.some(([, v]) => v !== undefined && v !== null && String(v).trim() !== '') ? 'None' : '');
+  const otherOccHtml = `<div class="ov-occ-others">${Object.entries(occMark).map(([k, on]) =>
+      `<span class="ov-occ"><span class="ov-occ-lbl">${k}</span><span class="ov-blank" aria-label="${k}: ${on ? 'yes' : 'no'}">${on ? 'X' : ''}</span></span>`).join('')}</div>`;
+  const latLongStr = (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : '';
+  const _int = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Math.round(Number(v));
+  const stAbove = _int(attrs.StoriesAboveGrade), stBelow = _int(attrs.StoriesBelowGrade);
+  const storiesStr = stAbove === null && stBelow === null ? '' : (stBelow ? `${(stAbove || 0) + stBelow} (incl. ${stBelow} below)` : String(stAbove));
+  const addlYearStr = isYes(attrs.Additions) ? (attrs.AdditionsYearBuilt ? String(attrs.AdditionsYearBuilt) : 'Unknown')
+                    : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'N/A' : (attrs.AdditionsYearBuilt ? String(attrs.AdditionsYearBuilt) : ''));
   const overviewHTML = `
     <div class="ov-grid">
       <div class="ov-main">
         <div class="ov-stats">
-          ${statCard('Seismicity', fieldValue('Seismicity'))}
+          ${statCard('Seismicity', fieldValue('Seismicity'), '', seisSub)}
           ${statCard('Soil Type', soilM ? soilM[1].toUpperCase() : soilLbl, soilM ? soilM[2] : '')}
-          ${statCard('Building Type', femaLbl, constructionType)}
+          ${statCard('FEMA Building Type', femaLbl, constructionType)}
           ${statCard('Year Built', yb, addlNote)}
         </div>
         <div class="ov-cards">
           <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
-            ['Facility type', a.facilityType], ['Is shelter', fieldValue('IsShelter')], ['Square feet', sqft],
-            ['Number of stories', fieldValue('StoriesAboveGrade')], ['Additions', fieldValue('Additions')], ['Construction type', constructionType]])}</div>
+            ['Facility Type', singularFacility(a.facilityType)], ['Latitude/Longitude', latLongStr], ['Stories', storiesStr],
+            ['Total Floor Area (sq. ft.)', sqft], ['Year Built Estimated?', fieldValue('YearBuiltEstimated')],
+            ['Additions Year Built', addlYearStr], ['Occupancy Type', fieldValue('Occupancy')], ['Geologic Hazards', geoHazStr]])}${otherOccHtml}</div>
           <div class="ov-card"><div class="ov-card-title">Screening Record</div>${kvRows([
-            ['Screening type', choiceLabel(FIELDS.surveyType, attrs.SurveyType) || 'P-154 Rapid Visual Screening'],
             ['Date of screening', screenDate || 'Not recorded', screenDate ? '' : ' <span class="ov-missing">Missing</span>'],
-            ['Exterior', fieldValue('Exterior')], ['Interior', fieldValue('Interior')], ['Nonstructural review', fieldValue('NonstructuralReview')]])}</div>
+            ['Screening Type', screeningTypeStr],
+            ['Nonstructural Review', fieldValue('NonstructuralReview')], ['Exterior Review', fieldValue('Exterior')],
+            ['Interior Review', fieldValue('Interior')], ['Drawings Reviewed', fieldValue('DrawingsReviewed')],
+            ['Soil Type Source', soilSrc], ['Geologic Hazard Source', geoSrc], ['Facility Contact', contactStr || '-']])}</div>
         </div>
       </div>
       <div class="ov-photos">
