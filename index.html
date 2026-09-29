@@ -348,6 +348,42 @@
   .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
   .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
   .view-all-link:hover { text-decoration: underline; }
+  /* P-154 Screening Details tab (spec v2) */
+  .p2-notice { background: #fff8e6; border: 1px solid #f0d49a; border-left: 4px solid var(--cusec-gold); border-radius: 8px; padding: 11px 14px; font-size: 13px; color: #4a3500; margin-bottom: 12px; line-height: 1.45; }
+  .p2-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.4fr); }
+  @container (max-width: 980px) { .p2-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @container (max-width: 520px) { .ov-stat-label { white-space: normal; } }
+  .p2-dse { font-size: 12px; color: #13233d; margin-top: 4px; line-height: 1.35; }
+  .p2-dse-k { color: #4a5363; }
+  .p2-card { padding: 16px 18px 12px; }
+  .p2-table { font-size: 12.5px; }
+  .p2-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e6e9ef; }
+  .p2-k { color: #4a5363; }
+  .p2-v { text-align: right; font-weight: 700; color: #13233d; font-variant-numeric: tabular-nums; }
+  .p2-strong .p2-k, .p2-final .p2-k { font-weight: 700; color: #13233d; }
+  .p2-final { background: #f3f5f8; margin: 0 -8px; padding: 8px; border-bottom: none; border-radius: 6px; }
+  .p2-sec { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; margin: 14px 0 2px; }
+  .p2-grp { font-size: 12px; font-weight: 700; color: #13233d; padding: 8px 0 0; }
+  .p2-ind { padding-left: 12px; display: inline-block; }
+  .p2-irr-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid #e6e9ef; align-items: start; font-size: 12.5px; }
+  .p2-none { color: var(--text3); font-style: italic; font-size: 12px; }
+  .p2-sub { margin: 12px 0 2px; }
+  .p2-comments { margin-top: 16px; }
+  .p2-cm { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
+  .p2-cm:last-child { border-bottom: none; }
+  .p2-cm-k { color: #4a5363; font-weight: 700; }
+  .p2-cm-v { color: #13233d; white-space: pre-line; line-height: 1.45; }
+  #p154-photos { display: flex; flex-direction: column; gap: 10px; }
+  #p154-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  .rp-more { display: flex; flex-direction: column; gap: 10px; }
+  .rp-more[hidden] { display: none; }
+  /* Round chevron button, same look as the photo viewer's arrows, pointing down */
+  .rp-expand { align-self: center; width: 30px; height: 30px; margin: -4px 0 -6px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+               background: rgba(0,0,0,0.78); border: 1.5px solid rgba(255,255,255,0.9); color: #fff; cursor: pointer;
+               box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: background 0.15s; padding: 0; border-width: 1px; }
+  .rp-expand:hover { background: rgba(0,0,0,0.9); }
+  .rp-expand svg { transition: transform 0.2s; }
+  .rp-expand[aria-expanded="true"] svg { transform: rotate(180deg); }
   /* P-154 Screening Details tab */
   .p154-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; padding: 18px 20px 22px; align-items: start; }
   .p154-photos { position: sticky; top: 12px; }
@@ -2389,98 +2425,129 @@ function buildDetailHTML(a) {
   const empty = msg => `<div class="ov-card tab-card tab-empty">${escHtml(msg)}</div>`;
   const GEO = ['OtherHazards', 'Landslide', 'SurfaceRupture', 'Liquefaction'];
   const groupFields = t => (DETAIL_GROUPS.find(g => g.title === t) || { fields: [] }).fields;
-  // ── P-154 Screening Details tab (per the RVS Dashboard design) ──
+  // ── P-154 Screening Details tab (per the P-154 tab spec) ──
+  // Left: RVS descriptors (boxes, Score Details | Irregularities & hazards,
+  // comments). Right: P-154 photos. Same proportions as Facility Overview.
   const num = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
-  const fmtScore = v => v === null ? '—' : v.toFixed(1);
-  const fmtMod = v => v === null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
-  const yn = v => (v === null || v === undefined || String(v).trim() === '') ? '—' : (isYes(v) ? 'Yes' : String(v).toLowerCase() === 'no' ? 'No' : choiceLabel('', v));
-  const storiesN = num(attrs.StoriesAboveGrade);
+  const fmtScore = v => v === null ? '' : v.toFixed(1);
+  const fmtMod = v => v === null ? '' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  const isNS = a.surveyType === 'Nonstructural Screening';
   const femaCodeTxt = femaCode ? femaCode[0] : (fieldValue('FEMABuildingType') || '');
   const seisTxt = fieldValue('Seismicity');
-  const basicLbl = `Basic score${femaCodeTxt || seisTxt ? ` (${[femaCodeTxt, seisTxt ? seisTxt.toLowerCase() + ' seismicity' : ''].filter(Boolean).join(', ')})` : ''}`;
-  const vertAny = attrs.VertIrregularities !== undefined ? yn(attrs.VertIrregularities) : (attrs.VertIrregularitiesPresent ? 'Yes' : '—');
-  const planAny = attrs.PlanIrregularities !== undefined ? yn(attrs.PlanIrregularities) : (attrs.PlanIrregularitiesPresent ? 'Yes' : '—');
-  // Which irregularities were marked (plus severity when recorded)
-  const irrList = (presentField, typeField) => {
-    const items = multiLabels(presentField, attrs[presentField]);
-    const sevRaw = multiLabels(typeField, attrs[typeField]).join(', ');
-    const sev = sevRaw ? sevRaw.charAt(0).toUpperCase() + sevRaw.slice(1) : '';
-    return { items, sev };
-  };
-  const vertDetail = irrList('VertIrregularitiesPresent', 'VertIrregularitiesType');
-  const planDetail = irrList('PlanIrregularitiesPresent', 'PlanIrregularitiesType');
-  const fallItems = multiLabels('ExtFallingHazards', attrs.ExtFallingHazards);
-  const fallOther = attrs.FallingHazardsOther ? String(attrs.FallingHazardsOther).trim() : '';
-  const fallText = fallItems.length || fallOther
-    ? [...fallItems.filter(t => t !== 'Other' || !fallOther), fallOther ? (fallItems.includes('Other') ? `Other (${fallOther})` : fallOther) : ''].filter(Boolean).join(', ')
-    : 'None marked';
-  // Other hazards that trigger a detailed structural evaluation (OtherHazards)
-  const trigItems = multiLabels('OtherHazards', attrs.OtherHazards);
-  // Detailed structural evaluation required? (IsDetailedRequired / DetailedEvalRequired)
-  const dReqRaw = String(attrs.IsDetailedRequired ?? attrs.DetailedEvalRequired ?? a.detailedReq ?? '').trim();
-  const dReq = !dReqRaw ? null : (/^y/i.test(dReqRaw) ? true : /^n/i.test(dReqRaw) ? false : null);
-  const dReqWhy = dReq ? (detailedEvalText || '').replace(/^Yes,?\s*/i, '') : '';
-  // Full option lists so the checklists show marked vs not marked
-  const optList = f => Object.entries(_labelMap(f) || {});
-  const rawSet = f => multiCodes(attrs[f]);
-  const fallSet = rawSet('ExtFallingHazards'), trigSet = rawSet('OtherHazards');
-  const fallOpts = optList('ExtFallingHazards').map(([code, lbl]) => ({ lbl: code === 'other' && fallOther ? `Other (${fallOther})` : lbl, on: fallSet.has(code) }));
-  const trigOpts = optList('OtherHazards').map(([code, lbl]) => ({ lbl, on: trigSet.has(code) }));
-  const reasonOpts = optList('DetailedEvalRequired').filter(([c]) => c !== 'no').map(([code, lbl]) => ({
-    lbl: lbl.replace(/^Yes,\s*/i, '').replace(/^./, c => c.toUpperCase()),
-    on: dReq === true && (dReqRaw === code || (/^y(es)?$/i.test(dReqRaw) && code === 'yes_low_score')) }));
-  const mark = on => `<span class="nb-blank">${on ? 'X' : ''}</span>`;
-  const dseWord = dReq === null ? 'Not recorded' : dReq ? 'Required' : 'Not required';
-  // Hazard checklists | Detailed Structural Evaluation result with reasons
-  const noteB = `<div class="nb-grid">
-      <div class="nb-card"><div class="nb-title">Exterior Falling Hazards</div>
-        ${fallOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
-        <div class="nb-title nb-title2">Other Hazards (trigger detailed evaluation)</div>
-        ${trigOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
-      </div>
-      <div class="nb-card nb-dse"><div class="nb-title">Detailed Structural Evaluation</div>
-        <div class="nb-status ${dReq ? 'yes' : dReq === false ? 'no' : 'unk'}">${dseWord}</div>
-        <div class="nb-sub">Reason</div>
-        ${reasonOpts.map(o => `<div class="nb-check${o.on ? ' on' : ''}">${mark(o.on)}<span>${escHtml(o.lbl)}</span></div>`).join('')}
-      </div>
+  const l1v = num(attrs.Level1Score) ?? sc, l2v = num(attrs.Level2Score);
+  const finalIsL2 = didL2 && l2v !== null;
+  // Stored modifier amounts, when the layer has them (first matching field wins)
+  const numAttr = (...res) => { for (const re of res) { const k = Object.keys(attrs).find(n => re.test(n)); if (k && num(attrs[k]) !== null) return num(attrs[k]); } return null; };
+  const vSev = /severe/i.test(String(attrs.VertIrregularitiesType || '')), vMod = /moderate/i.test(String(attrs.VertIrregularitiesType || ''));
+  const vl1 = num(attrs.VL1), pl1 = num(attrs.PL1);
+  const soilLetter = soilM ? soilM[1].toUpperCase() : '';
+  // Irregularity details
+  const irr = (presentField, typeField) => ({ items: multiLabels(presentField, attrs[presentField]),
+    sev: (s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '')(multiLabels(typeField, attrs[typeField]).join(', ')) });
+  const vIrr = irr('VertIrregularitiesPresent', 'VertIrregularitiesType');
+  const pIrr = irr('PlanIrregularitiesPresent', 'PlanIrregularitiesType');
+  const irrTag = (d, noneTxt) => (d.items.length || d.sev)
+    ? `<div class="sb-irr${/severe/i.test(d.sev) ? ' sev-severe' : /moderate/i.test(d.sev) ? ' sev-moderate' : ''}">${d.sev ? `<div class="sb-irr-sev">${escHtml(d.sev)}</div>` : ''}${d.items.length ? `<div class="sb-irr-name">${escHtml(d.items.join(', '))}</div>` : ''}</div>`
+    : `<span class="p2-none">${noneTxt}</span>`;
+
+  // 1) Boxes
+  const dseStruct = (() => {
+    const raw = String(attrs.IsDetailedRequired ?? attrs.DetailedEvalRequired ?? a.detailedReq ?? '').trim();
+    if (isNS) return 'N/A';
+    if (!raw) return 'Not recorded';
+    if (/^n/i.test(raw)) return 'No';
+    return detailedEvalText || 'Yes';
+  })();
+  const dseNS = (() => {
+    const raw = String(attrs.DetailedEvalRecommended || '').toLowerCase();
+    if (!raw) return 'Not recorded';
+    if (/do_?not_?know|dnk|unknown/.test(raw)) return 'DNK';
+    if (/^y/.test(raw)) return 'Yes';
+    if (/^n/.test(raw)) return 'No';
+    return choiceLabel('DetailedEvalRecommended', raw);
+  })();
+  const boxes = `<div class="ov-stats p2-stats">
+      ${statCard('Type of Screening', isNS ? 'Nonstructural Only' : (didL2 ? 'P-154 L1 & L2' : 'P-154 L1'))}
+      ${statCard('FEMA Building Type', femaLbl, constructionType)}
+      ${statCard('P-154 Score', isNS ? 'N/A' : fmtScore(finalIsL2 ? l2v : l1v) || '—', isNS ? '' : (finalIsL2 ? 'Final Level 2' : 'Final Level 1'))}
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
+        <div class="p2-dse"><span class="p2-dse-k">Structural:</span> <b>${escHtml(dseStruct)}</b></div>
+        <div class="p2-dse"><span class="p2-dse-k">Nonstructural:</span> <b>${escHtml(dseNS)}</b></div></div>
     </div>`;
-  const fallNote = noteB;
-  const soilApplies = soilM ? `${soilM[1].toUpperCase()} - ${soilM[2]}` : (soilLbl || '—');
-  const sbRows = [
-    [basicLbl, '', fmtScore(num(attrs.BasicScore)), 'sb-strong'],
-    ['Vertical irregularity', vertAny, fmtMod(num(attrs.VL1)), '', vertDetail],
-    ['Plan irregularity', planAny, fmtMod(num(attrs.PL1)), '', planDetail],
-    ['Code year', attrs.CodeYear ? choiceLabel('CodeYear', attrs.CodeYear) : '—', ''],
-    ['Pre-code', yn(attrs.PreCodeQ), '—'],
-    ['Post-benchmark', yn(attrs.PostBenchmarkQ), '—'],
-    ['Soil type', soilApplies, '—'],
-    ['Final L1 score', '', a.surveyType === 'Nonstructural Screening' ? '—' : fmtScore(num(attrs.Level1Score) ?? sc), 'sb-final'],
+
+  // 2a) P-154 Score Details
+  const row = (k, v, cls) => `<div class="p2-row${cls ? ' ' + cls : ''}"><div class="p2-k">${k}</div><div class="p2-v">${escHtml(v || '')}</div></div>`;
+  const basicLbl = `Basic Score${seisTxt || femaCodeTxt ? ` (${[seisTxt ? seisTxt + ' Seismicity' : '', femaCodeTxt].filter(Boolean).map(escHtml).join(', ')})` : ''}`;
+  const l1Rows = [
+    row(basicLbl, isNS ? '' : fmtScore(num(attrs.BasicScore)), 'p2-strong'),
+    row('Severe Vertical Irregularities', vSev ? fmtMod(vl1 ?? numAttr(/severe.*vert/i)) : fmtMod(numAttr(/severe.*vert/i))),
+    row('Moderate Vertical Irregularities', vMod ? fmtMod(vl1 ?? numAttr(/moderate.*vert/i)) : fmtMod(numAttr(/moderate.*vert/i))),
+    row('Plan Irregularities', fmtMod(pl1)),
+    row('Pre-Code Construction', fmtMod(numAttr(/^pre_?code.*(mod|score|val|amt)/i))),
+    row('Post-Benchmark Construction', fmtMod(numAttr(/^post_?bench.*(mod|score|val|amt)/i))),
+    ['A', 'B', 'E'].includes(soilLetter) ? row(`Soil Type ${soilLetter}`, fmtMod(numAttr(/^soil.*(mod|score|val|amt)/i))) : '',
+    row('Final Level 1 Score', isNS ? 'N/A' : fmtScore(l1v), 'p2-final'),
+  ].join('');
+  // Level 2 modifiers: the Level 2 questions answered Yes, grouped (amounts shown when stored)
+  const L2_GROUPS = [
+    ['Vertical Irregularities', [['VertIrregularitiesPresent', null]]],
+    ['Plan Irregularities', [['TorsionalIrr', 'Torsion'], ['NonParallelSystem', 'Non-parallel system'], ['ReentrantCorner', 'Re-entrant corner'],
+      ['DiaphragmOpening', 'Diaphragm opening'], ['C1C2BuildingOutofPlane', 'Out-of-plane offset (C1/C2)'], ['OtherPlanIrregularity', 'Other plan irregularity']]],
+    ['Pounding', [['PoundingAlign', 'Floors not aligned'], ['PoundingTaller', 'One building 2+ stories taller'], ['PoundingEnd', 'Building at end of block']]],
+    ['Building-Type Specific', [['S2Building', 'S2 “K” bracing'], ['C1Building', 'C1 flat plate'], ['PC1RM1BuildingQ1', 'PC1/RM1 roof-to-wall ties'],
+      ['PC1RM1BuildingQ2', 'PC1/RM1 interior walls'], ['URMQ1', 'URM gable walls'], ['MHQ1', 'MH supplemental bracing']]],
+    ['Redundancy', [['Redundancy', 'Redundancy']]],
+    ['Retrofit', [['RetrofitQ1', 'Comprehensive seismic retrofit']]],
   ];
-  if (num(attrs.Level2Score) !== null) sbRows.push(['Final L2 score', '', fmtScore(num(attrs.Level2Score)), 'sb-final']);
-  const cutoff = 2.0, posMax = 5;
-  const l1 = num(attrs.Level1Score) ?? sc;
-  const posPct = v => Math.max(0, Math.min(100, (v / posMax) * 100));
-  const isNS = a.surveyType === 'Nonstructural Screening';
-  const positionHTML = (l1 === null || isNS)
-    ? `<div class="sp-none">${isNS ? 'Nonstructural-only screening — no L1 score.' : 'No L1 score recorded.'}</div>`
-    : `<div class="sp-wrap">
-         <div class="sp-track"><div class="sp-cut" style="left:${posPct(cutoff)}%" title="Cut-off ${cutoff.toFixed(1)}"></div>
-           <div class="sp-marker" style="left:${posPct(l1)}%"><span>${escHtml(l1.toFixed(1))}</span></div></div>
-         <div class="sp-ticks">${[0, 1, 2, 3, 4].map(t => `<span style="left:${posPct(t)}%">${t}</span>`).join('')}<span style="left:100%">5+</span></div>
-       </div>
-       <div class="sp-note">Cut-off line: ${cutoff.toFixed(1)} — scores at or below the line call for a detailed structural evaluation.</div>`;
+  const l2Items = !didL2 ? [] : L2_GROUPS.map(([g, fields]) => [g, fields.flatMap(([f, label]) => {
+    if (label === null) return multiLabels(f, attrs[f]).map(t => [t, '']);
+    return isYes(attrs[f]) ? [[label, fmtMod(numAttr(new RegExp('^' + f + '_?(mod|score|val|amt)$', 'i')))]] : [];
+  })]).filter(([, items]) => items.length);
+  const l2Rows = l2Items.length
+    ? l2Items.map(([g, items]) => `<div class="p2-grp">${escHtml(g)}</div>` + items.map(([t, v]) => row(`<span class="p2-ind">${escHtml(t)}</span>`, v)).join('')).join('')
+      + (l2v !== null ? row('Final Level 2 Score', fmtScore(l2v), 'p2-final') : '')
+    : row('<span class="p2-ind">N/A</span>', '');
+  const scoreDetails = `<div class="ov-card p2-card"><div class="ov-card-title">P-154 Score Details</div>
+      <div class="p2-table">${l1Rows}<div class="p2-sec">Level 2 Modifiers</div>${l2Rows}</div></div>`;
+
+  // 2b) Irregularities & hazards
+  const codes = f => multiCodes(attrs[f]);
+  const oh = codes('OtherHazards'), adj = codes('Adjacency'), efh = codes('ExtFallingHazards');
+  const chk = (label, on) => `<div class="nb-check${on ? ' on' : ''}"><span class="nb-blank">${on ? 'X' : ''}</span><span>${escHtml(label)}</span></div>`;
+  const fallOtherTxt = attrs.FallingHazardsOther ? String(attrs.FallingHazardsOther).trim() : '';
+  const irregCard = `<div class="ov-card p2-card"><div class="ov-card-title">Irregularities</div>
+      <div class="p2-irr-row"><div class="p2-k">Vertical</div><div>${irrTag(vIrr, 'None marked')}</div></div>
+      <div class="p2-irr-row"><div class="p2-k">Plan</div><div>${irrTag(pIrr, 'None marked')}</div></div>
+      <div class="ov-card-title p2-sub">Adjacency Hazards</div>
+      ${chk('Pounding', oh.has('pounding_potential') || adj.has('pounding'))}
+      ${chk('Falling Hazards from Adjacent Buildings', oh.has('falling_hazards') || adj.has('falling_hazards_taller'))}
+      <div class="ov-card-title p2-sub">Exterior Falling Hazards</div>
+      ${chk('Unbraced Chimneys', efh.has('unbraced_chimneys'))}
+      ${chk('Parapets', efh.has('parapets'))}
+      ${chk('Heavy Cladding', efh.has('heavy_cladding'))}
+      ${chk('Appendages', efh.has('appendages'))}
+      ${chk(`Other${efh.has('other') || fallOtherTxt ? (fallOtherTxt ? `: ${fallOtherTxt}` : '') : ''}`, efh.has('other') || !!fallOtherTxt)}
+    </div>`;
+
+  // 3) Screener comments (L1, and L2 if applicable)
+  const c1 = attrs.Level1Comments ? String(attrs.Level1Comments).trim() : '';
+  const c2 = attrs.Level2Comments ? String(attrs.Level2Comments).trim() : '';
+  const commentsBox = `<div class="ov-card p2-card p2-comments"><div class="ov-card-title">Screener Comments</div>
+      <div class="p2-cm"><div class="p2-cm-k">Level 1</div><div class="p2-cm-v">${c1 ? escHtml(c1) : '<span class="p2-none">No Level 1 comments.</span>'}</div></div>
+      ${didL2 ? `<div class="p2-cm"><div class="p2-cm-k">Level 2</div><div class="p2-cm-v">${c2 ? escHtml(c2) : '<span class="p2-none">No Level 2 comments.</span>'}</div></div>` : ''}
+    </div>`;
+
   const p154HTML = `
-    <div class="p154-grid">
-      <div class="ov-card p154-card"><div class="ov-card-title">Score Breakdown</div>
-        <div class="sb-table" role="table">
-          <div class="sb-row sb-head" role="row"><div role="columnheader">Item</div><div role="columnheader">Applies</div><div role="columnheader">Score</div></div>
-          ${sbRows.map(([k, ap, sco, cls, det]) => `<div class="sb-row${cls ? ' ' + cls : ''}${det && (det.items.length || det.sev) ? ' sb-has-sub' : ''}" role="row"><div role="cell">${escHtml(k)}</div><div role="cell" class="sb-ap">${escHtml(ap)}</div><div role="cell" class="sb-sc">${escHtml(sco)}</div></div>` +
-            (det && (det.items.length || det.sev) ? `<div class="sb-sub" role="row"><div role="cell"><div class="sb-irr${/severe/i.test(det.sev) ? ' sev-severe' : /moderate/i.test(det.sev) ? ' sev-moderate' : ''}">${det.sev ? `<div class="sb-irr-sev">${escHtml(det.sev)}</div>` : ''}${det.items.map(t => `<div class="sb-irr-name">${escHtml(t)}</div>`).join('')}</div></div></div>` : '')).join('')}
-        </div>
-        ${fallNote}
+    <div class="ov-grid">
+      <div class="ov-main">
+        ${isNS ? `<div class="p2-notice">A P-154 Rapid Visual Screening was not performed for this facility. Reference the nonstructural review section for additional information.</div>` : ''}
+        ${boxes}
+        <div class="ov-cards">${scoreDetails}${irregCard}</div>
+        ${commentsBox}
       </div>
-      <div class="ov-card p154-card p154-photos"><div class="ov-card-title">Related Photos</div>
+      <div class="ov-photos">
         <div id="p154-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
+        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
   const nsHazards = groupFields('Hazards').filter(f => !GEO.includes(f) && f !== 'NonstructuralSeismicPerformance');
@@ -2572,6 +2639,15 @@ function photoTopic(info, attrs) {
   return null;
 }
 
+function toggleRelatedPhotos(btn) {
+  const more = btn.previousElementSibling, open = more.hidden;
+  more.hidden = !open;
+  btn.setAttribute('aria-expanded', open);
+  const n = more.querySelectorAll('.rp-item').length;
+  const lbl = open ? 'Show fewer photos' : `Show ${n} more photo${n > 1 ? 's' : ''}`;
+  btn.setAttribute('aria-label', lbl); btn.title = lbl;
+}
+
 async function loadAttachments(objectId) {
   const area = document.getElementById('attachment-area');
   const ov = document.getElementById('overview-photos');
@@ -2579,7 +2655,7 @@ async function loadAttachments(objectId) {
   const result = await fetchAttachments(objectId);
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
-    const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = `<div class="rp-none">No photos attached to this screening.</div>`;
+    const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = `<div class="ov-nophoto">No photos</div>`;
     if (ov) ov.innerHTML = `<div class="ov-nophoto">No photos</div>`;
     return;
   }
@@ -2604,19 +2680,42 @@ async function loadAttachments(objectId) {
   LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
   // Photos tab: everything, Building Photo + Sketch first
   area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
-  // P-154 tab: photos of the things the score breakdown covers, with a description of each
+  // P-154 tab photos, in this order (skipping any that don't exist):
+  // main building photo, exterior 1–2, structural 1–2, irregularity
+  // (Photo 10–11 vertical, 12–13 plan), structural frame 1–2, drawings 1–2.
   const p154El = document.getElementById('p154-photos');
   if (p154El) {
     const rec = (typeof assets !== 'undefined' ? assets : []).find(x => String(x.id) === String(objectId));
-    const related = result.infos.filter(i => i.isImage).map(i => ({ i, t: photoTopic(i, rec && rec.attrs) })).filter(x => x.t && x.t.tab === 'p154');
-    p154El.innerHTML = related.length ? related.map(({ i, t }) => `
+    const ra = (rec && rec.attrs) || {};
+    const imgs = result.infos.filter(i => i.isImage);
+    const key = i => `${i.keywords || ''} ${i.name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const used = new Set();
+    const take = (pred, max) => imgs.filter(i => !used.has(i) && pred(i)).slice(0, max).map(i => (used.add(i), i));
+    const groups = [];
+    const bp = take(i => kind(i) === 'Building Photo', 1);
+    bp.forEach(i => groups.push([i, 'Building Photo', 'Main photo of the building.']));
+    take(i => /exterior/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Exterior Photo ${n + 1}`, 'Exterior view used for the screening.']));
+    take(i => /structur/.test(key(i)) && !/frame/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Structural Photo ${n + 1}`, 'Structural system or element observed.']));
+    take(i => { const t = photoTopic(i, ra); return t && /Irregularity/.test(t.title); }, 4).forEach(i => { const t = photoTopic(i, ra); groups.push([i, t.title, t.desc]); });
+    take(i => /frame/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Structural Frame Photo ${n + 1}`, 'Structural frame observed.']));
+    take(i => /drawing/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Building Drawings ${n + 1}`, 'Photo of building drawings reviewed.']));
+    const fig = ([i, title, desc]) => `
       <figure class="rp-item">
         <div class="attachment-tile" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === i.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <img src="${escHtml(i.url)}" alt="${escHtml(t.title)}: ${escHtml(t.desc)}" onerror="this.remove()">
+          <img src="${escHtml(i.url)}" alt="${escHtml(title)}: ${escHtml(desc)}" onerror="this.remove()">
+          <div class="attachment-tag">${escHtml(title)}</div>
         </div>
-        <figcaption class="rp-cap"><div class="rp-title">${escHtml(t.title)}</div><div class="rp-desc">${escHtml(t.desc)}</div></figcaption>
-      </figure>`).join('')
-      : `<div class="rp-none">No photos of irregularities, falling hazards, or other P-154 items were attached to this screening.</div>`;
+        <figcaption class="rp-cap"><div class="rp-desc">${escHtml(desc)}</div></figcaption>
+      </figure>`;
+    // First 3 photos show; the rest expand with the down-arrow button
+    const SHOW = 3, extra = groups.slice(SHOW);
+    p154El.innerHTML = !groups.length ? `<div class="ov-nophoto">No P-154 photos</div>`
+      : groups.slice(0, SHOW).map(fig).join('') + (extra.length ? `
+        <div class="rp-more" hidden>${extra.map(fig).join('')}</div>
+        <button class="rp-expand" aria-expanded="false" onclick="toggleRelatedPhotos(this)"
+          aria-label="Show ${extra.length} more photo${extra.length > 1 ? 's' : ''}" title="Show ${extra.length} more photo${extra.length > 1 ? 's' : ''}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>` : '');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
   if (ov) {
