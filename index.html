@@ -348,6 +348,32 @@
   .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
   .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
   .view-all-link:hover { text-decoration: underline; }
+  /* P-154 Screening Details tab */
+  .p154-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 38%); gap: 16px; padding: 18px 20px 22px; align-items: start; }
+  .p154-side { display: flex; flex-direction: column; gap: 16px; }
+  .p154-card { padding: 16px 18px 14px; }
+  .sb-table { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12.5px; }
+  .sb-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, auto) 70px; gap: 10px; padding: 10px 12px; border-top: 1px solid #e6e9ef; align-items: center; }
+  .sb-row:first-child { border-top: none; }
+  .sb-head { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; padding: 9px 12px; }
+  .sb-head > div:last-child, .sb-sc { text-align: right; }
+  .sb-ap { color: #4a5363; }
+  .sb-sc { font-weight: 700; color: #13233d; font-variant-numeric: tabular-nums; }
+  .sb-strong > div:first-child { font-weight: 700; color: #13233d; }
+  .sb-final { background: #f3f5f8; }
+  .sb-final > div:first-child { font-weight: 700; color: #13233d; }
+  .sp-wrap { position: relative; padding: 30px 4px 4px; }
+  .sp-track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #f1d9a8, #e6e1d8 55%, #e3e7ee); }
+  .sp-cut { position: absolute; top: -5px; bottom: -5px; width: 0; border-left: 2px dashed #6b7384; }
+  .sp-marker { position: absolute; bottom: -7px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .sp-marker span { font-size: 12px; font-weight: 800; color: #13233d; }
+  .sp-marker::after { content: ''; width: 4px; height: 24px; background: #13233d; border-radius: 2px; margin-top: 3px; }
+  .sp-ticks { position: relative; height: 16px; margin-top: 9px; font-size: 11px; color: #4a5363; }
+  .sp-ticks span { position: absolute; transform: translateX(-50%); }
+  .sp-ticks span:first-child { transform: none; } .sp-ticks span:last-child { transform: translateX(-100%); }
+  .sp-note { font-size: 11.5px; color: #4a5363; margin-top: 10px; line-height: 1.45; }
+  .sp-none { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 6px 0; }
+  @container (max-width: 720px) { .p154-grid { grid-template-columns: 1fr; } }
   .tab-stack { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
   .tab-card .sec { padding: 16px 18px; }
   .tab-empty { padding: 28px 18px; text-align: center; color: var(--text3); font-size: 13px; font-style: italic; }
@@ -2307,14 +2333,57 @@ function buildDetailHTML(a) {
   const empty = msg => `<div class="ov-card tab-card tab-empty">${escHtml(msg)}</div>`;
   const GEO = ['OtherHazards', 'Landslide', 'SurfaceRupture', 'Liquefaction'];
   const groupFields = t => (DETAIL_GROUPS.find(g => g.title === t) || { fields: [] }).fields;
-  const p154HTML = [
-    card(fieldSection('Identification', DETAIL_IDENTITY_FIELDS)),
-    card(fieldSection('Screening Type & Extent', groupFields('Screening Type & Extent'))),
-    card(fieldSection('Building Details & Screening Information', groupFields('Building Details & Screening Information'))),
-    card(fieldSection('Score Modifiers', groupFields('Score Modifiers'))),
-    card(fieldSection('Geologic & Other Hazards', GEO)),
-    card(fieldSection('Score', groupFields('Score'), scoreBar)),
-  ].join('');
+  // ── P-154 Screening Details tab (per the RVS Dashboard design) ──
+  const num = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
+  const fmtScore = v => v === null ? '—' : v.toFixed(1);
+  const fmtMod = v => v === null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  const yn = v => (v === null || v === undefined || String(v).trim() === '') ? '—' : (isYes(v) ? 'Yes' : String(v).toLowerCase() === 'no' ? 'No' : choiceLabel('', v));
+  const storiesN = num(attrs.StoriesAboveGrade);
+  const femaCodeTxt = femaCode ? femaCode[0] : (fieldValue('FEMABuildingType') || '');
+  const seisTxt = fieldValue('Seismicity');
+  const basicLbl = `Basic score${femaCodeTxt || seisTxt ? ` (${[femaCodeTxt, seisTxt ? seisTxt.toLowerCase() + ' seismicity' : ''].filter(Boolean).join(', ')})` : ''}`;
+  const vertAny = attrs.VertIrregularities !== undefined ? yn(attrs.VertIrregularities) : (attrs.VertIrregularitiesPresent ? 'Yes' : '—');
+  const planAny = attrs.PlanIrregularities !== undefined ? yn(attrs.PlanIrregularities) : (attrs.PlanIrregularitiesPresent ? 'Yes' : '—');
+  const soilApplies = soilM ? `${soilM[1].toUpperCase()} - ${soilM[2]}` : (soilLbl || '—');
+  const sbRows = [
+    [basicLbl, '', fmtScore(num(attrs.BasicScore)), 'sb-strong'],
+    ['Mid rise (4 to 7 stories)', storiesN === null ? '—' : (storiesN >= 4 && storiesN <= 7 ? 'Yes' : 'No'), '—'],
+    ['High rise (more than 7 stories)', storiesN === null ? '—' : (storiesN > 7 ? 'Yes' : 'No'), '—'],
+    ['Vertical irregularity', vertAny, fmtMod(num(attrs.VL1))],
+    ['Plan irregularity', planAny, fmtMod(num(attrs.PL1))],
+    ['Pre-code', yn(attrs.PreCodeQ), '—'],
+    ['Post-benchmark', yn(attrs.PostBenchmarkQ), '—'],
+    ['Soil type', soilApplies, '—'],
+    ['Final L1 score', '', a.surveyType === 'Nonstructural Screening' ? '—' : fmtScore(num(attrs.Level1Score) ?? sc), 'sb-final'],
+  ];
+  if (num(attrs.Level2Score) !== null) sbRows.push(['Final L2 score', '', fmtScore(num(attrs.Level2Score)), 'sb-final']);
+  const cutoff = 2.0, posMax = 5;
+  const l1 = num(attrs.Level1Score) ?? sc;
+  const posPct = v => Math.max(0, Math.min(100, (v / posMax) * 100));
+  const isNS = a.surveyType === 'Nonstructural Screening';
+  const positionHTML = (l1 === null || isNS)
+    ? `<div class="sp-none">${isNS ? 'Nonstructural-only screening — no L1 score.' : 'No L1 score recorded.'}</div>`
+    : `<div class="sp-wrap">
+         <div class="sp-track"><div class="sp-cut" style="left:${posPct(cutoff)}%" title="Cut-off ${cutoff.toFixed(1)}"></div>
+           <div class="sp-marker" style="left:${posPct(l1)}%"><span>${escHtml(l1.toFixed(1))}</span></div></div>
+         <div class="sp-ticks">${[0, 1, 2, 3, 4].map(t => `<span style="left:${posPct(t)}%">${t}</span>`).join('')}<span style="left:100%">5+</span></div>
+       </div>
+       <div class="sp-note">Cut-off line: ${cutoff.toFixed(1)} — scores at or below the line call for a detailed structural evaluation.</div>`;
+  const p154HTML = `
+    <div class="p154-grid">
+      <div class="ov-card p154-card"><div class="ov-card-title">Score Breakdown</div>
+        <div class="sb-table" role="table">
+          <div class="sb-row sb-head" role="row"><div role="columnheader">Item</div><div role="columnheader">Applies</div><div role="columnheader">Score</div></div>
+          ${sbRows.map(([k, ap, sco, cls]) => `<div class="sb-row${cls ? ' ' + cls : ''}" role="row"><div role="cell">${escHtml(k)}</div><div role="cell" class="sb-ap">${escHtml(ap)}</div><div role="cell" class="sb-sc">${escHtml(sco)}</div></div>`).join('')}
+        </div>
+      </div>
+      <div class="p154-side">
+        <div class="ov-card p154-card"><div class="ov-card-title">L1 Score Position</div>${positionHTML}</div>
+        <div class="ov-card p154-card"><div class="ov-card-title">Screening Inputs</div>${kvRows([
+          ['Building type', fieldValue('FEMABuildingType')], ['Seismicity', seisTxt], ['Soil type', soilApplies === '—' ? '' : soilApplies],
+          ['Exterior', fieldValue('Exterior')], ['Interior', fieldValue('Interior')]])}</div>
+      </div>
+    </div>`;
   const nsHazards = groupFields('Hazards').filter(f => !GEO.includes(f) && f !== 'NonstructuralSeismicPerformance');
   const nonstructHTML = [
     card(fieldSection('Nonstructural Review', ['NonstructuralReview', 'NonstructuralSeismicPerformance', 'DetailedEvalRecommended'])),
@@ -2361,7 +2430,7 @@ function buildDetailHTML(a) {
 
     <div class="detail-panels">
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${overviewHTML}</div>
-      <div class="dtab-panel tab-stack" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
+      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
       <div class="dtab-panel tab-stack" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
         <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
