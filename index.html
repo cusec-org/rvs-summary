@@ -176,16 +176,17 @@
   #fab-locate:active { transform: scale(0.95); }
 
   /* ── List ── */
-  #list-section { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-  #stats-bar { position: sticky; top: 0; z-index: 11; }
-  .list-controls { position: sticky; top: 72px; z-index: 10; background: var(--bg); box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
+  #list-section { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  #stats-bar { flex-shrink: 0; z-index: 11; }
+  .list-controls { flex-shrink: 0; z-index: 10; background: var(--bg); box-shadow: 0 1px 0 rgba(0,0,0,0.04); }
   .list-header { padding: 10px 16px 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .list-count { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.6px; }
   #last-refreshed { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
   .stale-badge { display: inline-block; background: #fdeed3; color: #6b4200; border: 1px solid #d4920a; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-left: 4px; vertical-align: 2px; }
   .sort-toggle { font-size: 12px; color: var(--cusec-blue); font-weight: 700; cursor: pointer; padding: 6px 10px; border-radius: 6px; border: none; background: none; min-height: 36px; display: flex; align-items: center; }
-  #asset-list { display: flex; flex-direction: column; padding: 0 0 80px; }
+  #asset-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; display: flex; flex-direction: column; padding: 0 0 80px; }
+  #asset-list > * { flex-shrink: 0; }
   .offline-banner { background: #fdeed3; border-bottom: 1px solid #d4920a; color: #6b4200; padding: 8px 14px; font-size: 12px; text-align: center; font-weight: 600; }
 
   /* ── Card ── */
@@ -550,9 +551,9 @@
     <div class="filter-row">
       <button id="filter-toggle-btn" class="filter-btn" onclick="toggleFilterDropdown(event)" aria-expanded="false" aria-controls="filter-dropdown">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        Filter
+        Facility Type
       </button>
-      <button class="filter-btn" id="score-filter-btn" onclick="toggleScoreFilter()" title="Filter by score risk">
+      <button class="filter-btn" id="score-filter-btn" onclick="toggleMultiDropdown(event,'score')" aria-expanded="false" aria-controls="score-dropdown" title="Filter by L1 score">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Score
       </button>
@@ -572,6 +573,7 @@
     </div>
     <div class="filter-dropdown-wrap">
       <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
+      <div id="score-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by L1 score"></div>
       <div id="phase-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by phase"></div>
       <div id="state-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by state"></div>
       <div id="county-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by county"></div>
@@ -1511,6 +1513,13 @@ function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById
 // kept per state so "Washington, MO" and "Washington, AR" stay separate.
 const NO_VALUE = '__none__';
 const MULTI_FILTERS = {
+  // L1 Score: two fixed choices. Exactly 2.0 counts as "≤ 2.0" (at or below
+  // the cut-off), matching the "L1 SCORE ≤2.0" tile in the stats bar.
+  score:  { btn: 'score-filter-btn', dd: 'score-dropdown', label: 'L1 Score', active: new Set(),
+            options: ['le2', 'gt2'],
+            get: a => (a.level1Score === null || a.level1Score === undefined || a.surveyType === 'Nonstructural Screening') ? NO_VALUE
+                      : (a.level1Score <= 2.0 ? 'le2' : 'gt2'),
+            name: k => k === 'le2' ? '≤ 2.0' : k === 'gt2' ? '> 2.0' : 'No score' },
   phase:  { btn: 'phase-filter-btn',  dd: 'phase-dropdown',  label: 'Phase',  active: activePhases,
             get: a => a.phase || NO_VALUE,
             name: k => k === NO_VALUE ? 'No Phase' : k },
@@ -1538,7 +1547,8 @@ function buildMultiDropdown(key) {
   const counts = new Map();
   assets.filter(a => !f.scope || f.scope(a)).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
   f.active.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
-  const keys = [...counts.keys()].sort((x, y) => x === NO_VALUE ? 1 : y === NO_VALUE ? -1 : f.name(x).localeCompare(f.name(y)));
+  (f.options || []).forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
+  const keys = f.options ? f.options.slice() : [...counts.keys()].sort((x, y) => x === NO_VALUE ? 1 : y === NO_VALUE ? -1 : f.name(x).localeCompare(f.name(y)));
   if (!keys.length) { dd.innerHTML = '<div class="fdd-empty">No records loaded yet</div>'; return; }
   dd.innerHTML = (f.active.size ? `<div class="fdd-item fdd-clear" data-clear-all="1"><span>Clear ${escHtml(f.label)} filter</span></div>` : '') +
     keys.map(k => `<div class="fdd-item${f.active.has(k) ? ' selected' : ''}" data-val="${escHtml(k)}" role="option" aria-selected="${f.active.has(k)}">
