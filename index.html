@@ -242,6 +242,14 @@
   .pop { padding: 11px 13px; min-width: 160px; }
   .pop-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
   .pop-type { font-size: 11px; font-weight: 600; }
+  /* Pulsing highlight on the selected record */
+  .pulse-icon { background: none; border: none; pointer-events: none; }
+  .pulse-ring { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+                border: 3px solid var(--cusec-gold); background: rgba(200,150,12,0.22); box-shadow: 0 0 10px rgba(200,150,12,0.6);
+                animation: rvsPulse 1.8s ease-out infinite; }
+  .pulse-ring.r2 { animation-delay: 0.9s; }
+  @keyframes rvsPulse { 0% { transform: scale(0.35); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pulse-ring { animation: none; transform: scale(1); opacity: 0.8; } .pulse-ring.r2 { display: none; } }
   .pop-date { font-size: 11px; color: var(--text2); margin-top: 3px; }
   .pop-score { font-size: 11px; font-family: 'DM Mono', monospace; margin-top: 4px; font-weight: 700; }
 
@@ -274,7 +282,7 @@
   .sheet-score { align-items: center; min-width: 150px; }
   .sheet-score-label { font-size: 11px; }
   .sheet-score-pill { min-width: 150px; text-align: center; background: #3a4150; color: #fff; border-radius: 8px; padding: 6px 12px;
-                      font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+                      font-family: 'DM Sans', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: 0.2px; line-height: 1.2; margin-bottom: 4px; } /* matches the list's L1 Score pill */
   .report-link { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: #1a3fd1; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; line-height: 1.45; }
   .report-link:hover { text-decoration-thickness: 2px; }
   .detail-tabs { flex-wrap: wrap; gap: 0 6px; padding: 0 20px; }
@@ -587,11 +595,9 @@
     <div class="list-controls">
       <div class="list-header">
         <div>
-          <div class="list-count" id="list-count">Loading…</div>
+          <!-- record count hidden (kept so existing code can still update it) -->
+          <div class="list-count" id="list-count" hidden>Loading…</div>
           <div id="last-refreshed"></div>
-        </div>
-        <div class="header-actions">
-          <span class="sort-toggle sort-static" id="sort-label" title="Sorted by Date of Screening (SurveyDate), newest first">🕒 Newest first</span>
         </div>
       </div>
     </div>
@@ -1780,11 +1786,52 @@ function renderMarkers() {
   });
 }
 
+// Zoom the map to a record. Waits for the detail panel to finish sliding
+// in, then places the record in the largest part of the map the panel
+// isn't covering (left of a docked panel, beside a floating card), so the
+// pulsing marker stays visible.
+const RECORD_ZOOM = 17;
 function panToAsset(a) {
-  if (a.lat === null || a.lng === null) return;
-  map.flyTo([a.lat, a.lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
-  const m = markerMap[a.id];
-  if (m) setTimeout(() => m.openPopup(), 850);
+  if (!map || a.lat === null || a.lng === null) return;
+  setTimeout(() => {
+    const size = map.getSize();
+    const mr = map.getContainer().getBoundingClientRect();
+    let tx = size.x / 2, ty = size.y / 2;
+    const sheet = document.getElementById('detail-sheet');
+    if (sheet.classList.contains('open')) {
+      const c = document.getElementById('detail-content').getBoundingClientRect();
+      const l = Math.max(c.left, mr.left), r = Math.min(c.right, mr.right);
+      const t = Math.max(c.top, mr.top), b = Math.min(c.bottom, mr.bottom);
+      if (r > l && b > t) {
+        const strips = [
+          { w: l - mr.left,  h: mr.height, cx: (l - mr.left) / 2,               cy: mr.height / 2 },
+          { w: mr.right - r, h: mr.height, cx: (r - mr.left) + (mr.right - r) / 2, cy: mr.height / 2 },
+          { w: mr.width, h: t - mr.top,    cx: mr.width / 2, cy: (t - mr.top) / 2 },
+          { w: mr.width, h: mr.bottom - b, cx: mr.width / 2, cy: (b - mr.top) + (mr.bottom - b) / 2 },
+        ].filter(s => s.w >= 60 && s.h >= 60).sort((x, y) => Math.min(y.w, y.h) - Math.min(x.w, x.h));
+        if (strips.length) { tx = strips[0].cx; ty = strips[0].cy; }
+      }
+    }
+    const z = Math.max(map.getZoom(), RECORD_ZOOM);
+    const target = map.project([a.lat, a.lng], z).subtract(L.point(tx - size.x / 2, ty - size.y / 2));
+    map.flyTo(map.unproject(target, z), z, { duration: 0.9 });
+  }, 330);
+}
+
+// Pulsing highlight on the selected record's location. It sits in its own
+// layer (not the cluster group), so it shows even while markers are clustered.
+let pulseMarker = null;
+function showPulse(a) {
+  clearPulse();
+  if (!map || a.lat === null || a.lng === null) return;
+  pulseMarker = L.marker([a.lat, a.lng], {
+    icon: L.divIcon({ className: 'pulse-icon', html: '<span class="pulse-ring"></span><span class="pulse-ring r2"></span>', iconSize: [64, 64], iconAnchor: [32, 32] }),
+    interactive: false, keyboard: false, zIndexOffset: -1000,
+  }).addTo(map);
+}
+function clearPulse() {
+  if (pulseMarker && map) map.removeLayer(pulseMarker);
+  pulseMarker = null;
 }
 
 function computeDistances() {
@@ -1823,8 +1870,9 @@ function selectAsset(id, panMap = true) {
   if (!a) return;
   selectedId = id;
   renderList();
-  if (panMap) panToAsset(a);
   openDetail(a);
+  showPulse(a);
+  if (panMap) panToAsset(a);
 }
 
 const DESKTOP_MQ = window.matchMedia('(min-width: 900px)');
@@ -1884,6 +1932,7 @@ function openDetail(a) {
   loadAttachments(a.id);
 }
 function closeDetail() {
+  clearPulse();
   document.getElementById('detail-sheet').classList.remove('open');
   document.body.style.overflow = '';
   selectedId = null;
