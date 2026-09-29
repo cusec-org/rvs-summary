@@ -1162,12 +1162,12 @@ function scoreColor(score, surveyType) { return SCORE_NEUTRAL; }
 function scoreTextColor(score, surveyType) { return '#ffffff'; }
 function scoreDisplay(score, surveyType) {
   if (surveyType === 'Nonstructural Screening') return 'N/A';
-  if (score === null || score === undefined || isNaN(score)) return '—';
+  if (score === null || score === undefined || isNaN(score)) return '-';
   return score.toFixed(1);
 }
 function scoreLabel(score, surveyType) {
   if (surveyType === 'Nonstructural Screening') return { short: 'N/A', desc: 'Nonstructural Screening — structural score not applicable' };
-  if (score === null || score === undefined || isNaN(score)) return { short: '—', desc: 'No score recorded' };
+  if (score === null || score === undefined || isNaN(score)) return { short: '-', desc: 'No score recorded' };
   if (score > 2.0) return { short: score.toFixed(1), desc: 'Score above cut-off — detailed structural evaluation not indicated' };
   return { short: score.toFixed(1), desc: 'Score at or below cut-off — detailed structural evaluation recommended' };
 }
@@ -2365,7 +2365,7 @@ function buildDetailHTML(a) {
     }).join('')}</div></div>`;
 
   // ── Facility Overview tab (per mockup) ──
-  const dash = v => (v || v === 0) ? v : '—';
+  const dash = v => (v || v === 0) ? v : '-'; // empty-value placeholder
   const soilLbl = fieldValue('SoilType');
   const soilM = String(soilLbl).match(/^([A-F])\s*[:\-–]\s*(.+)$/i);
   const femaLbl = fieldValue('FEMABuildingType');
@@ -2519,7 +2519,7 @@ function buildDetailHTML(a) {
   const modRow = (label, key, on) => {
     const v = T ? T[key] : null;
     const cls = !T ? 'p2-na' : (on && v !== null ? 'p2-on' : 'p2-off');
-    const txt = !T ? '—' : key === 'smin' ? (v === null ? 'NA' : v.toFixed(1)) : fmtT(v); // minimum score is a floor, not a +/− modifier
+    const txt = !T ? '-' : key === 'smin' ? (v === null ? 'NA' : v.toFixed(1)) : fmtT(v); // minimum score is a floor, not a +/− modifier
     const tip = T && v === null ? ` title="FEMA P-154 has no ${label.replace(/<[^>]+>/g, '')} modifier for ${escHtml(tcode)} buildings"` : '';
     return `<div class="p2-row ${cls}"><div class="p2-k">${label}</div><div class="p2-v"${tip}>${escHtml(txt)}</div></div>`;
   };
