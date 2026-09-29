@@ -182,8 +182,9 @@
   .lp-legend { padding: 2px 14px 6px 38px; display: flex; flex-direction: column; gap: 3px; }
   .lp-leg-row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text2); }
   .lp-swatch { width: 16px; height: 11px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; }
-  .ov-pop b { display: block; font-size: 12.5px; margin-bottom: 2px; }
-  .ov-pop span { font-size: 12px; color: #444; }
+  .leaflet-popup.ov-popup .leaflet-popup-content { margin: 0 !important; padding: 22px 38px 22px 24px; min-width: 220px; } /* roomier overlay pop-ups */
+  .ov-pop b { display: block; font-size: 14px; font-weight: 700; color: #13233d; }
+  .ov-pop span { display: block; font-size: 12.5px; color: #444; margin-top: 4px; }
   #basemap-toggle {
     position: relative;
     background: white; color: var(--text); border: 1px solid var(--border);
@@ -213,7 +214,7 @@
 
   /* ── Card ── */
   .asset-card {
-    background: var(--surface); margin: 0 12px 8px; border-radius: var(--radius);
+    background: var(--surface); margin: 0 10px 6px; border-radius: var(--radius);
     box-shadow: var(--shadow); border: 2px solid transparent; cursor: pointer; transition: all 0.2s; overflow: hidden;
   }
   .asset-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
@@ -221,14 +222,20 @@
   .asset-card.selected { border-color: var(--cusec-blue); box-shadow: 0 0 0 3px rgba(0,48,135,0.1), var(--shadow); }
   .card-body { display: flex; align-items: stretch; }
   .card-strip { width: 5px; flex-shrink: 0; }
-  .card-content { flex: 1; padding: 13px 13px 10px; min-width: 0; }
+  .card-content { flex: 1; padding: 9px 11px 9px 12px; min-width: 0; }
+  .card-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+  .card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+  .card-info .card-address { margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-score { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .card-score-lbl { font-size: 11px; color: var(--text3); font-weight: 700; letter-spacing: 0.3px; }
+  .card-score .score-pill { font-size: 16px; padding: 4px 11px; }
   .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 5px; }
-  .type-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: none !important; border-radius: 0; }
+  .type-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: none !important; border-radius: 0; }
   .type-icon img { width: 64px; height: 64px; object-fit: contain; display: block; }
   .type-icon svg { width: 64px; height: 64px; }
   .card-titles { flex: 1; min-width: 0; }
   .card-name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .card-name { font-size: 14px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; letter-spacing: -0.2px; flex: 1; min-width: 0; }
+  .card-name { font-size: 13.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; letter-spacing: -0.2px; flex: 1; min-width: 0; }
   .score-pill {
     font-size: 19px; font-family: 'DM Sans', sans-serif; font-weight: 800;
     padding: 7px 13px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;
@@ -471,7 +478,7 @@
 
   /* ── Desktop ── */
   @media (min-width: 900px) {
-    #app { display: grid; grid-template-rows: auto 1fr; grid-template-columns: 420px 1fr; max-width: none; width: 100%; height: 100vh; min-height: 100vh; box-shadow: none; }
+    #app { display: grid; grid-template-rows: auto 1fr; grid-template-columns: 357px 1fr; max-width: none; width: 100%; height: 100vh; min-height: 100vh; box-shadow: none; }
     #header        { grid-column: 1 / -1; grid-row: 1; }
     #list-section  { grid-column: 1; grid-row: 2; border-right: 1px solid var(--border); }
     #map-container { grid-column: 2; grid-row: 2; height: 100%; }
@@ -698,12 +705,12 @@ const CONFIG = {
   overlays: [
     { id: 'usgs2023', name: '2023 USGS National Seismic Hazard',
       url: 'https://services1.arcgis.com/utFj6xjAHT9GdIit/arcgis/rest/services/2023_USGS_National_Hazard/FeatureServer/0',
-      styleField: 'Integer_RL', labelField: 'RiskLevel', rangeField: 'range_cont', popupPrefix: 'Risk level: ', on: false },
+      styleField: 'Integer_RL', labelField: 'RiskLevel', rangeField: 'range_cont', popupPrefix: 'Seismic Hazard: ', popupRange: false, on: false },
     // useLayerStyle: take colors + legend labels from the layer's own
     // ArcGIS symbology (its unique-value renderer and transparency).
     { id: 'liquefaction', name: 'Soil Liquefaction Susceptibility',
       url: 'https://services1.arcgis.com/utFj6xjAHT9GdIit/arcgis/rest/services/Soil_Liquefaction_Susceptibility_Map/FeatureServer/0',
-      styleField: 'TYPE', labelField: 'TypeDescription', popupPrefix: 'Liquefaction risk: ', useLayerStyle: true, on: false },
+      styleField: 'TYPE', labelField: 'TypeDescription', popupPrefix: 'Liquefaction Susceptibility: ', useLayerStyle: true, on: false },
   ],
   layerIndex:   0,
   itemInfoUrl:  'https://www.arcgis.com/sharing/rest/content/items',
@@ -1777,26 +1784,18 @@ function cardHTML(a) {
       <div class="card-body">
         <div class="card-strip" style="background:${ft.color}"></div>
         <div class="card-content">
-          <div class="card-top">
-            <div class="type-icon">${ft.icon}</div>
-            <div class="card-titles" style="flex:1;min-width:0">
-              <div class="card-name-row">
-                <div class="card-name">${escHtml(a.buildingName)}</div>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px">
-                <div style="min-width:0">
-                  ${addr ? `<div class="card-address">${escHtml(addr)}</div>` : ''}
-                  ${femaLabel ? `<div class="card-address" style="margin-top:2px">${femaLabel}</div>` : ''}
-                </div>
-                <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px">
-                  <div style="font-size:12px;color:var(--text3);font-weight:700;letter-spacing:0.3px;text-align:center">L1 Score</div>
-                  <span class="score-pill" style="background:${scColor};color:${scTextColor}">${scText}</span>
-                </div>
-              </div>
+          <div class="card-name">${escHtml(a.buildingName)}</div>
+          <!-- icon · location/type · score, all vertically centered -->
+          <div class="card-row">
+            <div class="type-icon">${ft.icon.replace(/width:\d+px;height:\d+px/, 'width:36px;height:36px')}</div>
+            <div class="card-info">
+              ${addr ? `<div class="card-address">${escHtml(addr)}</div>` : ''}
+              ${femaLabel ? `<div class="card-address">${femaLabel}</div>` : ''}
             </div>
-          </div>
-          <div class="meta-badges">
-            ${distHtml}${phaseBadge}
+            <div class="card-score">
+              <div class="card-score-lbl">L1 Score</div>
+              <span class="score-pill" style="background:${scColor};color:${scTextColor}">${scText}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1891,9 +1890,9 @@ async function loadOverlay(ov) {
       pane: 'overlays', renderer: OVERLAY_STATE._canvas,
       style: f => { const c = colorOf((f.properties || {})[ov.styleField]); return { color: outline || c, weight: outline ? 0.4 : 0.6, fillColor: c, fillOpacity, opacity: 0.8 }; },
       onEachFeature: (f, lyr) => { const p = f.properties || {};
-        const lines = [p[ov.labelField] ? `<b>${escHtml(ov.popupPrefix || '')}${escHtml(p[ov.labelField])}</b>` : '',
-                       p[ov.rangeField] ? `<span>Range: ${escHtml(p[ov.rangeField])}</span>` : ''].filter(Boolean).join('');
-        lyr.bindPopup(`<div class="ov-pop"><div style="font-size:10.5px;color:#777;margin-bottom:3px">${escHtml(ov.name)}</div>${lines || escHtml(ov.name)}</div>`); },
+        const main = p[ov.labelField] ? `<b>${escHtml(ov.popupPrefix || '')}${escHtml(p[ov.labelField])}</b>` : `<b>${escHtml(ov.name)}</b>`;
+        const range = ov.popupRange !== false && p[ov.rangeField] ? `<span>Range: ${escHtml(p[ov.rangeField])}</span>` : '';
+        lyr.bindPopup(`<div class="ov-pop">${main}${range}</div>`, { className: 'ov-popup', maxWidth: 380 }); },
     });
     st.status = 'ready';
   } catch (e) {
