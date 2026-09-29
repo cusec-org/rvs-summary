@@ -92,7 +92,8 @@
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   #search-input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(255,191,71,0.35); }
-  .filter-row { display: flex; align-items: center; gap: 6px; padding-bottom: 2px; }
+  .filter-row { display: flex; align-items: center; gap: 6px; padding-bottom: 2px; flex-wrap: wrap; row-gap: 6px; }
+  .sort-static { cursor: default; }
   .filter-btn {
     display: flex; align-items: center; gap: 5px;
     background: var(--surface); border: 1.5px solid var(--border);
@@ -115,18 +116,19 @@
   /* ── Filter Dropdown ── */
   .filter-dropdown-wrap { position: relative; }
   #filter-dropdown {
-    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 500;
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 1500; /* above map controls */
     background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
   }
   #filter-dropdown.open { display: block; }
-  #phase-dropdown {
-    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 500;
+  .multi-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 1500; /* above map controls */
     background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
   }
-  #phase-dropdown.open { display: block; }
+  .multi-dropdown.open { display: block; }
   .fdd-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); font-weight: 600; }
+  .fdd-clear { color: var(--cusec-blue); font-weight: 700; border-bottom: 1px solid var(--border); }
   .fdd-empty { padding: 12px 14px; font-size: 12px; color: var(--text3); font-style: italic; }
   .fdd-item {
     display: flex; align-items: center; gap: 10px; padding: 9px 14px;
@@ -152,7 +154,7 @@
   @keyframes loadbar { 0%{transform:translateX(-100%)} 100%{transform:translateX(450%)} }
 
   /* ── Map ── */
-  #map-container { flex-shrink: 0; height: 36vh; position: relative; }
+  #map-container { flex-shrink: 0; height: 36vh; position: relative; z-index: 0; } /* own stacking context: map controls stay under header dropdowns */
   #map { width: 100%; height: 100%; }
   #fab-locate {
     position: absolute; bottom: 14px; right: 12px; width: 48px; height: 48px;
@@ -527,10 +529,6 @@
         <h1 class="app-title-text">Rapid Visual Screening</h1>
       </div>
       <div class="header-pills">
-        <button class="header-pill" onclick="requestLocation()" aria-label="Use my location">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-          <span id="loc-label">Locate</span>
-        </button>
         <button class="header-pill icon-only" onclick="signOut()" aria-label="Sign out" title="Sign out">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -550,15 +548,25 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Score
       </button>
-      <button class="filter-btn" id="phase-filter-btn" onclick="togglePhaseDropdown(event)" aria-expanded="false" aria-controls="phase-dropdown" title="Filter by phase">
+      <button class="filter-btn" id="phase-filter-btn" onclick="toggleMultiDropdown(event,'phase')" aria-expanded="false" aria-controls="phase-dropdown" title="Filter by phase">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Phase
+      </button>
+      <button class="filter-btn" id="state-filter-btn" onclick="toggleMultiDropdown(event,'state')" aria-expanded="false" aria-controls="state-dropdown" title="Filter by state">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        State
+      </button>
+      <button class="filter-btn" id="county-filter-btn" onclick="toggleMultiDropdown(event,'county')" aria-expanded="false" aria-controls="county-dropdown" title="Filter by county">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        County
       </button>
       <div id="active-filters" class="active-filters" role="region" aria-label="Active filters"></div>
     </div>
     <div class="filter-dropdown-wrap">
       <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
-      <div id="phase-dropdown" class="phase-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by phase"></div>
+      <div id="phase-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by phase"></div>
+      <div id="state-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by state"></div>
+      <div id="county-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by county"></div>
     </div>
     <div id="loading-bar" aria-hidden="true"></div>
   </header>
@@ -572,9 +580,6 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
       <span id="basemap-label">Satellite</span>
     </button>
-    <button id="fab-locate" onclick="requestLocation()" aria-label="Find my location">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-    </button>
   </div>
 
   <section id="list-section" aria-label="Survey records">
@@ -586,9 +591,7 @@
           <div id="last-refreshed"></div>
         </div>
         <div class="header-actions">
-          <button class="sort-toggle" onclick="toggleSort()" aria-label="Change sort order">
-            <span id="sort-label">🕒 Most recent</span>
-          </button>
+          <span class="sort-toggle sort-static" id="sort-label" title="Sorted by Date of Screening (SurveyDate), newest first">🕒 Newest first</span>
         </div>
       </div>
     </div>
@@ -807,6 +810,14 @@ function normFacility(raw) {
   const keys = typeof FACILITY_KEYS !== 'undefined' ? FACILITY_KEYS : [];
   const hit = keys.find(k => _norm(k) === _norm(lbl) || _norm(k) === _norm(raw));
   return hit || lbl || 'Other';
+}
+// Records in these phases are never shown (list, map, counts, filters):
+// Did Not Screen (DNS), Prepopulate, and records with no phase at all.
+function isExcludedPhase(a) {
+  const raw = (a.attrs && a.attrs[FIELDS.phase] !== undefined) ? a.attrs[FIELDS.phase] : a.phase;
+  const vals = [a.phase, raw].map(v => _norm(v));
+  if (vals.every(v => !v)) return true; // no phase
+  return vals.some(v => v === 'dns' || /didnotscreen|donotscreen|notscreened/.test(v) || /^prepopulat/.test(v));
 }
 function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
 
@@ -1332,7 +1343,7 @@ async function fetchAssets() {
         offset += pageSize;
       }
     }
-    const list = allFeatures.map(featureToAsset);
+    const list = allFeatures.map(featureToAsset).filter(a => !isExcludedPhase(a));
     assets = list;
     computeDistances();
     renderList();
@@ -1344,7 +1355,7 @@ async function fetchAssets() {
     // Try cache
     const cached = loadCachedData();
     if (cached) {
-      assets = cached.assets;
+      assets = cached.assets.filter(a => !isExcludedPhase(a));
       computeDistances();
       renderList();
       renderMarkers();
@@ -1409,10 +1420,8 @@ let markerCluster, markerMap = {};
 let assets = [];
 let activeFilters = new Set(), activeScoreFilter = 'all', searchTerm = '', selectedId = null;
 let activePhases = new Set(); // empty = all phases (no Phase filter)
-const NO_PHASE = '__none__';
-const phaseKey = a => a.phase || NO_PHASE;
-const phaseName = k => k === NO_PHASE ? 'No Phase' : k;
-let sortMode = 'recent'; // 'recent' | 'distance' | 'name' | 'score'
+const phaseName = k => k === '__none__' ? 'No Phase' : k;
+const sortMode = 'recent'; // list is always newest SurveyDate first
 let refreshTimer = null;
 
 // ════════════════════════════════════════════════════════════════
@@ -1458,7 +1467,7 @@ function toggleFilterDropdown(e) {
   const dd = document.getElementById('filter-dropdown');
   const btn = document.getElementById('filter-toggle-btn');
   const isOpen = dd.classList.contains('open');
-  document.getElementById('phase-dropdown').classList.remove('open');
+  closeMultiDropdowns();
   dd.classList.toggle('open', !isOpen);
   btn.setAttribute('aria-expanded', !isOpen);
 }
@@ -1466,8 +1475,7 @@ function toggleFilterDropdown(e) {
 document.addEventListener('click', () => {
   const dd = document.getElementById('filter-dropdown');
   if (dd) { dd.classList.remove('open'); document.getElementById('filter-toggle-btn')?.setAttribute('aria-expanded','false'); }
-  const pd = document.getElementById('phase-dropdown');
-  if (pd) { pd.classList.remove('open'); document.getElementById('phase-filter-btn')?.setAttribute('aria-expanded','false'); }
+  closeMultiDropdowns();
 });
 
 function toggleScoreFilter() {
@@ -1491,57 +1499,90 @@ function clearFacilityFilter() {
 }
 function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById('score-filter-btn').classList.remove('has-filter'); updateActiveFilterBar(); renderList(); }
 
-// ── Phase filter ────────────────────────────────────────────────
-// Lists every phase present in the data (with counts). Nothing checked =
-// all phases shown. Replaces the old hard-coded "Complete only" rule.
-function buildPhaseDropdown() {
-  const dd = document.getElementById('phase-dropdown');
+// ── Phase / State / County filters ──────────────────────────────
+// Each lists the values present in the data (with counts). Nothing checked
+// = no filter. County options follow the State filter, and counties are
+// kept per state so "Washington, MO" and "Washington, AR" stay separate.
+const NO_VALUE = '__none__';
+const MULTI_FILTERS = {
+  phase:  { btn: 'phase-filter-btn',  dd: 'phase-dropdown',  label: 'Phase',  active: activePhases,
+            get: a => a.phase || NO_VALUE,
+            name: k => k === NO_VALUE ? 'No Phase' : k },
+  state:  { btn: 'state-filter-btn',  dd: 'state-dropdown',  label: 'State',  active: new Set(),
+            get: a => String(a.state || '').trim() || NO_VALUE,
+            name: k => k === NO_VALUE ? 'No State' : choiceLabel(FIELDS.state, k) },
+  county: { btn: 'county-filter-btn', dd: 'county-dropdown', label: 'County', active: new Set(),
+            get: a => String(a.county || '').trim() ? `${String(a.county).trim()}|${String(a.state || '').trim()}` : NO_VALUE,
+            name: k => { if (k === NO_VALUE) return 'No County'; const [c, st] = k.split('|'); return st ? `${choiceLabel(FIELDS.county, c)}, ${choiceLabel(FIELDS.state, st)}` : choiceLabel(FIELDS.county, c); },
+            scope: a => MULTI_FILTERS.state.active.size === 0 || MULTI_FILTERS.state.active.has(MULTI_FILTERS.state.get(a)) },
+};
+function passesMultiFilters(a) {
+  return Object.values(MULTI_FILTERS).every(f => f.active.size === 0 || f.active.has(f.get(a)));
+}
+function closeMultiDropdowns(except) {
+  Object.entries(MULTI_FILTERS).forEach(([key, f]) => {
+    if (key === except) return;
+    document.getElementById(f.dd)?.classList.remove('open');
+    document.getElementById(f.btn)?.setAttribute('aria-expanded', 'false');
+  });
+}
+function buildMultiDropdown(key) {
+  const f = MULTI_FILTERS[key];
+  const dd = document.getElementById(f.dd);
   const counts = new Map();
-  assets.forEach(a => counts.set(phaseKey(a), (counts.get(phaseKey(a)) || 0) + 1));
-  activePhases.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
-  const keys = [...counts.keys()].sort((x, y) => x === NO_PHASE ? 1 : y === NO_PHASE ? -1 : x.localeCompare(y));
+  assets.filter(a => !f.scope || f.scope(a)).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
+  f.active.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
+  const keys = [...counts.keys()].sort((x, y) => x === NO_VALUE ? 1 : y === NO_VALUE ? -1 : f.name(x).localeCompare(f.name(y)));
   if (!keys.length) { dd.innerHTML = '<div class="fdd-empty">No records loaded yet</div>'; return; }
-  dd.innerHTML = keys.map(k => `<div class="fdd-item${activePhases.has(k) ? ' selected' : ''}" data-phase="${escHtml(k)}" role="option" aria-selected="${activePhases.has(k)}">
-      <div class="fdd-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" style="${activePhases.has(k) ? '' : 'display:none'}"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <span>${escHtml(phaseName(k))}</span><span class="fdd-count">${counts.get(k).toLocaleString()}</span>
+  dd.innerHTML = (f.active.size ? `<div class="fdd-item fdd-clear" data-clear-all="1"><span>Clear ${escHtml(f.label)} filter</span></div>` : '') +
+    keys.map(k => `<div class="fdd-item${f.active.has(k) ? ' selected' : ''}" data-val="${escHtml(k)}" role="option" aria-selected="${f.active.has(k)}">
+      <div class="fdd-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" style="${f.active.has(k) ? '' : 'display:none'}"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <span>${escHtml(f.name(k))}</span><span class="fdd-count">${counts.get(k).toLocaleString()}</span>
     </div>`).join('');
   dd.querySelectorAll('.fdd-item').forEach(item => item.addEventListener('click', e => {
     e.stopPropagation();
-    const k = item.dataset.phase;
-    activePhases.has(k) ? activePhases.delete(k) : activePhases.add(k);
-    buildPhaseDropdown(); updatePhaseBtn(); updateActiveFilterBar(); renderList();
+    if (item.dataset.clearAll) f.active.clear();
+    else { const k = item.dataset.val; f.active.has(k) ? f.active.delete(k) : f.active.add(k); }
+    buildMultiDropdown(key); multiFiltersChanged();
   }));
 }
-function updatePhaseBtn() {
-  document.getElementById('phase-filter-btn').classList.toggle('has-filter', activePhases.size > 0);
+function updateMultiBtns() {
+  Object.values(MULTI_FILTERS).forEach(f => document.getElementById(f.btn)?.classList.toggle('has-filter', f.active.size > 0));
 }
-function togglePhaseDropdown(e) {
+function multiFiltersChanged() { updateMultiBtns(); updateActiveFilterBar(); renderList(); }
+function toggleMultiDropdown(e, key) {
   e.stopPropagation();
-  const dd = document.getElementById('phase-dropdown');
-  const btn = document.getElementById('phase-filter-btn');
+  const f = MULTI_FILTERS[key];
+  const dd = document.getElementById(f.dd);
+  const btn = document.getElementById(f.btn);
   const open = !dd.classList.contains('open');
   document.getElementById('filter-dropdown').classList.remove('open');
   document.getElementById('filter-toggle-btn').setAttribute('aria-expanded', 'false');
-  if (open) { buildPhaseDropdown(); dd.style.left = `${btn.offsetLeft}px`; }
+  closeMultiDropdowns(key);
+  if (open) { buildMultiDropdown(key); dd.style.left = `${Math.max(0, Math.min(btn.offsetLeft, (dd.offsetParent?.clientWidth || 9999) - 230))}px`; }
   dd.classList.toggle('open', open);
   btn.setAttribute('aria-expanded', open);
 }
-function clearPhaseFilter(k) {
-  k ? activePhases.delete(k) : activePhases.clear();
-  updatePhaseBtn(); updateActiveFilterBar(); renderList();
+function clearMultiFilter(key, k) {
+  const f = MULTI_FILTERS[key];
+  k ? f.active.delete(k) : f.active.clear();
+  multiFiltersChanged();
 }
+// Kept for older callers
+function clearPhaseFilter(k) { clearMultiFilter('phase', k); }
+function updatePhaseBtn() { updateMultiBtns(); }
 
 function updateActiveFilterBar() {
   const bar = document.getElementById('active-filters');
   const chips = [];
-  activePhases.forEach(k => chips.push({ kind: 'phase', key: k, label: `Phase: ${phaseName(k)}` }));
+  Object.entries(MULTI_FILTERS).forEach(([fk, f]) => f.active.forEach(k => chips.push({ kind: 'multi', filter: fk, key: k, label: `${f.label}: ${f.name(k)}` })));
   activeFilters.forEach(f => chips.push({ kind: 'facility', key: f, label: f }));
   if (activeScoreFilter !== 'all') {
     const sl = { green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
     chips.push({ kind: 'score', label: sl[activeScoreFilter] });
   }
   bar.innerHTML = chips.map(c =>
-    `<button class="active-chip" type="button" data-clear="${c.kind}" data-key="${escHtml(c.key||'')}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
+    `<button class="active-chip" type="button" data-clear="${c.kind}" data-filter="${c.filter||''}" data-key="${escHtml(c.key||'')}" aria-label="Remove filter: ${c.label}">${c.label}<span class="active-chip-x" aria-hidden="true">×</span></button>`
   ).join('');
   if (!bar._bound) {
     bar._bound = true;
@@ -1555,7 +1596,7 @@ function updateActiveFilterBar() {
         renderList();
       }
       if (chip.getAttribute('data-clear') === 'score') clearScoreFilter();
-      if (chip.getAttribute('data-clear') === 'phase') clearPhaseFilter(chip.getAttribute('data-key'));
+      if (chip.getAttribute('data-clear') === 'multi') clearMultiFilter(chip.getAttribute('data-filter'), chip.getAttribute('data-key'));
     });
   }
 }
@@ -1573,7 +1614,7 @@ function toggleSort() {
 
 function getFiltered() {
   let list = assets.filter(a => {
-    if (activePhases.size > 0 && !activePhases.has(phaseKey(a))) return false;
+    if (!passesMultiFilters(a)) return false;
     if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
       const s = a.level1Score;
@@ -2189,7 +2230,7 @@ async function bootApp() {
   // Try cached data immediately for fast start
   const cached = loadCachedData();
   if (cached) {
-    assets = cached.assets;
+    assets = cached.assets.filter(a => !isExcludedPhase(a));
     renderList();
     renderMarkers();
     updateLastRefreshed(true, cached.ts);
