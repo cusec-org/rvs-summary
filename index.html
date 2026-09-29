@@ -264,9 +264,64 @@
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; font-size: 18px; line-height: 1; color: var(--text2);
   }
+  /* ── Detail panel: mockup layout ── */
+  #sheet-body { container-type: inline-size; }
+  .sheet-icon { flex-shrink: 0; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
+  .sheet-icon img { width: 52px !important; height: 52px !important; }
+  .sheet-county { font-size: 12.5px; color: var(--text3); margin-top: 2px; }
+  .sheet-score { align-items: center; min-width: 150px; }
+  .sheet-score-label { font-size: 11px; }
+  .sheet-score-pill { min-width: 150px; text-align: center; background: #3a4150; color: #fff; border-radius: 8px; padding: 6px 12px;
+                      font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+  .report-link { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: #1a3fd1; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; line-height: 1.45; }
+  .report-link:hover { text-decoration-thickness: 2px; }
+  .detail-tabs { flex-wrap: wrap; gap: 0 6px; padding: 0 20px; }
+  .dtab { font-size: 13.5px; font-weight: 600; color: #3a4453; padding: 10px 6px 9px; margin-right: 14px; }
+  .dtab.active { color: #13233d; font-weight: 700; }
+  .detail-panels { background: #eef1f5; }
+  .ov-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 18px 20px 22px; }
+  .ov-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .ov-card { background: var(--surface); border: 1px solid #dfe3ea; border-radius: 10px; }
+  .ov-stat { padding: 12px 14px; }
+  .ov-stat-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; }
+  .ov-stat-val { font-size: 19px; font-weight: 700; color: #13233d; margin-top: 4px; line-height: 1.2; word-break: break-word; }
+  .ov-stat-sub { font-size: 11.5px; color: var(--text2); margin-top: 3px; }
+  .ov-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: stretch; }
+  .ov-cards > .ov-card { padding: 16px 18px 12px; }
+  .ov-card-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3a4453; margin-bottom: 8px; }
+  .ov-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
+  .ov-row:last-child { border-bottom: none; }
+  .ov-k { color: #4a5363; }
+  .ov-v { color: #13233d; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ov-missing { background: #fbe3b9; color: #7a4b00; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .ov-photos { display: flex; flex-direction: column; gap: 8px; }
+  #overview-photos { display: flex; flex-direction: column; gap: 8px; }
+  #overview-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
+  .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
+  .view-all-link:hover { text-decoration: underline; }
+  .tab-stack { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .tab-card .sec { padding: 16px 18px; }
+  .tab-empty { padding: 28px 18px; text-align: center; color: var(--text3); font-size: 13px; font-style: italic; }
+  /* Narrower panels (docked, small laptops, phones) */
+  @container (max-width: 900px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov-grid { grid-template-columns: minmax(0, 1fr) 260px; } }
+  @container (max-width: 820px) { .ov-cards { grid-template-columns: 1fr; } }
+  @container (max-width: 720px) {
+    .ov-grid { grid-template-columns: 1fr; }
+    .ov-cards { grid-template-columns: 1fr; }
+    #overview-photos { display: grid; grid-template-columns: 1fr 1fr; }
+  }
+  @container (max-width: 480px) {
+    .sheet-header-row { flex-wrap: wrap; }
+    .sheet-score { flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: flex-start; gap: 4px 12px; }
+    .sheet-score-pill { min-width: 0; margin: 0; font-size: 20px; }
+    #overview-photos { grid-template-columns: 1fr; }
+    .detail-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .dtab { white-space: nowrap; flex-shrink: 0; }
+  }
   .sheet-ribbon {
     margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 13px 16px;
-    background: var(--cusec-blue); color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.2px;
+    background: var(--cusec-blue); color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.2px;
   }
   .sheet-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
   .sheet-header-text { min-width: 0; flex: 1; }
@@ -387,7 +442,7 @@
     #detail-overlay { display: none; }
     #detail-content {
       position: absolute; top: clamp(16px, 8%, 80px); bottom: clamp(16px, 8%, 80px);
-      left: 50%; width: min(920px, calc(100% - 48px)); max-width: none; max-height: none; height: auto;
+      left: 50%; width: min(1120px, calc(100% - 48px)); max-width: none; max-height: none; height: auto;
       margin: 0; padding: 0; border-radius: 10px; overflow: hidden;
       box-shadow: 0 12px 40px rgba(0,0,0,0.28);
       display: flex; flex-direction: column;
@@ -397,14 +452,17 @@
     #detail-sheet.open #detail-content { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
     .sheet-handle { display: none; }
     #sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    #sheet-body .sheet-ribbon { flex: none; margin: 0; border-radius: 0; padding: 20px 60px 20px 20px; }
-    .sheet-close-btn { top: 17px; right: 14px; z-index: 2; background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.55); color: #fff; }
+    #sheet-body .sheet-ribbon { flex: none; margin: 0; border-radius: 0; padding: 16px 60px 16px 24px; font-size: 24px; }
+    #sheet-body .sheet-header-row, #sheet-body .detail-tabs { flex: none; }
+    #sheet-body .detail-panels { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    #sheet-body .sheet-header { padding: 16px 24px 8px; }
+    .sheet-close-btn { top: 13px; right: 14px; width: 40px; height: 40px; font-size: 20px; z-index: 2; background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.55); color: #fff; }
     .sheet-close-btn:hover { background: rgba(0,0,0,0.32); }
     .summary-grid { grid-template-columns: 190px 1fr; }
-    .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 17px; right: 54px; z-index: 2;
-      width: 32px; height: 32px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
+    .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 62px; z-index: 2;
+      width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
     .sheet-dock-btn:hover { background: rgba(0,0,0,0.32); }
-    #sheet-body .sheet-ribbon { padding-right: 100px; }
+    #sheet-body .sheet-ribbon { padding-right: 116px; }
     /* Docked: flush to the right edge of the map, full height */
     #detail-sheet.docked #detail-content {
       top: 0; bottom: 0; left: auto; right: 0; width: min(760px, 100%);
@@ -579,6 +637,10 @@ const CONFIG = {
   // republish of the service doesn't break the app. Previous service was
   // CUSEC_RVS_All/FeatureServer/0 (Simple Form schema).
   targetItemId: '307585a0e7ed4c59aa94cb3c08c9ccfb',
+  // Header report links. Leave blank to have the link open the matching tab.
+  // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
+  // 'https://survey123.arcgis.com/...?objectId={objectid}'
+  reportUrls: { p154: '', nonstructural: '' },
   layerIndex:   0,
   itemInfoUrl:  'https://www.arcgis.com/sharing/rest/content/items',
   serviceUrl:   null, // set by resolveServiceUrl()
@@ -795,6 +857,7 @@ const FEMA_TYPE_DESC = {
 function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
+  const panels = document.querySelector('#sheet-body .detail-panels'); if (panels) panels.scrollTop = 0;
 }
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
@@ -1754,7 +1817,7 @@ function positionDetailPanel() {
   if (DESKTOP_MQ.matches) {
     const rect = document.getElementById('map-container').getBoundingClientRect();
     Object.assign(sheet.style, { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` });
-    const panelW = sheet.classList.contains('docked') ? Math.min(760, rect.width) : Math.min(920, rect.width - 48);
+    const panelW = sheet.classList.contains('docked') ? Math.min(760, rect.width) : Math.min(1120, rect.width - 48);
     sheet.classList.toggle('panel-narrow', panelW < 650);
   } else {
     Object.assign(sheet.style, { top: '', left: '', width: '', height: '' });
@@ -1772,7 +1835,7 @@ function openDetail(a) {
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
-  document.querySelectorAll('#sheet-body .detail-main, #sheet-body .detail-media, #sheet-body .detail-cols').forEach(el => { el.scrollTop = 0; });
+  document.querySelectorAll('#sheet-body .detail-panels').forEach(el => { el.scrollTop = 0; });
   positionDetailPanel();
   sheet.classList.add('open');
   if (!DESKTOP_MQ.matches) document.body.style.overflow = 'hidden';
@@ -1899,58 +1962,124 @@ function buildDetailHTML(a) {
       return `<div class="field-key">${escHtml(k)}</div><div class="field-val${alert}">${val}</div>`;
     }).join('')}</div></div>`;
 
+  // ── Facility Overview tab (per mockup) ──
+  const dash = v => (v || v === 0) ? v : '—';
+  const soilLbl = fieldValue('SoilType');
+  const soilM = String(soilLbl).match(/^([A-F])\s*[:\-–]\s*(.+)$/i);
+  const femaLbl = fieldValue('FEMABuildingType');
+  const yb = fieldValue('YearBuilt');
+  const addlNote = isYes(attrs.Additions) ? `Additions${attrs.AdditionsYearBuilt ? ': ' + attrs.AdditionsYearBuilt : ' (year unknown)'}`
+                 : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'No additions' : '');
+  const statCard = (label, big, sub) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(String(dash(big)))}</div>${sub ? `<div class="ov-stat-sub">${escHtml(sub)}</div>` : ''}</div>`;
+  const kvRows = rows => rows.map(([k, v, extra]) => `<div class="ov-row"><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(String(dash(v)))}${extra || ''}</div></div>`).join('');
+  const sqft = attrs.TotalFloorArea !== undefined && attrs.TotalFloorArea !== null && isFinite(Number(attrs.TotalFloorArea)) ? Number(attrs.TotalFloorArea).toLocaleString() : fieldValue('TotalFloorArea');
+  const screenDate = fmtShort(a.dateRaw);
+  const overviewHTML = `
+    <div class="ov-grid">
+      <div class="ov-main">
+        <div class="ov-stats">
+          ${statCard('Seismicity', fieldValue('Seismicity'))}
+          ${statCard('Soil Type', soilM ? soilM[1].toUpperCase() : soilLbl, soilM ? soilM[2] : '')}
+          ${statCard('Building Type', femaLbl, constructionType)}
+          ${statCard('Year Built', yb, addlNote)}
+        </div>
+        <div class="ov-cards">
+          <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
+            ['Facility type', a.facilityType], ['Is shelter', fieldValue('IsShelter')], ['Square feet', sqft],
+            ['Number of stories', fieldValue('StoriesAboveGrade')], ['Additions', fieldValue('Additions')], ['Construction type', constructionType]])}</div>
+          <div class="ov-card"><div class="ov-card-title">Screening Record</div>${kvRows([
+            ['Screening type', choiceLabel(FIELDS.surveyType, attrs.SurveyType) || 'P-154 Rapid Visual Screening'],
+            ['Date of screening', screenDate || 'Not recorded', screenDate ? '' : ' <span class="ov-missing">Missing</span>'],
+            ['Exterior', fieldValue('Exterior')], ['Interior', fieldValue('Interior')], ['Nonstructural review', fieldValue('NonstructuralReview')]])}</div>
+        </div>
+      </div>
+      <div class="ov-photos">
+        <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+      </div>
+    </div>`;
+
+  // ── Other tabs ──
+  const card = html => html ? `<div class="ov-card tab-card">${html}</div>` : '';
+  const empty = msg => `<div class="ov-card tab-card tab-empty">${escHtml(msg)}</div>`;
+  const GEO = ['OtherHazards', 'Landslide', 'SurfaceRupture', 'Liquefaction'];
+  const groupFields = t => (DETAIL_GROUPS.find(g => g.title === t) || { fields: [] }).fields;
+  const p154HTML = [
+    card(fieldSection('Identification', DETAIL_IDENTITY_FIELDS)),
+    card(fieldSection('Screening Type & Extent', groupFields('Screening Type & Extent'))),
+    card(fieldSection('Building Details & Screening Information', groupFields('Building Details & Screening Information'))),
+    card(fieldSection('Score Modifiers', groupFields('Score Modifiers'))),
+    card(fieldSection('Geologic & Other Hazards', GEO)),
+    card(fieldSection('Score', groupFields('Score'), scoreBar)),
+  ].join('');
+  const nsHazards = groupFields('Hazards').filter(f => !GEO.includes(f) && f !== 'NonstructuralSeismicPerformance');
+  const nonstructHTML = [
+    card(fieldSection('Nonstructural Review', ['NonstructuralReview', 'NonstructuralSeismicPerformance', 'DetailedEvalRecommended'])),
+    card(fieldSection('Nonstructural Hazards', nsHazards)),
+  ].join('') || empty('No nonstructural review recorded for this building.');
+  const notesHTML = card(fieldSection('Notes & Comments', groupFields('Comments'))) || empty('No notes recorded for this building.');
+
+  const reportLink = (key, label, tab) => {
+    const tpl = (CONFIG.reportUrls || {})[key];
+    if (tpl) {
+      const url = tpl.replace(/\{objectid\}/gi, encodeURIComponent(a.id)).replace(/\{globalid\}/gi, encodeURIComponent(attrs.globalid || attrs.GlobalID || ''));
+      return `<a class="report-link" href="${escHtml(url)}" target="_blank" rel="noopener">${label}</a>`;
+    }
+    return `<button class="report-link" onclick="switchDetailTab('${tab}')">${label}</button>`;
+  };
+  const tabBtn = (id, label, on) => `<button class="dtab${on ? ' active' : ''}" role="tab" aria-selected="${on}" data-tab="${id}" onclick="switchDetailTab('${id}')">${label}</button>`;
+
   return `
     <!-- Title ribbon -->
     <div class="sheet-ribbon">Rapid Visual Screening Summary</div>
 
-    <div class="detail-cols">
-    <div class="detail-main">
-    <!-- Name + address -->
+    <!-- Icon + name + address (Street View link) | Final RVS Score + reports -->
     <div class="sheet-header sheet-header-row">
+      <div class="sheet-icon">${ft.icon.replace(/width:\d+px;height:\d+px/, 'width:52px;height:52px')}</div>
       <div class="sheet-header-text">
         <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
         ${addrFull ? `<a class="sheet-addr addr-link" href="${streetViewUrl}" target="_blank" rel="noopener" title="Open in Google Street View">${escHtml(addrFull)}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
-        ${a.county ? `<div class="sheet-addr" style="margin-top:1px">${escHtml(a.county)} County</div>` : ''}
+        ${a.county ? `<div class="sheet-county">${escHtml(a.county)} County</div>` : ''}
         ${distHtml}
       </div>
       <div class="sheet-score" title="${escHtml(scInfo.desc)}">
-        <div class="sheet-score-label">L1 Score</div>
-        <div class="score-pill" style="background:${scColor};color:${scTextColor}">${scInfo.short}</div>
+        <div class="sheet-score-label">Final RVS Score</div>
+        <div class="sheet-score-pill">${scInfo.short}</div>
+        ${reportLink('p154', 'FEMA P-154 Report', 'p154')}
+        ${reportLink('nonstructural', 'Nonstructural Report', 'nonstruct')}
       </div>
     </div>
 
     <div class="detail-tabs" role="tablist" aria-label="Record details">
-      <button class="dtab active" role="tab" aria-selected="true" data-tab="summary" onclick="switchDetailTab('summary')">Summary</button>
-      <button class="dtab" role="tab" aria-selected="false" data-tab="all" onclick="switchDetailTab('all')">All Fields</button>
-    </div>
-    <div class="dtab-panel" data-panel="summary" role="tabpanel">
-      ${summaryHTML}
-    </div>
-    <div class="dtab-panel" data-panel="all" role="tabpanel" hidden>
-    ${[fieldSection('Identification', DETAIL_IDENTITY_FIELDS), ...DETAIL_GROUPS.map(g => fieldSection(g.title, g.fields, g.title === 'Score' ? scoreBar : ''))]
-      .filter(Boolean).join('<div class="sdiv"></div>')}
-    </div>
+      ${tabBtn('overview', 'Facility Overview', true)}
+      ${tabBtn('p154', 'P-154 Screening Details', false)}
+      ${tabBtn('nonstruct', 'Nonstructural Review', false)}
+      ${tabBtn('photos', 'Photos', false)}
+      ${tabBtn('notes', 'Notes', false)}
     </div>
 
-    <div class="detail-media">
-    <div class="sdiv"></div>
-    <!-- Attachments -->
-    <div class="sec">
-      <div class="sec-label">Photos &amp; Attachments</div>
-      <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
-    </div>
-
-    </div>
+    <div class="detail-panels">
+      <div class="dtab-panel" data-panel="overview" role="tabpanel">${overviewHTML}</div>
+      <div class="dtab-panel tab-stack" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
+      <div class="dtab-panel tab-stack" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
+      <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
+        <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
+          <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
+        </div></div>
+      </div>
+      <div class="dtab-panel tab-stack" data-panel="notes" role="tabpanel" hidden>${notesHTML}</div>
     </div>
   `;
 }
 
 async function loadAttachments(objectId) {
   const area = document.getElementById('attachment-area');
+  const ov = document.getElementById('overview-photos');
   if (!area) return;
   const result = await fetchAttachments(objectId);
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
+    if (ov) ov.innerHTML = `<div class="ov-nophoto">No photos</div>`;
     return;
   }
   // Building Photo and Sketch show first; everything else sits behind "Show all".
@@ -1972,10 +2101,13 @@ async function loadAttachments(objectId) {
   // Photo viewer walks through every image for this record: Building Photo,
   // Sketch, then the rest (including ones hidden behind "Show all").
   LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
-  if (!featured.length) { area.innerHTML = `<div class="attachment-grid">${rest.map(tile).join('')}</div>`; return; }
-  area.innerHTML = `<div class="attachment-grid">${featured.map(tile).join('')}</div>` + (rest.length ? `
-    <button class="show-all-photos" onclick="const g=this.nextElementSibling; g.hidden=!g.hidden; this.textContent = g.hidden ? 'Show all photos (${rest.length} more)' : 'Hide other photos';">Show all photos (${rest.length} more)</button>
-    <div class="attachment-grid" hidden>${rest.map(tile).join('')}</div>` : '');
+  // Photos tab: everything, Building Photo + Sketch first
+  area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
+  // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
+  if (ov) {
+    const pick = featured.length ? featured : result.infos.filter(i => i.isImage).slice(0, 2);
+    ov.innerHTML = pick.length ? pick.map(tile).join('') : `<div class="ov-nophoto">No photos</div>`;
+  }
 }
 
 // ── Lightbox ──────────────────────────────────────────────────
