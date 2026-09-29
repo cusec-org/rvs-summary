@@ -372,9 +372,6 @@
   .p2-k sub { font-size: 0.75em; }
   .p2-tnote { font-size: 11.5px; color: var(--text3); font-style: italic; padding: 6px 0 2px; }
   .p2-final { background: #f3f5f8; margin: 0 -8px; padding: 8px; border-bottom: none; border-radius: 6px; }
-  .p2-sec { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #3a4453; margin: 14px 0 2px; }
-  .p2-grp { font-size: 12px; font-weight: 700; color: #13233d; padding: 8px 0 0; }
-  .p2-ind { padding-left: 12px; display: inline-block; }
   .p2-irr-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid #e6e9ef; align-items: start; font-size: 12.5px; }
   .p2-irr-k { font-weight: 700; }
   .p2-irr-row > div:last-child { color: #13233d; line-height: 1.45; }
@@ -873,7 +870,6 @@ const FIELDS = {
   seismicityS1:     'S1SpectralAcc',
   soilType:         'SoilType',
   level1Score:      'Level1Score',
-  level2Score:      'Level2Score',
   basicScore:       'BasicScore',
   essentialFacility:'EssentialFacility',
   phase:            'Phase',
@@ -884,7 +880,6 @@ const FIELDS = {
   engineerReview:   'EngineerReview',
   isShelter:        'IsShelter',
   level1Comments:   'Level1Comments',
-  level2Comments:   'Level2Comments',
   reviewComments:   'ReviewComments',
   contactPerson:    'ContactPerson',
   hazus:            'HAZUSOccupancy',
@@ -898,7 +893,6 @@ const FIELDS = {
   additions:        'Additions',
   codeYear:         'CodeYear',
   nonstructReview:  'NonstructuralReview',
-  performLevel2:    'PerformLevel2',
   surveyType:       'SurveyType',
   exterior:         'Exterior',
   interior:         'Interior',
@@ -940,7 +934,7 @@ const CHOICE_LABELS = {
  'TorsionalIrr','NonParallelSystem','ReentrantCorner','DiaphragmOpening','C1C2BuildingOutofPlane','OtherPlanIrregularity',
  'PoundingAlign','PoundingTaller','PoundingEnd','S2Building','C1Building','PC1RM1BuildingQ1','PC1RM1BuildingQ2',
  'URMQ1','MHQ1','Redundancy','RetrofitQ1','EQ1','EQ2','EQ3','EQ4','EQ5','EQ6','EQ7','IQ1','IQ2','ObservableDamage',
- 'PlanIrregularities','PreCodeQ','PostBenchmarkQ','PerformLevel2','EngineerReview']
+ 'PlanIrregularities','PreCodeQ','PostBenchmarkQ','EngineerReview']
   .forEach(f => { if (!CHOICE_LABELS[f]) CHOICE_LABELS[f] = YES_NO_LABELS; });
 // Coded-value domain labels read from the target layer's own schema at
 // load time ({ FieldName: { code: 'Label' } }). These are the labels set
@@ -1030,8 +1024,8 @@ const DETAIL_GROUPS = [
   { title: 'Building Details & Screening Information', fields: ['YearBuilt', 'YearBuiltEstimated', 'Additions', 'AdditionsYearBuilt', 'TotalFloorArea', 'StoriesAboveGrade', 'StoriesBelowGrade', 'Use', 'EssentialFacility', 'IsShelter', 'Occupancy', 'OccupancyOthers', 'HAZUSOccupancy', 'FEMABuildingType', 'Units', 'Seismicity', 'SeismicitySource', 'SsSpectralAcc', 'SeismicitySs', 'S1SpectralAcc', 'SeismicityS1', 'SoilType', 'CodeYear', 'DrawingsReviewed', 'OnsiteGenerator', 'OtherIdentifiers'] },
   { title: 'Score Modifiers', fields: ['VertIrregularities', 'VertIrregularitiesType', 'VertIrregularitiesPresent', 'PlanIrregularities', 'PlanIrregularitiesType', 'PlanIrregularitiesPresent', 'TorsionalIrr', 'NonParallelSystem', 'ReentrantCorner', 'DiaphragmOpening', 'C1C2BuildingOutofPlane', 'OtherPlanIrregularity', 'PoundingAlign', 'PoundingTaller', 'PoundingEnd', 'PoundingSeparationGap', 'PoundingStories', 'S2Building', 'C1Building', 'PC1RM1BuildingQ1', 'PC1RM1BuildingQ2', 'URMQ1', 'MHQ1', 'Redundancy', 'RetrofitQ1', 'PreCodeQ', 'PostBenchmarkQ', 'WeakSoftStory', 'Adjacency', 'Anchored', 'Isolators'] },
   { title: 'Hazards', fields: ['OtherHazards', 'ExtFallingHazards', 'FallingHazardsOther', 'Landslide', 'SurfaceRupture', 'Liquefaction', 'NaturalGas', 'GasShutoff', 'FlexibleGasLines', 'EmergencyWaterandFoodSupplies', 'FurnitureFixturesEquipment', 'WaterHeaters', 'FireSuppression', 'DropCeilings', 'LayInLightFixtures', 'BoilersChillersHVACsystems', 'HeavyEquipment', 'GasFiredEquipment', 'OtherMEPEquipment', 'FuelorPropaneTanks', 'EgressRoutes', 'OtherNonstructural', 'NonstructuralSeismicPerformance', 'EQ1', 'EQ2', 'EQ3', 'EQ4', 'EQ5', 'EQ6', 'EQ7', 'IQ1', 'IQ2', 'ObservableDamage'] },
-  { title: 'Score', fields: ['BasicScore', 'Level1Score', 'FinalSL1Score', 'VL1', 'PL1', 'AdjustedBaselineScore', 'PerformLevel2', 'Level2Score', 'DetailedEvalRecommended', 'DetailedEvalRequired', 'IsDetailedRequired'] },
-  { title: 'Comments', fields: ['Level1Comments', 'Level2Comments', 'ReviewComments', 'ScreenerCommentsBuilding', 'ScreenerCommentsExterior', 'ScreenerCommentsInterior', 'EngineerCommentsExterior', 'EngineerCommentsVertical', 'EngineerCommentsPlan', 'EngineerCommentsInterior', 'EngineerReview', 'EngineerReviewExterior', 'EngineerReviewVertical', 'EngineerReviewPlan', 'EngineerReviewInterior'] },
+  { title: 'Score', fields: ['BasicScore', 'Level1Score', 'FinalSL1Score', 'VL1', 'PL1', 'AdjustedBaselineScore', 'DetailedEvalRecommended', 'DetailedEvalRequired', 'IsDetailedRequired'] },
+  { title: 'Comments', fields: ['Level1Comments', 'ReviewComments', 'ScreenerCommentsBuilding', 'ScreenerCommentsExterior', 'ScreenerCommentsInterior', 'EngineerCommentsExterior', 'EngineerCommentsVertical', 'EngineerCommentsPlan', 'EngineerCommentsInterior', 'EngineerReview', 'EngineerReviewExterior', 'EngineerReviewVertical', 'EngineerReviewPlan', 'EngineerReviewInterior'] },
 ];
 const DETAIL_LABELS = {
   SsSpectralAcc: 'SS Spectral Acc (g)', S1SpectralAcc: 'S1 Spectral Acc (g)', VL1: 'Vertical Irr. (VL1)',
@@ -1047,9 +1041,9 @@ const DETAIL_LABELS = {
   StoriesAboveGrade: '# of Stories Above Grade', StoriesBelowGrade: '# of Stories Below Grade', EssentialFacility: 'Facility Type',
   IsShelter: 'Is Shelter', HAZUSOccupancy: 'HAZUS Occupancy', FEMABuildingType: 'FEMA Building Type', ZIP: 'ZIP',
   Date: 'Date of Screening', SurveyDate: 'Date of Screening', ContactPerson: 'Contact Person', source: 'Source', PreCodeQ: 'Pre-Code', PostBenchmarkQ: 'Post-Benchmark',
-  Level1Score: 'Final Level 1 Score', Level2Score: 'Final Level 2 Score', ExtFallingHazards: 'Exterior Falling Hazards',
+  Level1Score: 'Final Level 1 Score', ExtFallingHazards: 'Exterior Falling Hazards',
   OtherHazards: 'Other Observed Hazards', IsDetailedRequired: 'Detailed Structural Evaluation Recommended?',
-  Level1Comments: 'Level 1 Comments', Level2Comments: 'Level 2 Comments', ReviewComments: 'Review Comments',
+  Level1Comments: 'Level 1 Comments', ReviewComments: 'Review Comments',
   VertIrregularitiesPresent: 'Vertical Irregularities Present', PlanIrregularitiesPresent: 'Plan Irregularities Present',
 };
 // FEMA P-154 (3rd ed.) Level 1 basic scores and score modifiers, by
@@ -1382,8 +1376,6 @@ function featureToAsset(feature) {
   const lng = p[FIELDS.lng] ?? (feature.geometry ? feature.geometry.x : null);
   const score = (p[FIELDS.level1Score] !== null && p[FIELDS.level1Score] !== undefined)
     ? parseFloat(p[FIELDS.level1Score]) : null;
-  const score2 = (p[FIELDS.level2Score] !== null && p[FIELDS.level2Score] !== undefined)
-    ? parseFloat(p[FIELDS.level2Score]) : null;
   const _ms = v => { if (v === null || v === undefined || v === '') return null; const t = typeof v === 'number' ? v : Date.parse(v); return isNaN(t) ? null : t; };
   let screenMs = null, screenField = null;
   for (const f of (LAYER_DATES.screenFields || [])) {
@@ -1418,7 +1410,6 @@ function featureToAsset(feature) {
     seismicity:    p[FIELDS.seismicity]     || '',
     soilType:      p[FIELDS.soilType]       || '',
     level1Score:   isNaN(score) ? null : score,
-    level2Score:   isNaN(score2) ? null : score2,
     basicScore:    p[FIELDS.basicScore],
     facilityType:  normFacility(p[FIELDS.essentialFacility]),
     phase:         normPhase(p[FIELDS.phase]),
@@ -1429,7 +1420,6 @@ function featureToAsset(feature) {
     engineerReview:p[FIELDS.engineerReview] || '',
     isShelter:     p[FIELDS.isShelter]      || '',
     level1Comments:p[FIELDS.level1Comments] || '',
-    level2Comments:p[FIELDS.level2Comments] || '',
     reviewComments:p[FIELDS.reviewComments] || '',
     contactPerson: p[FIELDS.contactPerson]  || '',
     liquifaction:  p[FIELDS.liquifaction]   || '',
@@ -1441,7 +1431,6 @@ function featureToAsset(feature) {
     onsiteGenerator:p[FIELDS.onsiteGenerator]    || '',
     codeYear:      p[FIELDS.codeYear]       || '',
     nonstructReview:p[FIELDS.nonstructReview]    || '',
-    performLevel2: p[FIELDS.performLevel2]  || '',
     surveyType:    normSurveyType(p[FIELDS.surveyType]),
     exterior:      p[FIELDS.exterior]       || '',
     interior:      p[FIELDS.interior]       || '',
@@ -2363,9 +2352,8 @@ function buildDetailHTML(a) {
       line('Pre-Code', fieldValue('PreCodeQ')), line('Post-Benchmark', fieldValue('PostBenchmarkQ'))]],
     ['Hazards', [line('Other Observed Hazards', fieldValue('OtherHazards') || 'None'), line('Exterior Falling Hazards', fieldValue('ExtFallingHazards') || 'None'), line('Geologic Hazards', geo || 'None')]],
     ['Final Level 1 Score', [scInfo.short]],
-    ['Final Level 2 Score', [a.level2Score !== null && a.level2Score !== undefined ? a.level2Score.toFixed(2) : '']],
     ['Detailed Structural Evaluation Recommended?', [detailedEvalText]],
-    ['Comments', [line('Level 1', attrs.Level1Comments), line('Level 2', attrs.Level2Comments), line('Review', attrs.ReviewComments)]],
+    ['Comments', [line('Level 1', attrs.Level1Comments), line('Review', attrs.ReviewComments)]],
   ];
   const summaryHTML = `<div class="sec"><div class="field-grid summary-grid">${summaryRows.map(([k, vals]) => {
       const v = vals.filter(x => x && String(x).trim() && !/^\s*\(\s*\)\s*$/.test(x));
@@ -2392,9 +2380,8 @@ function buildDetailHTML(a) {
   const kvRows = rows => rows.map(([k, v, extra]) => `<div class="ov-row"><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(String(dash(v)))}${extra || ''}</div></div>`).join('');
   const sqft = attrs.TotalFloorArea !== undefined && attrs.TotalFloorArea !== null && isFinite(Number(attrs.TotalFloorArea)) ? Number(attrs.TotalFloorArea).toLocaleString() : fieldValue('TotalFloorArea');
   const screenDate = fmtShort(a.dateRaw);
-  // Screening Type: Nonstructural Only / P-154 Level 1 & 2 / P-154 Level 1
-  const didL2 = isYes(attrs.PerformLevel2) || (a.level2Score !== null && a.level2Score !== undefined && !isNaN(a.level2Score));
-  const screeningTypeStr = a.surveyType === 'Nonstructural Screening' ? 'Nonstructural Only' : (didL2 ? 'P-154 Level 1 & 2' : 'P-154 Level 1');
+  // Screening Type: Nonstructural Only / P-154 Level 1
+  const screeningTypeStr = a.surveyType === 'Nonstructural Screening' ? 'Nonstructural Only' : 'P-154 Level 1';
   // Source + contact fields. The v3 field names aren't confirmed yet, so the
   // first attribute whose name matches is used (e.g. SoilTypeSource).
   const findAttr = (...patterns) => { for (const re of patterns) { const k = Object.keys(attrs).find(n => re.test(n)); if (k) return fieldValue(k); } return ''; };
@@ -2460,8 +2447,7 @@ function buildDetailHTML(a) {
   const isNS = a.surveyType === 'Nonstructural Screening';
   const femaCodeTxt = femaCode ? femaCode[0] : (fieldValue('FEMABuildingType') || '');
   const seisTxt = fieldValue('Seismicity');
-  const l1v = num(attrs.Level1Score) ?? sc, l2v = num(attrs.Level2Score);
-  const finalIsL2 = didL2 && l2v !== null;
+  const l1v = num(attrs.Level1Score) ?? sc;
   // Stored modifier amounts, when the layer has them (first matching field wins)
   const numAttr = (...res) => { for (const re of res) { const k = Object.keys(attrs).find(n => re.test(n)); if (k && num(attrs[k]) !== null) return num(attrs[k]); } return null; };
   const vSev = /severe/i.test(String(attrs.VertIrregularitiesType || '')), vMod = /moderate/i.test(String(attrs.VertIrregularitiesType || ''));
@@ -2502,7 +2488,7 @@ function buildDetailHTML(a) {
   const codeYearTxt = (attrs.CodeYear !== undefined && attrs.CodeYear !== null && String(attrs.CodeYear).trim() !== '') ? String(choiceLabel('CodeYear', attrs.CodeYear)) : 'Unknown';
   const codeEra = [isYes(attrs.PreCodeQ) ? 'Pre-Code' : '', isYes(attrs.PostBenchmarkQ) ? 'Post-Benchmark' : ''].filter(Boolean).join(', ');
   const boxes = `<div class="ov-stats p2-stats">
-      ${statCard('Type of Screening', isNS ? 'Nonstructural Only' : (didL2 ? 'P-154 L1 & L2' : 'P-154 L1'), isNS ? '' : 'Rapid Visual Screening')}
+      ${statCard('Type of Screening', isNS ? 'Nonstructural Only' : 'P-154 L1', isNS ? '' : 'Rapid Visual Screening')}
       ${statCard('FEMA Building Type', femaLbl, constructionType)}
       ${statCard('Code Year', codeYearTxt, codeEra)}
       <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
@@ -2558,27 +2544,8 @@ function buildDetailHTML(a) {
     row(`Final Level 1 Score${T && T.smin !== null && T.smin !== undefined ? ` (S<sub>MIN</sub> = ${T.smin.toFixed(1)})` : ''}`, isNS ? 'N/A' : fmtScore(l1v), 'p2-final'),
     !T && !isNS ? `<div class="p2-tnote">Modifier amounts need a FEMA building type and seismicity region on the record.</div>` : '',
   ].join('');
-  // Level 2 modifiers: the Level 2 questions answered Yes, grouped (amounts shown when stored)
-  const L2_GROUPS = [
-    ['Vertical Irregularities', [['VertIrregularitiesPresent', null]]],
-    ['Plan Irregularities', [['TorsionalIrr', 'Torsion'], ['NonParallelSystem', 'Non-parallel system'], ['ReentrantCorner', 'Re-entrant corner'],
-      ['DiaphragmOpening', 'Diaphragm opening'], ['C1C2BuildingOutofPlane', 'Out-of-plane offset (C1/C2)'], ['OtherPlanIrregularity', 'Other plan irregularity']]],
-    ['Pounding', [['PoundingAlign', 'Floors not aligned'], ['PoundingTaller', 'One building 2+ stories taller'], ['PoundingEnd', 'Building at end of block']]],
-    ['Building-Type Specific', [['S2Building', 'S2 “K” bracing'], ['C1Building', 'C1 flat plate'], ['PC1RM1BuildingQ1', 'PC1/RM1 roof-to-wall ties'],
-      ['PC1RM1BuildingQ2', 'PC1/RM1 interior walls'], ['URMQ1', 'URM gable walls'], ['MHQ1', 'MH supplemental bracing']]],
-    ['Redundancy', [['Redundancy', 'Redundancy']]],
-    ['Retrofit', [['RetrofitQ1', 'Comprehensive seismic retrofit']]],
-  ];
-  const l2Items = !didL2 ? [] : L2_GROUPS.map(([g, fields]) => [g, fields.flatMap(([f, label]) => {
-    if (label === null) return multiLabels(f, attrs[f]).map(t => [t, '']);
-    return isYes(attrs[f]) ? [[label, fmtMod(numAttr(new RegExp('^' + f + '_?(mod|score|val|amt)$', 'i')))]] : [];
-  })]).filter(([, items]) => items.length);
-  const l2Rows = l2Items.length
-    ? l2Items.map(([g, items]) => `<div class="p2-grp">${escHtml(g)}</div>` + items.map(([t, v]) => row(`<span class="p2-ind">${escHtml(t)}</span>`, v)).join('')).join('')
-      + (l2v !== null ? row('Final Level 2 Score', fmtScore(l2v), 'p2-final') : '')
-    : row('<span class="p2-ind">N/A</span>', '');
   const scoreDetails = `<div class="ov-card p2-card"><div class="ov-card-title">P-154 Score Details</div>
-      <div class="p2-table">${l1Rows}${finalIsL2 ? row('Final Level 2 Score', fmtScore(l2v), 'p2-final') : ''}</div></div>`; // Level 2 modifiers section removed for now (l2Rows kept above for later)
+      <div class="p2-table">${l1Rows}</div></div>`;
 
   // 2b) Irregularities & hazards
   const codes = f => multiCodes(attrs[f]);
@@ -2586,8 +2553,8 @@ function buildDetailHTML(a) {
   const chk = (label, on) => `<div class="nb-check${on ? ' on' : ''}"><span class="nb-blank">${on ? 'X' : ''}</span><span>${escHtml(label)}</span></div>`;
   const fallOtherTxt = attrs.FallingHazardsOther ? String(attrs.FallingHazardsOther).trim() : '';
   const irregCard = `<div class="ov-card p2-card"><div class="ov-card-title">Irregularities</div>
-      <div class="p2-irr-row"><div class="p2-k p2-irr-k">Vertical</div><div>${vIrr.items.length ? escHtml(vIrr.items.join(', ')) : '<span class="p2-none">None marked</span>'}</div></div>
-      <div class="p2-irr-row"><div class="p2-k p2-irr-k">Plan</div><div>${pIrr.items.length ? escHtml(pIrr.items.join(', ')) : '<span class="p2-none">None marked</span>'}</div></div>
+      <div class="p2-irr-row"><div class="p2-k p2-irr-k">Vertical</div><div>${vIrr.items.length ? escHtml(vIrr.items.join(', ')) : 'N/A'}</div></div>
+      <div class="p2-irr-row"><div class="p2-k p2-irr-k">Plan</div><div>${pIrr.items.length ? escHtml(pIrr.items.join(', ')) : 'N/A'}</div></div>
       <div class="ov-card-title p2-sub">Adjacency Hazards</div>
       ${chk('Pounding', oh.has('pounding_potential') || adj.has('pounding'))}
       ${chk('Falling Hazards from Adjacent Buildings', oh.has('falling_hazards') || adj.has('falling_hazards_taller'))}
@@ -2599,12 +2566,10 @@ function buildDetailHTML(a) {
       ${chk(`Other${efh.has('other') || fallOtherTxt ? (fallOtherTxt ? `: ${fallOtherTxt}` : '') : ''}`, efh.has('other') || !!fallOtherTxt)}
     </div>`;
 
-  // 3) Screener comments (L1, and L2 if applicable)
+  // 3) Screener comments
   const c1 = attrs.Level1Comments ? String(attrs.Level1Comments).trim() : '';
-  const c2 = attrs.Level2Comments ? String(attrs.Level2Comments).trim() : '';
   const commentsBox = `<div class="ov-card p2-card p2-comments"><div class="ov-card-title">Screener Comments</div>
       <div class="p2-cm"><div class="p2-cm-k">Level 1</div><div class="p2-cm-v">${c1 ? escHtml(c1) : '<span class="p2-none">No Level 1 comments.</span>'}</div></div>
-      ${didL2 ? `<div class="p2-cm"><div class="p2-cm-k">Level 2</div><div class="p2-cm-v">${c2 ? escHtml(c2) : '<span class="p2-none">No Level 2 comments.</span>'}</div></div>` : ''}
     </div>`;
 
   const p154HTML = `
