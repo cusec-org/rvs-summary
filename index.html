@@ -939,11 +939,13 @@
 //    paste the client ID below.
 // ════════════════════════════════════════════════════════════════
 const CONFIG = {
-  // RVS Final Form v3 (the migration TARGET from RVS-Side-by-Side).
-  // The FeatureServer URL is looked up from this item at sign-in, so a
-  // republish of the service doesn't break the app. Previous service was
-  // CUSEC_RVS_All/FeatureServer/0 (Simple Form schema).
-  targetItemId: '307585a0e7ed4c59aa94cb3c08c9ccfb',
+  // RVS layers (ArcGIS Online item IDs). The FeatureServer URL is looked up
+  // from the item at sign-in, so a republish of the service doesn't break the app.
+  // Read-only layer everyone sees (plain link)
+  targetItemId: '70d1f24a8ae34897b3769f587851a756',
+  // Editable layer used when the page is opened with ?edit=1 — records are
+  // loaded from AND saved to this layer, so edits always match what's shown
+  editItemId:   '307585a0e7ed4c59aa94cb3c08c9ccfb',
   // Header report links. Leave blank to have the link open the matching tab.
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
@@ -952,11 +954,11 @@ const CONFIG = {
   // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
   // Calculations tab. Leave blank to use the values saved on each record.
   seismicProxyUrl: '',
-  // Editing (only when the page is opened with ?edit=1): members of these ArcGIS Online group IDs see the pencil and can
-  // edit the Facility Overview, P-154 and Nonstructural tabs plus the building
-  // name. Choice fields only offer the survey's own choices (no free text).
-  // ArcGIS still enforces who can actually save: the layer must allow updates
-  // and the user must have edit rights to it (e.g. via that group).
+  // Editing (only when the page is opened with ?edit=1). Who gets the pencil is
+  // decided by ArcGIS Online sharing: the layer must allow updates and the
+  // signed-in account must have edit privileges. Optional: list group IDs here
+  // to further limit the pencil to members of those groups. ArcGIS always
+  // enforces who can actually save.
   editorGroupIds: [],
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
@@ -1736,12 +1738,15 @@ async function arcgisFetch(url, _retried) {
   return data;
 }
 
-// Looks up the hosted FeatureServer URL from CONFIG.targetItemId
+// Which layer this session uses: the editable layer with ?edit=1, else the read-only one
+function activeItemId() { return (EDIT_URL_ON && CONFIG.editItemId) ? CONFIG.editItemId : CONFIG.targetItemId; }
+// Looks up the hosted FeatureServer URL from the active item
 // (same approach as RVS-Side-by-Side's resolveServiceUrls()).
 async function resolveServiceUrl() {
   if (CONFIG.serviceUrl) return CONFIG.serviceUrl;
-  const data = await arcgisFetch(`${CONFIG.itemInfoUrl}/${CONFIG.targetItemId}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
-  if (!data.url) throw new Error(`Item ${CONFIG.targetItemId} has no hosted service URL (is it a Feature Layer item?).`);
+  const itemId = activeItemId();
+  const data = await arcgisFetch(`${CONFIG.itemInfoUrl}/${itemId}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+  if (!data.url) throw new Error(`Item ${itemId} has no hosted service URL (is it a Feature Layer item?).`);
   let url = String(data.url).replace(/\/+$/, '');
   if (!/\/\d+$/.test(url)) url += `/${CONFIG.layerIndex}`;
   CONFIG.serviceUrl = url;
@@ -2458,16 +2463,33 @@ const EDIT_URL_ON = (() => {
   } catch {}
   return false;
 })();
+if (EDIT_URL_ON) CONFIG.cacheKey += '_edit';   // the editable layer gets its own offline cache
 const EDIT = { on: false, id: null, draft: {}, orig: {} };
+let USER_CAN_EDIT = false, LAYER_CAN_UPDATE = false;
 async function loadEditorAccess() {
-  if (!EDIT_URL_ON || !(CONFIG.editorGroupIds || []).length || !TOKEN) { USER_GROUP_IDS = []; return; }
+  USER_GROUP_IDS = []; USER_CAN_EDIT = false;
+  if (!EDIT_URL_ON || !TOKEN) { updateEditButton(); return; }
   try {
     const me = await arcgisFetch(`https://www.arcgis.com/sharing/rest/community/self?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
     USER_GROUP_IDS = (me.groups || []).map(g => g.id);
-  } catch (e) { console.warn('[RVS] could not check editor groups', e); USER_GROUP_IDS = []; }
+    const priv = me.privileges || [];
+    USER_CAN_EDIT = priv.some(p => /^features:user:(edit|fullEdit)$/.test(p)) || /admin|publisher/i.test(me.role || '');
+  } catch (e) { console.warn('[RVS] could not check editing access', e); }
+  try {
+    const info = await arcgisFetch(`${CONFIG.serviceUrl}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+    LAYER_CAN_UPDATE = /update|editing/i.test(info.capabilities || '');
+  } catch (e) { console.warn('[RVS] could not read layer capabilities', e); }
+  console.info('[RVS] editing access:', { editParam: EDIT_URL_ON, layerAllowsUpdates: LAYER_CAN_UPDATE, userCanEdit: USER_CAN_EDIT,
+    groupLimit: (CONFIG.editorGroupIds || []).length ? CONFIG.editorGroupIds : 'none (ArcGIS sharing decides)' });
   updateEditButton();
 }
-function canEditRecords() { return EDIT_URL_ON && (USER_GROUP_IDS || []).some(id => (CONFIG.editorGroupIds || []).includes(id)); }
+// Pencil = ?edit=1 + the layer allows updates + this account can edit
+// (+ in one of CONFIG.editorGroupIds, if any are listed)
+function canEditRecords() {
+  if (!EDIT_URL_ON || !LAYER_CAN_UPDATE || !USER_CAN_EDIT) return false;
+  const lim = CONFIG.editorGroupIds || [];
+  return !lim.length || (USER_GROUP_IDS || []).some(id => lim.includes(id));
+}
 function updateEditButton() {
   const b = document.getElementById('sheet-edit-btn'); if (!b) return;
   b.hidden = !canEditRecords();
@@ -2682,7 +2704,7 @@ async function saveEditsToLayer(a, attrs) {
   const res = await fetch(`${CONFIG.serviceUrl}/applyEdits`, { method: 'POST', body });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const j = await res.json();
-  if (j.error) throw new Error(j.error.message || 'ArcGIS refused the edit');
+  if (j.error) throw new Error(/permission|not authorized|403|does not have/i.test(j.error.message || '') ? "your account doesn't have permission to edit this layer" : (j.error.message || 'ArcGIS refused the edit'));
   const r = (j.updateResults || [])[0];
   if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'ArcGIS did not accept the edit');
 }
