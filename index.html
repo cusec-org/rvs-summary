@@ -388,7 +388,7 @@
   .p2-comments { margin-top: 16px; }
   /* Edit mode */
   .sheet-edit-btn { display: none; }
-  .sheet-edit-btn:not([hidden]) { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 110px; z-index: 2;
+  .sheet-edit-btn:not([hidden]) { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 158px; z-index: 2;
     width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
   .sheet-edit-btn:hover { background: rgba(0,0,0,0.32); }
   .sheet-edit-btn.on { background: var(--cusec-gold); border-color: var(--cusec-gold); color: #1a1000; }
@@ -660,6 +660,7 @@
   [data-panel="photos"] #attachment-area .attachment-tag { font-size: 10px; padding: 3px 5px; }
   @container (max-width: 480px) { [data-panel="photos"] #attachment-area .attachment-grid { gap: 6px; } }
   .sheet-dock-btn { display: none; }
+  .sheet-full-btn { display: none; }
   .sheet-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 3px; }
   .sheet-addr { font-size: 13px; color: var(--text2); line-height: 1.4; }
   .sheet-dist { font-size: 12px; font-family: 'DM Mono',monospace; font-weight: 700; margin-top: 5px; color: #003a8c; }
@@ -759,7 +760,15 @@
     .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 62px; z-index: 2;
       width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
     .sheet-dock-btn:hover { background: rgba(0,0,0,0.32); }
-    #sheet-body .sheet-ribbon { padding-right: 164px; }
+    .sheet-full-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 110px; z-index: 2;
+      width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
+    .sheet-full-btn:hover { background: rgba(0,0,0,0.32); }
+    /* Full screen: covers the whole window, no rounded corners, above everything */
+    #detail-sheet.fullscreen { z-index: 4000; }
+    #detail-sheet.fullscreen #detail-content, #detail-sheet.fullscreen.docked #detail-content {
+      top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: none; border-radius: 0; border: none; transform: none; opacity: 1; }
+    #detail-sheet.fullscreen.open #detail-content { transform: none; }
+    #sheet-body .sheet-ribbon { padding-right: 212px; }
     /* Docked: flush to the right edge of the map, full height */
     #detail-sheet.docked #detail-content {
       top: 0; bottom: 0; left: auto; right: 0; width: min(760px, 100%);
@@ -909,6 +918,7 @@
     <div class="sheet-handle" aria-hidden="true"></div>
     <button class="sheet-close-btn" onclick="closeDetail()" aria-label="Close">×</button>
     <button class="sheet-edit-btn" id="sheet-edit-btn" onclick="toggleEditMode()" aria-label="Edit this record" title="Edit this record" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(45 12 12)"><rect x="9" y="0.8" width="6" height="15.2" rx="1.2"/><line x1="9" y1="4" x2="15" y2="4"/><line x1="9" y1="5.6" x2="15" y2="5.6"/><line x1="12" y1="5.6" x2="12" y2="16"/><path d="M9 16 L12 22.2 L15 16"/><path d="M10.9 19.9 L12 22.2 L13.1 19.9 Z" fill="currentColor"/></g></svg></button>
+    <button class="sheet-full-btn" id="sheet-full-btn" onclick="toggleFullscreenPanel()" aria-label="Full screen" title="Full screen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
     <button class="sheet-dock-btn" id="sheet-dock-btn" onclick="toggleDock()" aria-label="Dock panel to the right" title="Dock to the right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14" y1="4" x2="14" y2="20"/></svg></button>
     <div id="sheet-body"></div>
   </div>
@@ -1102,9 +1112,15 @@ function _tidyCode(v) { return String(v).replace(/_/g, ' ').replace(/\b\w/g, c =
 function choiceLabel(field, value) {
   if (value === null || value === undefined || value === '') return '';
   const map = _labelMap(field);
+  // Choice NAME → survey LABEL. The layer's domains (the survey's labels) win;
+  // a name with no known label is tidied ("emergency_services" → "Emergency
+  // Services", "office" → "Office") so a raw name never shows.
   const one = tok => (map && Object.prototype.hasOwnProperty.call(map, tok)) ? map[tok]
-                     : (/^[a-z0-9]+(_[a-z0-9]+)+$/.test(tok) ? _tidyCode(tok) : tok);
+                     : (/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(tok) ? _tidyCode(tok) : tok);
   const str = String(value).trim();
+  // Multi-select answers stored with commas ("school,office") → one label each
+  if (/,/.test(str) && str.split(',').map(t => t.trim()).filter(Boolean).every(t => /^[a-z][a-z0-9_]*$/.test(t) || (map && Object.prototype.hasOwnProperty.call(map, t))))
+    return [...new Set(str.split(',').map(t => t.trim()).filter(Boolean))].map(one).join(', ');
   // Only split on spaces when every token is a known code (free text stays intact)
   const toks = str.split(/\s+/);
   if (toks.length > 1 && map && toks.every(t => Object.prototype.hasOwnProperty.call(map, t))) return toks.map(one).join(', ');
@@ -2171,7 +2187,7 @@ function cardHTML(a) {
   const scColor = scoreColor(sc, a.surveyType);
   const scTextColor = scoreTextColor(sc, a.surveyType);
   const scText = scoreDisplay(sc, a.surveyType);
-  const addr = [a.city, a.state].filter(Boolean).join(', ');
+  const addr = [a.city, a.state ? choiceLabel(FIELDS.state, a.state) : ''].filter(Boolean).join(', ');
   const distHtml = (userLat !== null && a.distance !== null)
     ? `<span class="dist-pill">${formatDist(a.distance)}</span>` : '';
   const phaseBadge = '';
@@ -2772,8 +2788,24 @@ function toggleDock() {
 }
 try { applyDockState(localStorage.getItem(DOCK_KEY) === '1'); } catch { applyDockState(false); }
 
+// Full screen: the panel covers the whole window (desktop / tablet). Not
+// remembered between visits; Esc or the button returns to floating/docked.
+const FULL_ICONS = { expand: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>', shrink: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>' };
+function toggleFullscreenPanel(force) {
+  const sheet = document.getElementById('detail-sheet');
+  const on = typeof force === 'boolean' ? force : !sheet.classList.contains('fullscreen');
+  sheet.classList.toggle('fullscreen', on);
+  const b = document.getElementById('sheet-full-btn');
+  if (b) { b.innerHTML = on ? FULL_ICONS.shrink : FULL_ICONS.expand; b.title = on ? 'Exit full screen' : 'Full screen'; b.setAttribute('aria-label', b.title); }
+  positionDetailPanel();
+}
 function positionDetailPanel() {
   const sheet = document.getElementById('detail-sheet');
+  if (DESKTOP_MQ.matches && sheet.classList.contains('fullscreen')) {
+    Object.assign(sheet.style, { top: '0px', left: '0px', width: '100vw', height: '100vh' });
+    sheet.classList.toggle('panel-narrow', window.innerWidth < 650);
+    return;
+  }
   if (DESKTOP_MQ.matches) {
     const rect = document.getElementById('map-container').getBoundingClientRect();
     Object.assign(sheet.style, { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` });
@@ -2821,7 +2853,7 @@ function buildDetailHTML(a) {
   const scInfo = scoreLabel(sc, a.surveyType);
   const distHtml = (userLat !== null && a.distance !== null)
     ? `<div class="sheet-dist">📍 ${formatDist(a.distance)} away</div>` : '';
-  const addrFull = [a.address, a.city, a.state, a.zip].filter(Boolean).join(', ');
+  const addrFull = [a.address, a.city, a.state ? choiceLabel(FIELDS.state, a.state) : '', a.zip].filter(Boolean).join(', ');
 
   // Score bar (score range roughly 0.5-4.0, show as % of 4)
   const barPct = sc !== null ? Math.min(100, Math.max(0, (sc / 4) * 100)).toFixed(1) : 0;
@@ -2863,7 +2895,8 @@ function buildDetailHTML(a) {
     const raw = attrs[f];
     if (raw === undefined || raw === null || String(raw).trim() === '') return '';
     if (typeof raw === 'number' && !Number.isInteger(raw)) return String(Number(raw.toFixed(3)));
-    return choiceLabel(f, raw);
+    if (typeof raw === 'number') return String(raw);
+    return choiceLabel(f, raw);   // handles single, space- and comma-separated choice names; free text stays as typed
   }
   function fieldSection(title, fields, extraHtml) {
     const rows = fields.map(f => {
@@ -3149,7 +3182,7 @@ function buildDetailHTML(a) {
   // ── Nonstructural Review tab (mockup; modeled on the individual building
   // Nonstructural Hazards Report and the county generator / gas shutoff roll-ups) ──
   const findVal = (...res) => { for (const re of res) { const k = Object.keys(attrs).find(n => re.test(n)); if (k) return attrs[k]; } return undefined; };
-  const ynTxt = v => (v === undefined || v === null || String(v).trim() === '') ? '-' : isYes(v) ? 'Yes' : /^n(o)?$/i.test(String(v).trim()) ? 'No' : choiceLabel('', v);
+  const ynTxt = (v, f) => (v === undefined || v === null || String(v).trim() === '') ? '-' : (f && DOMAIN_LABELS[f] && DOMAIN_LABELS[f][String(v)]) ? DOMAIN_LABELS[f][String(v)] : isYes(v) ? 'Yes' : /^n(o)?$/i.test(String(v).trim()) ? 'No' : choiceLabel(f || '', v);
   const retro = '<span class="ns-retro">Retrofit recommended</span>';
   // Generator
   // Generator: the "has a generator" answer and the "anchored" answer. Field
@@ -3196,7 +3229,7 @@ function buildDetailHTML(a) {
         <div class="p2-dse"><span class="p2-dse-k">Interior:</span> ${escHtml(fieldValue('Interior') || '-')}</div></div>
       ${htmlCard('Emergency Generator', genBig, genSub)}
       ${htmlCard('Auto Gas Shut-off', gasBig, gasSub)}
-      ${htmlCard('Egress Routes Clear', (v => v === '-' ? 'N/A' : v)(ynTxt(attrs.EgressRoutes)), '')}
+      ${htmlCard('Egress Routes Clear', (v => v === '-' ? 'N/A' : v)(ynTxt(attrs.EgressRoutes, 'EgressRoutes')), '')}
     </div>`;
   // Exterior / interior review cards (same rows as the building report)
   const efhC = multiCodes(attrs.ExtFallingHazards);
@@ -3573,7 +3606,12 @@ document.addEventListener('keydown', lbKeydown, true);
     x0 = y0 = null;
   }, { passive: true });
 })();
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const sheet = document.getElementById('detail-sheet');
+  if (sheet.classList.contains('fullscreen')) { toggleFullscreenPanel(false); return; }
+  closeDetail();
+});
 
 // ── Utility ──────────────────────────────────────────────────
 function escHtml(s) {
