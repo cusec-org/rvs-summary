@@ -410,6 +410,7 @@
   .calc-lvl { font-weight: 500; color: #4a5363; }
   .calc-final { background: #f3f5f8; margin: 4px -8px 0; padding: 9px 8px; border-radius: 6px; border-bottom: none; }
   .calc-final .calc-k { font-weight: 700; }
+  .calc-retry { background: none; border: none; padding: 0; font: inherit; font-style: normal; font-weight: 700; color: var(--cusec-blue); text-decoration: underline; cursor: pointer; }
   .calc-pending { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 10px 0; line-height: 1.45; }
   .calc-wrap > .ov-cards + .ov-cards { margin-top: 16px; }
   .calc-thr { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12px; }
@@ -1164,13 +1165,62 @@ function seisRegionLevel(ss, s1) { if (!(ss > 0 && s1 > 0)) return null; return 
 // Where the two columns' inputs come from. ASCE 41-17 (BSE-2N) = the values the
 // form stored (SsSpectralAcc / S1SpectralAcc). ASCE 7-22 (MCEr) isn't stored
 // yet — this is the hook for the JavaScript that will pull it.
+// ASCE 7-22 values from the USGS Design Maps service — the same request as
+// returnSs_ASCE7_22 / returnS1_ASCE7_22 in functions.js (riskCategory II,
+// siteClass B; sms = Ss, sm1 = S1), done in the background so the panel
+// never freezes. Results are cached per location on this device.
+const ASCE722_CACHE_KEY = 'rvs_asce722_v1';
+const ASCE722_STATE = {};   // "lat,lng" → { status: 'loading' | 'ok' | 'error', ss, s1 }
+try { Object.assign(ASCE722_STATE, JSON.parse(localStorage.getItem(ASCE722_CACHE_KEY) || '{}')); } catch {}
+function asce722Key(a) { return (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(5)},${a.lng.toFixed(5)}` : null; }
+async function loadAsce722(a, force) {
+  const key = asce722Key(a); if (!key) return;
+  const st = ASCE722_STATE[key];
+  if (!force && st && (st.status === 'ok' || st.status === 'loading')) return;
+  ASCE722_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
+  const url = `https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?latitude=${a.lat}&longitude=${a.lng}&riskCategory=II&siteClass=B&title=ASCE7-22`;
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal });
+    if (!res.ok) throw new Error(`USGS returned HTTP ${res.status}`);
+    const j = await res.json();
+    if (j.error) throw new Error(typeof j.error === 'string' ? j.error : JSON.stringify(j.error));
+    const d = (j.response && j.response.data) || {};
+    const num = v => (v === null || v === undefined || !isFinite(Number(v))) ? null : Number(v);
+    if (num(d.sms) === null && num(d.sm1) === null) throw new Error('No Ss/S1 returned from USGS');
+    ASCE722_STATE[key] = { status: 'ok', ss: num(d.sms), s1: num(d.sm1) };
+    try {
+      const keep = Object.fromEntries(Object.entries(ASCE722_STATE).filter(([, v]) => v.status === 'ok'));
+      localStorage.setItem(ASCE722_CACHE_KEY, JSON.stringify(keep));
+    } catch {}
+  } catch (e) {
+    console.warn('[RVS] ASCE 7-22 lookup failed', e);
+    ASCE722_STATE[key] = { status: 'error', error: e.name === 'AbortError' ? 'The USGS service took too long to respond.' : (e.message || String(e)) };
+  } finally { clearTimeout(timer); }
+  refreshCalcPanel(a);
+}
+// Re-draw just the Calculations tab for the open record
+function refreshCalcPanel(a) {
+  if (String(selectedId) !== String(a.id)) return;
+  const panel = document.querySelector('#sheet-body .dtab-panel[data-panel="calc"]'); if (!panel) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = buildDetailHTML(a);
+  const fresh = tmp.querySelector('.dtab-panel[data-panel="calc"]'); if (fresh) panel.innerHTML = fresh.innerHTML;
+}
+function retryAsce722() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadAsce722(a, true); }
+
 function getCalcInputs(a) {
   const at = a.attrs || {};
   const n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
   const pick = (...res) => { for (const re of res) { const k = Object.keys(at).find(x => re.test(x)); if (k && n(at[k]) !== null) return n(at[k]); } return null; };
   return {
     asce41: { ss: n(at.SsSpectralAcc), s1: n(at.S1SpectralAcc) },
-    asce722: { ss: pick(/^ss.*(7_?22|asce7)/i, /^sms$/i), s1: pick(/^s1.*(7_?22|asce7)/i, /^sm1$/i) },
+    asce722: (() => {
+      // Stored 7-22 fields win if the layer ever gets them; otherwise the USGS lookup
+      const ss = pick(/^ss.*(7_?22|asce7)/i, /^sms$/i), s1 = pick(/^s1.*(7_?22|asce7)/i, /^sm1$/i);
+      if (ss !== null || s1 !== null) return { ss, s1, status: 'ok' };
+      const st = ASCE722_STATE[asce722Key(a)] || {};
+      return { ss: st.ss ?? null, s1: st.s1 ?? null, status: asce722Key(a) ? (st.status || 'idle') : 'nolocation', error: st.error };
+    })(),
   };
 }
 
@@ -1178,6 +1228,7 @@ function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
   const panels = document.querySelector('#sheet-body .detail-panels'); if (panels) panels.scrollTop = 0;
+  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadAsce722(a); }
 }
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
@@ -2806,7 +2857,11 @@ function buildDetailHTML(a) {
       <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>S</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromSs(d.ss)))}</div></div>
       <div class="calc-row"><div class="calc-k">S<sub>1</sub> Long Period (g)</div><div class="calc-v">${escHtml(g(d.s1))}</div></div>
       <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>1</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromS1(d.s1)))}</div></div>`
-      : `<div class="calc-pending">Awaiting data - values will fill in once the ${title} lookup is connected.</div>`}
+      : `<div class="calc-pending">${
+          d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from the USGS Design Maps service…`
+          : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}. <button class="calc-retry" onclick="retryAsce722()">Try again</button>`
+          : d.status === 'nolocation' ? `This record has no location, so ${title} values can't be looked up.`
+          : `No ${title} values recorded.`}</div>`}
     </div>`;
   };
   const r41 = seisRegionLevel(CI.asce41.ss, CI.asce41.s1), r722 = seisRegionLevel(CI.asce722.ss, CI.asce722.s1);
