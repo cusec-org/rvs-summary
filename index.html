@@ -1165,54 +1165,59 @@ function seisRegionLevel(ss, s1) { if (!(ss > 0 && s1 > 0)) return null; return 
 // Where the two columns' inputs come from. ASCE 41-17 (BSE-2N) = the values the
 // form stored (SsSpectralAcc / S1SpectralAcc). ASCE 7-22 (MCEr) isn't stored
 // yet — this is the hook for the JavaScript that will pull it.
-// ASCE 7-22 values from the USGS Design Maps service — the same request as
-// returnSs_ASCE7_22 / returnS1_ASCE7_22 in functions.js (riskCategory II,
-// siteClass B; sms = Ss, sm1 = S1), done in the background so the panel
-// never freezes. Results are cached per location on this device.
-const ASCE722_CACHE_KEY = 'rvs_asce722_v1';
-const ASCE722_STATE = {};   // "lat,lng" → { status: 'loading' | 'ok' | 'error', ss, s1 }
-try { Object.assign(ASCE722_STATE, JSON.parse(localStorage.getItem(ASCE722_CACHE_KEY) || '{}')); } catch {}
-function asce722Key(a) { return (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(5)},${a.lng.toFixed(5)}` : null; }
-async function loadAsce722(a, force) {
-  const key = asce722Key(a); if (!key) return;
-  const st = ASCE722_STATE[key];
-  if (!force && st && (st.status === 'ok' || st.status === 'loading')) return;
-  ASCE722_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
-  // USGS moved these services to /ws/building-codes/; the old /ws/designmaps/
-  // address redirects, and browsers block that cross-site redirect
-  // ("NetworkError"). Try the current address first, then the old one.
-  const q = `latitude=${a.lat.toFixed(5)}&longitude=${a.lng.toFixed(5)}&riskCategory=II&siteClass=B&title=RVS`;
-  const URLS = [`https://earthquake.usgs.gov/ws/building-codes/asce7-22?${q}`, `https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?${q}`];
-  const num = v => (v === null || v === undefined || v === '' || !isFinite(Number(v))) ? null : Number(v);
-  // sms / sm1 can sit at different depths depending on the service version
-  const deep = (o, k, depth = 0) => { if (!o || typeof o !== 'object' || depth > 6) return undefined;
-    if (Object.prototype.hasOwnProperty.call(o, k) && typeof o[k] !== 'object') return o[k];
-    for (const v of Object.values(o)) { const r = deep(v, k, depth + 1); if (r !== undefined) return r; } return undefined; };
-  let lastErr = null;
-  for (const url of URLS) {
-    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
+// ── Live seismic lookups using the project's functions.js ─────────
+// The exact functions.js from the Survey123 form (returnSs / returnS1 for
+// ASCE 41-17 BSE-2N, returnSs_ASCE7_22 / returnS1_ASCE7_22 for ASCE 7-22 MCEr).
+// Those functions use synchronous XMLHttpRequest, which would freeze the page,
+// so they run inside a background Web Worker. Results are cached per location.
+const FUNCTIONS_JS = "function findBSE2N(responseJSON){\n    // The ASCE 41-17 endpoint returns response.data as an ARRAY of hazard-level\n    // objects (one each for BSE-2N, BSE-1N, BSE-2E, BSE-1E, ...), unlike the old\n    // ASCE 41-23 endpoint which returned a single flat object keyed by e.g.\n    // \"sxsBSE2N\". Find the BSE-2N entry by its hazardLevel field rather than\n    // assuming array position, in case USGS ever reorders it.\n    var hazardData = responseJSON['response']['data'];\n    for (var i = 0; i < hazardData.length; i++){\n        if (hazardData[i]['hazardLevel'] === 'BSE-2N'){\n            return hazardData[i];\n        }\n    }\n    return null;\n}\n\nfunction returnSs(location,debugmode){\n\n    if (location===\"\"){\n        return (debugmode? \"Location object is empty\":\"\");\n    }\n\n    var coordsArray = location.split(\" \");\n    var url = 'https://earthquake.usgs.gov/ws/designmaps/asce41-17.json?latitude='+ coordsArray[0] + '&longitude=' + coordsArray[1] + '&riskCategory=II&siteClass=B&title=ASCE'\n\tvar xmlhttp = new XMLHttpRequest();\n    xmlhttp.open( \"GET\", url, false );\n\n    xmlhttp.send();\n\n\n    if (xmlhttp.status!==200){\n        return (debugmode? xmlhttp.status:\"\");\n    } else {\n        var responseJSON = JSON.parse( xmlhttp.responseText )\n        if (responseJSON.error){\n            return (debugmode? JSON.stringify(responseJSON.error):\"\");\n        } else {\n            var bse2n = findBSE2N(responseJSON);\n            // \"sxs\" is the site-class-adjusted design value (what the old\n            // ASCE 41-23 \"sxsBSE2N\" key also returned) - not the raw mapped\n            // Ss. Kept the same quantity here for consistency with the\n            // existing SeismicitySs threshold formula in the XLSForm.\n            if (bse2n && bse2n['sxs']){\n\n                return JSON.stringify(bse2n['sxs']);\n\n\n            }\n            else{\n                return (debugmode? \"No Ss returned from USGS WebServices\":\"\");\n            }\n        }\n    }\n}\n\nfunction returnS1(location,debugmode){\n\n    if (location===\"\"){\n        return (debugmode? \"Location object is empty\":\"\");\n    }\n\n    var coordsArray = location.split(\" \");\n    var url = 'https://earthquake.usgs.gov/ws/designmaps/asce41-17.json?latitude='+ coordsArray[0] + '&longitude=' + coordsArray[1] + '&riskCategory=II&siteClass=B&title=ASCE'\n\tvar xmlhttp = new XMLHttpRequest();\n    xmlhttp.open( \"GET\", url, false );\n\n    xmlhttp.send();\n\n\n    if (xmlhttp.status!==200){\n        return (debugmode? xmlhttp.status:\"\");\n    } else {\n        var responseJSON = JSON.parse( xmlhttp.responseText )\n        if (responseJSON.error){\n            return (debugmode? JSON.stringify(responseJSON.error):\"\");\n        } else {\n            var bse2n = findBSE2N(responseJSON);\n            // \"sx1\" is the site-class-adjusted design value, matching what\n            // the old \"sx1BSE2N\" key returned - see note in returnSs above.\n            if (bse2n && bse2n['sx1']){\n\n                return JSON.stringify(bse2n['sx1']);\n\n            }\n            else{\n                return (debugmode? \"No S1 returned from USGS WebServices\":\"\");\n            }\n        }\n    }\n}\n\n\n// --- ASCE 7-22 alternative versions ---------------------------------------\n// Same idea as returnSs()/returnS1() above, but pointed at the ASCE 7-22\n// design maps service instead of ASCE 41-17, in case the standard used for\n// this project needs to be ASCE 7-22 instead. Not wired into the form by\n// default - use these in place of returnSs()/returnS1() in the XLSForm\n// pulldata() calculation if/when that switch is made.\n//\n// Verified riskCategory does not change ss/s1/sms/sm1 at a given location\n// (checked riskCategory=I vs II, identical results), so it is hardcoded here\n// the same way it is in returnSs()/returnS1().\n\nfunction returnSs_ASCE7_22(location,debugmode){\n\n    if (location===\"\"){\n        return (debugmode? \"Location object is empty\":\"\");\n    }\n\n    var coordsArray = location.split(\" \");\n    var url = 'https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?latitude='+ coordsArray[0] + '&longitude=' + coordsArray[1] + '&riskCategory=II&siteClass=B&title=ASCE7-22'\n\tvar xmlhttp = new XMLHttpRequest();\n    xmlhttp.open( \"GET\", url, false );\n\n    xmlhttp.send();\n\n    if (xmlhttp.status!==200){\n        return (debugmode? xmlhttp.status:\"\");\n    } else {\n        var responseJSON = JSON.parse( xmlhttp.responseText )\n        if (responseJSON.error){\n            return (debugmode? JSON.stringify(responseJSON.error):\"\");\n        } else {\n            // Unlike the ASCE 41-17 endpoint, response.data here is a single flat\n            // object (no hazard-level array to search). \"sms\" is the site-class\n            // adjusted MCER value (Fa*Ss) - the ASCE 7 equivalent of the ASCE 41\n            // BSE-2N \"sxs\" value used in returnSs() above. \"sds\" (2/3 * sms) is the\n            // reduced DESIGN value and is intentionally NOT used here, so this stays\n            // the same hazard level as returnSs()/returnS1().\n            var data = responseJSON['response']['data'];\n            if (data && data['sms']!==undefined && data['sms']!==null){\n\n                return JSON.stringify(data['sms']);\n\n            }\n            else{\n                return (debugmode? \"No Ss returned from USGS WebServices\":\"\");\n            }\n        }\n    }\n}\n\nfunction returnS1_ASCE7_22(location,debugmode){\n\n    if (location===\"\"){\n        return (debugmode? \"Location object is empty\":\"\");\n    }\n\n    var coordsArray = location.split(\" \");\n    var url = 'https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?latitude='+ coordsArray[0] + '&longitude=' + coordsArray[1] + '&riskCategory=II&siteClass=B&title=ASCE7-22'\n\tvar xmlhttp = new XMLHttpRequest();\n    xmlhttp.open( \"GET\", url, false );\n\n    xmlhttp.send();\n\n    if (xmlhttp.status!==200){\n        return (debugmode? xmlhttp.status:\"\");\n    } else {\n        var responseJSON = JSON.parse( xmlhttp.responseText )\n        if (responseJSON.error){\n            return (debugmode? JSON.stringify(responseJSON.error):\"\");\n        } else {\n            // \"sm1\" is the site-class adjusted MCER value (Fv*S1) - the ASCE 7\n            // equivalent of the ASCE 41 BSE-2N \"sx1\" value used in returnS1() above.\n            var data = responseJSON['response']['data'];\n            if (data && data['sm1']!==undefined && data['sm1']!==null){\n\n                return JSON.stringify(data['sm1']);\n\n            }\n            else{\n                return (debugmode? \"No S1 returned from USGS WebServices\":\"\");\n            }\n        }\n    }\n}\n\n\nfunction returnSoilType( Token, location, debugmode ){\n    if( location === \"\" ) {\n        return( debugmode ? \"Location object is empty\" : \"\" );\n    }\n\tvar token=Token;\n    var coordsArray = location.split( \" \" );\n\t\n\tvar url = 'https://iservices3.arcgis.com/mQsIDpmRUmYltsYD/arcgis/rest/services/global_vs30_v2/ImageServer/identify?'; \n\turl += 'geometry={%22x%22:'+coordsArray[1]+',%22y%22:'+coordsArray[0]+'}&geometryType=esriGeometryPoint&mosaicRule=&pixelSize=0.5,0.5&f=pjson';\n\turl += '&token=' + token \n\n    var xmlhttp = new XMLHttpRequest();\n    xmlhttp.open( \"GET\", url, false );\n    xmlhttp.send();\n\n    if( xmlhttp.status !== 200 ){\n        return ( debugmode? xmlhttp.status : \"\" );\n    } else {\n        var responseJSON = JSON.parse( xmlhttp.responseText );\n        if (responseJSON.error){\n            return( debugmode ? JSON.stringify( responseJSON.error ) : \"\" );\n        } else {\n\t\t\tvar slope = responseJSON['value'];\n\t\t\tvar choiceResponse = 'choice5';\n\t\t\tchoiceResponse = slope > 1500 ? 'choice0' : choiceResponse;\n\t\t\tchoiceResponse = slope <= 1500 && slope >= 760 ? 'choice1' : choiceResponse;\n\t\t\tchoiceResponse = slope < 760 && slope >= 360 ? 'choice2' : choiceResponse;\n\t\t\tchoiceResponse = slope < 360 && slope >= 180 ? 'choice3' : choiceResponse;\n\t\t\tchoiceResponse = slope < 180 ? 'choice4' : choiceResponse;\n\t\t\treturn choiceResponse;\n        }\n    }\n}\n\n\nfunction returnLiquefaction(location, debugmode) {\n  if (location === \"\") {\n    return (debugmode ? \"Location object is empty\" : \"\");\n  }\n\n  var coordsArray = location.split(\" \");\n  var lat = coordsArray[0];\n  var lon = coordsArray[1];\n\n  var geometry = JSON.stringify({ x: lon, y: lat, spatialReference: { wkid: 4326 } });\n  var params = \"where=1%3D1\"\n    + \"&geometry=\" + encodeURIComponent(geometry)\n    + \"&geometryType=esriGeometryPoint\"\n    + \"&inSR=4326\"\n    + \"&spatialRel=esriSpatialRelIntersects\"\n    + \"&outFields=TypeDescription\"\n    + \"&returnGeometry=false\"\n    + \"&f=json\";\n\n  var url = \"https://services1.arcgis.com/utFj6xjAHT9GdIit/ArcGIS/rest/services/Soil_Liquefaction_Susceptibility_Map/FeatureServer/0/query?\" + params;\n\n  var xmlhttp = new XMLHttpRequest();\n  xmlhttp.open(\"GET\", url, false);\n  xmlhttp.send();\n\n  if (xmlhttp.status !== 200) {\n    return (debugmode ? xmlhttp.status : \"choice3\");\n  } else {\n    var responseJSON = JSON.parse(xmlhttp.responseText);\n    if (responseJSON.error) {\n      return (debugmode ? JSON.stringify(responseJSON.error) : \"choice3\");\n    } else {\n      if (responseJSON.features && responseJSON.features.length > 0) {\n        var TypeDescription = responseJSON.features[0].attributes.TypeDescription;\n\n        if (TypeDescription === \"High\" || TypeDescription === \"Very High\") {\n          return \"choice1\";\n        }\n        if (TypeDescription === \"Moderate\" || TypeDescription === \"Low\" ||\n            TypeDescription === \"Very Low\" || TypeDescription === \"None\") {\n          return \"choice2\";\n        }\n        if (TypeDescription === \"Error\") {\n          return \"choice3\";\n        }\n\n        return (debugmode ? \"Unrecognized TypeDescription: \" + TypeDescription : \"choice3\");\n      } else {\n        return (debugmode ? \"No features returned at this location\" : \"choice3\");\n      }\n    }\n  }\n}\n";
+const CALC_WORKER_SRC = FUNCTIONS_JS + `
+self.onmessage = function (e) {
+  var d = e.data, out = {};
+  var calls = [['ss41', 'returnSs'], ['s141', 'returnS1'], ['ss722', 'returnSs_ASCE7_22'], ['s1722', 'returnS1_ASCE7_22']];
+  for (var n = 0; n < calls.length; n++) {
+    var k = calls[n][0], fn = calls[n][1];
     try {
-      const res = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(`USGS returned HTTP ${res.status}`);
-      const j = await res.json();
-      if (j.error || j.status === 'error') throw new Error(typeof j.error === 'string' ? j.error : (j.message || 'USGS returned an error'));
-      const root = (j.response && (j.response.data || j.response)) || j;
-      const ss = num(deep(root, 'sms')), s1 = num(deep(root, 'sm1'));
-      if (ss === null && s1 === null) throw new Error('No Ss/S1 returned from USGS');
-      ASCE722_STATE[key] = { status: 'ok', ss, s1 };
-      try {
-        const keep = Object.fromEntries(Object.entries(ASCE722_STATE).filter(([, v]) => v.status === 'ok'));
-        localStorage.setItem(ASCE722_CACHE_KEY, JSON.stringify(keep));
-      } catch {}
-      lastErr = null; break;
-    } catch (e) {
-      console.warn('[RVS] ASCE 7-22 lookup failed for', url, e);
-      lastErr = e.name === 'AbortError' ? new Error('The USGS service took too long to respond')
-              : e instanceof TypeError ? new Error('the browser could not reach the USGS service - it may be blocking requests from this site')
-              : e;
-    } finally { clearTimeout(timer); }
+      var v = self[fn](d.location, true);              // debug mode: failures come back as a message/status
+      // success = the value as a numeric string; failure = an HTTP status (number) or a message string
+      if (typeof v === 'string' && v.trim() !== '' && isFinite(Number(v))) out[k] = { val: Number(v) };
+      else out[k] = { err: typeof v === 'number' ? (v === 0 ? 'the browser could not reach the USGS service' : 'USGS returned HTTP ' + v) : (v ? 'USGS: ' + String(v) : 'No value returned from USGS') };
+    } catch (err) { out[k] = { err: (err && err.name === 'NetworkError') ? 'the browser could not reach the USGS service' : ((err && err.message) || String(err)) }; }
   }
-  if (lastErr) ASCE722_STATE[key] = { status: 'error', error: lastErr.message || String(lastErr) };
+  self.postMessage({ id: d.id, out: out });
+};`;
+let CALC_WORKER = null, CALC_REQ = 0;
+const CALC_PENDING = {};
+function calcWorker() {
+  if (!CALC_WORKER) {
+    CALC_WORKER = new Worker(URL.createObjectURL(new Blob([CALC_WORKER_SRC], { type: 'text/javascript' })));
+    CALC_WORKER.onmessage = e => { const cb = CALC_PENDING[e.data.id]; delete CALC_PENDING[e.data.id]; if (cb) cb(e.data.out); };
+  }
+  return CALC_WORKER;
+}
+// Runs the four functions.js lookups for "lat lon" (same location string Survey123 passes)
+function runFunctionsJs(location) {
+  return new Promise(resolve => { const id = ++CALC_REQ; CALC_PENDING[id] = resolve; calcWorker().postMessage({ id, location }); });
+}
+const CALC_CACHE_KEY = 'rvs_calc_live_v1';
+const CALC_STATE = {};   // "lat,lng" → { status: 'loading' | 'done', ss41, s141, ss722, s1722 (each {val} or {err}) }
+try { Object.assign(CALC_STATE, JSON.parse(localStorage.getItem(CALC_CACHE_KEY) || '{}')); } catch {}
+function calcKey(a) { return (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(6)},${a.lng.toFixed(6)}` : null; }
+async function loadCalcLive(a, force) {
+  const key = calcKey(a); if (!key) return;
+  const st = CALC_STATE[key];
+  const allOk = st && st.status === 'done' && ['ss41', 's141', 'ss722', 's1722'].every(k => st[k] && st[k].val !== undefined);
+  if (!force && st && (st.status === 'loading' || allOk)) return;
+  CALC_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
+  let out;
+  try { out = await Promise.race([runFunctionsJs(`${a.lat} ${a.lng}`), new Promise((_, rej) => setTimeout(() => rej(new Error('The USGS service took too long to respond')), 60000))]); }
+  catch (e) { const err = { err: e.message || String(e) }; out = { ss41: err, s141: err, ss722: err, s1722: err }; }
+  CALC_STATE[key] = Object.assign({ status: 'done' }, out);
+  Object.entries(out).forEach(([k, v]) => { if (v.err) console.warn('[RVS] functions.js lookup failed:', k, v.err); });
+  try {
+    const keep = Object.fromEntries(Object.entries(CALC_STATE).filter(([, v]) => v.status === 'done' && ['ss41', 's141', 'ss722', 's1722'].every(k => v[k] && v[k].val !== undefined)));
+    localStorage.setItem(CALC_CACHE_KEY, JSON.stringify(keep));
+  } catch {}
   refreshCalcPanel(a);
 }
 // Re-draw just the Calculations tab for the open record
@@ -1222,29 +1227,25 @@ function refreshCalcPanel(a) {
   const tmp = document.createElement('div'); tmp.innerHTML = buildDetailHTML(a);
   const fresh = tmp.querySelector('.dtab-panel[data-panel="calc"]'); if (fresh) panel.innerHTML = fresh.innerHTML;
 }
-function retryAsce722() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadAsce722(a, true); }
+function retryCalc() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadCalcLive(a, true); }
 
 function getCalcInputs(a) {
-  const at = a.attrs || {};
-  const n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
-  const pick = (...res) => { for (const re of res) { const k = Object.keys(at).find(x => re.test(x)); if (k && n(at[k]) !== null) return n(at[k]); } return null; };
-  return {
-    asce41: { ss: n(at.SsSpectralAcc), s1: n(at.S1SpectralAcc) },
-    asce722: (() => {
-      // Stored 7-22 fields win if the layer ever gets them; otherwise the USGS lookup
-      const ss = pick(/^ss.*(7_?22|asce7)/i, /^sms$/i), s1 = pick(/^s1.*(7_?22|asce7)/i, /^sm1$/i);
-      if (ss !== null || s1 !== null) return { ss, s1, status: 'ok' };
-      const st = ASCE722_STATE[asce722Key(a)] || {};
-      return { ss: st.ss ?? null, s1: st.s1 ?? null, status: asce722Key(a) ? (st.status || 'idle') : 'nolocation', error: st.error };
-    })(),
+  const key = calcKey(a), st = (key && CALC_STATE[key]) || {};
+  const col = (ssK, s1K) => {
+    if (!key) return { ss: null, s1: null, status: 'nolocation' };
+    if (!st.status || st.status === 'loading') return { ss: null, s1: null, status: 'loading' };
+    const ss = st[ssK] && st[ssK].val !== undefined ? st[ssK].val : null, s1 = st[s1K] && st[s1K].val !== undefined ? st[s1K].val : null;
+    const err = (st[ssK] && st[ssK].err) || (st[s1K] && st[s1K].err) || '';
+    return { ss, s1, status: (ss !== null || s1 !== null) ? 'ok' : 'error', error: err };
   };
+  return { asce41: col('ss41', 's141'), asce722: col('ss722', 's1722') };
 }
 
 function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
   const panels = document.querySelector('#sheet-body .detail-panels'); if (panels) panels.scrollTop = 0;
-  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadAsce722(a); }
+  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadCalcLive(a); }
 }
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
@@ -2874,8 +2875,8 @@ function buildDetailHTML(a) {
       <div class="calc-row"><div class="calc-k">S<sub>1</sub> Long Period (g)</div><div class="calc-v">${escHtml(g(d.s1))}</div></div>
       <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>1</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromS1(d.s1)))}</div></div>`
       : `<div class="calc-pending">${
-          d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from the USGS Design Maps service…`
-          : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}. <button class="calc-retry" onclick="retryAsce722()">Try again</button>`
+          d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from USGS (functions.js)…`
+          : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}. <button class="calc-retry" onclick="retryCalc()">Try again</button>`
           : d.status === 'nolocation' ? `This record has no location, so ${title} values can't be looked up.`
           : `No ${title} values recorded.`}</div>`}
     </div>`;
@@ -2884,7 +2885,8 @@ function buildDetailHTML(a) {
   const cmpTxt = (r41 && r722) ? (r722 > r41 ? 'Higher under ASCE 7-22' : r722 < r41 ? 'Lower under ASCE 7-22' : 'Same region') : '';
   const diff = (x, y) => (x === null || y === null) ? '-' : `${y - x >= 0 ? '+' : '-'}${Math.abs(y - x).toFixed(3)} g${x ? ` (${y - x >= 0 ? '+' : '-'}${Math.abs((y - x) / x * 100).toFixed(0)}%)` : ''}`;
   // Ribbon: what the database currently holds for this record
-  const dbSs = CI.asce41.ss, dbS1 = CI.asce41.s1;
+  const _n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
+  const dbSs = _n(attrs.SsSpectralAcc), dbS1 = _n(attrs.S1SpectralAcc);
   const dbSource = attrs.SeismicitySource ? choiceLabel('SeismicitySource', attrs.SeismicitySource) : 'Not recorded';
   const dbRibbon = `<div class="calc-ribbon">
       <div class="calc-rb-title">Current Database</div>
