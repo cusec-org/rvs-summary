@@ -386,6 +386,69 @@
   .p2-none { color: var(--text3); font-style: italic; font-size: 12px; }
   .p2-sub { margin: 12px 0 2px; }
   .p2-comments { margin-top: 16px; }
+  /* Edit mode */
+  .sheet-edit-btn { display: none; }
+  .sheet-edit-btn:not([hidden]) { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 110px; z-index: 2;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
+  .sheet-edit-btn:hover { background: rgba(0,0,0,0.32); }
+  .sheet-edit-btn.on { background: var(--cusec-gold); border-color: var(--cusec-gold); color: #1a1000; }
+  @media (max-width: 899px) {
+    .sheet-edit-btn:not([hidden]) { top: 12px; right: 58px; width: 34px; height: 34px; background: var(--surface2); color: var(--text); border-color: var(--border); }
+    .sheet-edit-btn.on { background: var(--cusec-gold) !important; color: #1a1000 !important; border-color: var(--cusec-gold) !important; }
+    #detail-content:has(#sheet-edit-btn:not([hidden])) .sheet-ribbon { margin-right: 102px; }
+  }
+  .ed-name { width: 100%; font: 700 20px 'DM Sans', sans-serif; color: #13233d; border: 1.5px solid #c9d1dd; border-radius: 8px; padding: 4px 8px; background: #fffdf5; }
+  .ed-name.ed-changed { border-color: var(--cusec-gold); box-shadow: 0 0 0 2px rgba(200,150,12,0.18); }
+  .ed-wrap { padding: 14px 20px 90px; }
+  .ed-note { font-size: 12px; color: #6b4600; background: #fff8e6; border: 1px solid #f0d49a; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .ed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+  .ed-card { padding: 14px 16px 10px; }
+  .ed-row { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 10px; padding: 7px 0; border-bottom: 1px solid #eef1f5; align-items: start; }
+  .ed-row:last-child { border-bottom: none; }
+  .ed-k { font-size: 12.5px; color: #13233d; padding-top: 7px; }
+  .ed-in { width: 100%; font: 13px 'DM Sans', sans-serif; color: #13233d; border: 1.5px solid #c9d1dd; border-radius: 7px; padding: 6px 8px; background: #fff; }
+  .ed-in:focus { outline: none; border-color: var(--cusec-blue); box-shadow: 0 0 0 2px rgba(0,48,135,0.15); }
+  .ed-ta { resize: vertical; min-height: 64px; line-height: 1.4; }
+  .ed-row.ed-changed .ed-k::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--cusec-gold); margin-right: 6px; vertical-align: middle; }
+  .ed-row.ed-changed .ed-in { border-color: var(--cusec-gold); background: #fffdf5; }
+  .ed-ms { position: relative; }
+  .ed-ms-btn { display: flex; align-items: center; justify-content: space-between; gap: 6px; text-align: left; cursor: pointer; }
+  .ed-ms-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-ms-empty { color: #6b7384; }
+  .ed-ms-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; background: #fff; border: 1.5px solid #c9d1dd; border-radius: 8px;
+                box-shadow: var(--shadow-lg); padding: 4px 0; max-height: 240px; overflow-y: auto; }
+  .ed-ms-list[hidden] { display: none; }
+  .ed-ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12.5px; color: #13233d; cursor: pointer; }
+  .ed-ms-opt:hover { background: #f3f5f8; }
+  .ed-ms-opt input { margin: 0; accent-color: var(--cusec-blue); width: 15px; height: 15px; }
+  .ed-row.ed-changed .ed-ms-btn { border-color: var(--cusec-gold); background: #fffdf5; }
+  .ed-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; border: 1.5px solid #c9d1dd; border-radius: 999px; padding: 3px 9px; cursor: pointer; background: #fff; color: #13233d; }
+  .ed-chip input { margin: 0; accent-color: var(--cusec-blue); }
+  .ed-chip.on { border-color: var(--cusec-blue); background: #eef3fb; font-weight: 700; }
+  .ed-locked { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4a5363; padding-top: 6px; }
+  .ed-locked svg { flex-shrink: 0; }
+  .ed-err { font-size: 11.5px; color: #b3261e; margin-top: 3px; }
+  .ed-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: #fff; border-top: 1px solid var(--border); box-shadow: 0 -4px 14px rgba(0,0,0,0.08); }
+  .ed-count { flex: 1; font-size: 13px; font-weight: 700; color: #13233d; }
+  .ed-cancel, .ed-save { font: 700 13px 'DM Sans', sans-serif; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+  .ed-cancel { background: #fff; border: 1.5px solid var(--border); color: #13233d; }
+  .ed-save { background: #0B2E6B; border: 1.5px solid #0B2E6B; color: #fff; }
+  .ed-save:disabled { opacity: 0.45; cursor: not-allowed; }
+  .ed-review { position: absolute; inset: 0; z-index: 20; background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .ed-review[hidden] { display: none; }
+  .ed-rv-card { background: #fff; border-radius: 12px; width: min(640px, 100%); max-height: 100%; overflow: auto; padding: 18px 20px; box-shadow: var(--shadow-lg); }
+  .ed-rv-title { font-size: 16px; font-weight: 800; color: #13233d; margin-bottom: 12px; }
+  .ed-rv-body { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12.5px; }
+  .ed-rv-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-top: 1px solid #e6e9ef; }
+  .ed-rv-row:first-child { border-top: none; }
+  .ed-rv-head { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
+  .ed-rv-old { color: #6b7384; text-decoration: line-through; }
+  .ed-rv-new { color: #13233d; font-weight: 700; }
+  .ed-rv-msg { color: #b3261e; font-size: 12.5px; margin-top: 10px; }
+  .ed-rv-msg:empty { display: none; }
+  .ed-rv-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  #ed-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 7000; background: #13233d; color: #fff; font: 700 13px 'DM Sans', sans-serif; padding: 10px 18px; border-radius: 999px; opacity: 0; transition: all 0.25s; pointer-events: none; }
+  #ed-toast.show { opacity: 1; transform: translate(-50%, 0); }
   /* Calculations tab */
   .calc-wrap { padding: 18px 20px 22px; }
   .calc-ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; background: #0B2E6B; color: #fff; border-radius: 10px; padding: 12px 18px; }
@@ -696,7 +759,7 @@
     .sheet-dock-btn { display: flex; align-items: center; justify-content: center; position: absolute; top: 13px; right: 62px; z-index: 2;
       width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
     .sheet-dock-btn:hover { background: rgba(0,0,0,0.32); }
-    #sheet-body .sheet-ribbon { padding-right: 116px; }
+    #sheet-body .sheet-ribbon { padding-right: 164px; }
     /* Docked: flush to the right edge of the map, full height */
     #detail-sheet.docked #detail-content {
       top: 0; bottom: 0; left: auto; right: 0; width: min(760px, 100%);
@@ -845,6 +908,7 @@
   <div id="detail-content">
     <div class="sheet-handle" aria-hidden="true"></div>
     <button class="sheet-close-btn" onclick="closeDetail()" aria-label="Close">×</button>
+    <button class="sheet-edit-btn" id="sheet-edit-btn" onclick="toggleEditMode()" aria-label="Edit this record" title="Edit this record" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(45 12 12)"><rect x="9" y="0.8" width="6" height="15.2" rx="1.2"/><line x1="9" y1="4" x2="15" y2="4"/><line x1="9" y1="5.6" x2="15" y2="5.6"/><line x1="12" y1="5.6" x2="12" y2="16"/><path d="M9 16 L12 22.2 L15 16"/><path d="M10.9 19.9 L12 22.2 L13.1 19.9 Z" fill="currentColor"/></g></svg></button>
     <button class="sheet-dock-btn" id="sheet-dock-btn" onclick="toggleDock()" aria-label="Dock panel to the right" title="Dock to the right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14" y1="4" x2="14" y2="20"/></svg></button>
     <div id="sheet-body"></div>
   </div>
@@ -887,7 +951,13 @@ const CONFIG = {
   // AWS Lambda that does the USGS seismic lookups (see rvs-seismic-lambda/).
   // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
   // Calculations tab. Leave blank to use the values saved on each record.
-  seismicProxyUrl: 'https://47nvhyuseuymzpynornkktrgre0kwwjn.lambda-url.us-east-2.on.aws/',
+  seismicProxyUrl: '',
+  // Editing (only when the page is opened with ?edit=1): members of these ArcGIS Online group IDs see the pencil and can
+  // edit the Facility Overview, P-154 and Nonstructural tabs plus the building
+  // name. Choice fields only offer the survey's own choices (no free text).
+  // ArcGIS still enforces who can actually save: the layer must allow updates
+  // and the user must have edit rights to it (e.g. via that group).
+  editorGroupIds: [],
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
   // switched on. styleField colors polygons low→high; labelField/rangeField
@@ -1734,6 +1804,7 @@ async function fetchAssets() {
   setLoadingState(true);
   try {
     await resolveServiceUrl();
+    if (USER_GROUP_IDS === null) loadEditorAccess();
     // Paginate through all records (service caps at 1000 per request)
     const pageSize = 1000;
     let offset = 0;
@@ -2369,7 +2440,281 @@ function requestLocation() {
 // ════════════════════════════════════════════════════════════════
 //  DETAIL SHEET
 // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+//  EDITING  (pencil → edit Facility Overview / P-154 / Nonstructural + name)
+// ════════════════════════════════════════════════════════════════
+let USER_GROUP_IDS = null;              // null until checked
+// Editing is off unless the page is opened with ?edit=1 (e.g. index.html?edit=1,
+// or ?layout=full&edit=1). The flag survives the ArcGIS sign-in redirect,
+// but a plain link without it always opens read-only.
+const EDIT_URL_ON = (() => {
+  const q = new URLSearchParams(location.search), h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+  const v = q.get('edit');
+  try {
+    if (v !== null) { const on = !/^(0|false|no|off)$/i.test(v); sessionStorage.setItem('rvs_edit_param', on ? '1' : '0'); return on; }
+    const oauthReturn = q.has('code') || h.has('access_token') || q.has('error') || h.has('error');
+    if (oauthReturn) return sessionStorage.getItem('rvs_edit_param') === '1';
+    sessionStorage.removeItem('rvs_edit_param');
+  } catch {}
+  return false;
+})();
+const EDIT = { on: false, id: null, draft: {}, orig: {} };
+async function loadEditorAccess() {
+  if (!EDIT_URL_ON || !(CONFIG.editorGroupIds || []).length || !TOKEN) { USER_GROUP_IDS = []; return; }
+  try {
+    const me = await arcgisFetch(`https://www.arcgis.com/sharing/rest/community/self?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+    USER_GROUP_IDS = (me.groups || []).map(g => g.id);
+  } catch (e) { console.warn('[RVS] could not check editor groups', e); USER_GROUP_IDS = []; }
+  updateEditButton();
+}
+function canEditRecords() { return EDIT_URL_ON && (USER_GROUP_IDS || []).some(id => (CONFIG.editorGroupIds || []).includes(id)); }
+function updateEditButton() {
+  const b = document.getElementById('sheet-edit-btn'); if (!b) return;
+  b.hidden = !canEditRecords();
+  b.classList.toggle('on', EDIT.on);
+  b.title = EDIT.on ? 'Stop editing' : 'Edit this record'; b.setAttribute('aria-label', b.title);
+}
+const YN = { yes: 'Yes', no: 'No' };
+const YN_DNK = { yes: 'Yes', no: 'No', do_not_know: "Don't Know" };
+const BRACE_CHOICES = { none: 'None', some: 'Some', all: 'All', na: 'N/A', unknown: 'Unknown' };
+// Field → control. Choice lists come from the layer's own domains (the survey's
+// choices) when present, else the app's built-in list. `calc` = set by the
+// survey's calculations, shown locked.
+function editField(a, name, patterns) { const k = Object.keys(a.attrs || {}).find(n => patterns.some(re => re.test(n))); return k || name; }
+function EDIT_TABS(a) {
+  const gen = editField(a, 'GeneratorAnchored', [/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i, /^(is_?)?anchored$/i]);
+  const soilSrc = editField(a, 'SoilTypeSource', [/^soil_?type_?source$/i, /soil.*source/i]);
+  const geoSrc = editField(a, 'GeologicHazardSource', [/^geolog(ic|ical)?_?hazards?_?source$/i, /geolog.*source/i]);
+  const contact = editField(a, 'ContactPerson', [/^facility_?contact$/i, /^contact_?person$/i]);
+  return {
+    overview: [
+      ['Site & Seismicity', [['Seismicity', 'Seismicity', 'lock'], ['SoilType', 'Soil Type', 'lock'], ['FEMABuildingType', 'FEMA Building Type', 'select'],
+        ['SsSpectralAcc', 'Ss (g)', 'calc'], ['S1SpectralAcc', 'S1 (g)', 'calc']]],
+      ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
+        ['TotalFloorArea', 'Total Floor Area (sq. ft.)', 'number', 0, 1e8], ['YearBuilt', 'Year Built', 'int', 1600, new Date().getFullYear()], ['YearBuiltEstimated', 'Year Built Estimated?', 'yesno'],
+        ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
+        ['Occupancy', 'Occupancy Type', 'multi'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
+        ['Liquefaction', 'Liquefaction', 'yesno_dnk'], ['Landslide', 'Landslide', 'yesno_dnk'], ['SurfaceRupture', 'Surface Rupture', 'yesno_dnk']]],
+      ['Screening Record', [['SurveyDate', 'Date of screening', 'lock'], ['SurveyType', 'Screening Type', 'lock'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
+        ['Exterior', 'Exterior Review', 'select'], ['Interior', 'Interior Review', 'select'], ['DrawingsReviewed', 'Drawings Reviewed', 'yesno'],
+        [soilSrc, 'Soil Type Source', 'lock'], [geoSrc, 'Geologic Hazard Source', 'lock'], [contact, 'Facility Contact', 'lock']]],
+    ],
+    p154: [
+      ['Screening', [['CodeYear', 'Code Year', 'lock'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
+        ['IsDetailedRequired', 'Detailed Eval. Required (Structural)', 'select', null, null, 'DetailedEvalRequired'], ['DetailedEvalRecommended', 'Detailed Eval. Required (Nonstructural)', 'select'],
+        ['BasicScore', 'Basic Score', 'calc'], ['Level1Score', 'Final Level 1 Score', 'calc']]],
+      ['Irregularities', [['VertIrregularities', 'Vertical irregularity', 'yesno'], ['VertIrregularitiesType', 'Vertical severity', 'select', null, null, null, { severe: 'Severe', moderate: 'Moderate' }],
+        ['VertIrregularitiesPresent', 'Vertical types', 'multi'], ['PlanIrregularities', 'Plan irregularity', 'yesno'], ['PlanIrregularitiesPresent', 'Plan types', 'multi']]],
+      ['Hazards & Comments', [['OtherHazards', 'Adjacency / other hazards', 'multi'], ['ExtFallingHazards', 'Exterior falling hazards', 'multi'],
+        ['FallingHazardsOther', 'Other falling hazard (describe)', 'text'], ['Level1Comments', 'Screener comments (Level 1)', 'textarea']]],
+    ],
+    nonstruct: [
+      ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['NaturalGas', 'Natural gas service', 'yesno'],
+        ['GasShutoff', 'Auto gas shut-off', 'yesno'], ['FlexibleGasLines', 'Flexible gas lines', 'yesno'], ['EgressRoutes', 'Egress routes clear', 'yesno']]],
+      ['Bracing / Restraint', [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies', 'brace'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents', 'brace'],
+        ['WaterHeaters', 'Water Heaters', 'brace'], ['FireSuppression', 'Fire Suppression', 'brace'], ['DropCeilings', 'Drop Ceilings', 'brace'], ['LayInLightFixtures', 'Lay-In Light Fixtures', 'brace'],
+        ['BoilersChillersHVACsystems', 'Boilers, Chillers, & HVAC', 'brace'], ['HeavyEquipment', 'Heavy Equipment', 'brace'], ['OtherMEPEquipment', 'Other MEP Equipment', 'brace'],
+        ['FuelorPropaneTanks', 'Fuel/Propane/Oxygen Tanks', 'brace']]],
+      ['Comments', [['OtherNonstructural', 'Nonstructural screener comments', 'textarea']]],
+    ],
+  };
+}
+function editChoices(f, type, listField, fixed) {
+  const dom = DOMAIN_LABELS[listField || f];
+  if (dom && Object.keys(dom).length) return dom;                 // the survey's own choices (from the layer)
+  if (fixed) return fixed;
+  if (type === 'yesno') return YN;
+  if (type === 'yesno_dnk') return YN_DNK;
+  if (type === 'brace') return BRACE_CHOICES;
+  if (CHOICE_LABELS[listField || f]) return CHOICE_LABELS[listField || f];
+  // No list on the layer or in the app: offer the answers already used in the
+  // data (they came from the survey), never free text
+  const seen = new Set(); (typeof assets !== 'undefined' ? assets : []).forEach(x => { const v = x.attrs && x.attrs[f]; if (v !== undefined && v !== null && String(v).trim() !== '') seen.add(String(v)); });
+  return seen.size ? Object.fromEntries([...seen].sort().map(v => [v, choiceLabel(f, v)])) : null;
+}
+const _raw = v => (v === null || v === undefined) ? '' : String(v);
+function editVal(f) { return Object.prototype.hasOwnProperty.call(EDIT.draft, f) ? EDIT.draft[f] : EDIT.orig[f]; }
+function editChanged() { return Object.keys(EDIT.draft).filter(f => _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f])); }
+function editControl(a, [f, label, type, min, max, listField, fixed]) {
+  const id = 'ed_' + f.replace(/\W/g, '_');
+  const v = editVal(f);
+  // Choice lists only for choice questions (or any field the layer gives a coded list)
+  const isChoice = ['select', 'multi', 'yesno', 'yesno_dnk', 'brace'].includes(type);
+  const ch = isChoice ? editChoices(f, type, listField, fixed) : (DOMAIN_LABELS[f] && Object.keys(DOMAIN_LABELS[f]).length ? DOMAIN_LABELS[f] : null);
+  const changed = _raw(EDIT.draft[f] !== undefined ? EDIT.draft[f] : EDIT.orig[f]) !== _raw(EDIT.orig[f]);
+  let ctl;
+  if (type === 'calc' || type === 'lock') {
+    const shown = v === '' || v === null || v === undefined ? '-' : (f === 'SurveyDate' ? editShow(f, v) : (type === 'lock' ? (multiLabels(f, v).join(', ') || String(v)) : String(v)));
+    ctl = `<div class="ed-locked" title="${type === 'calc' ? "Calculated by the survey - change the inputs in Survey123" : 'This field is locked'}">${escHtml(shown)}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>`;
+  } else if ((type === 'select' || type === 'multi') && !ch) {
+    ctl = `<div class="ed-locked" title="No survey choice list found for this field">${escHtml(v === '' || v === null || v === undefined ? '-' : multiLabels(f, v).join(', ') || String(v))}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>`;
+  } else if (type === 'multi' && ch) {
+    const on = multiCodes(v);
+    const summary = [...on].map(c => ch[c] || choiceLabel(f, c)).join(', ');
+    ctl = `<div class="ed-ms" data-f="${escHtml(f)}">
+      <button type="button" id="${id}" class="ed-in ed-ms-btn" aria-haspopup="listbox" aria-expanded="false" onclick="toggleMultiSelect(this)">
+        <span class="ed-ms-val${summary ? '' : ' ed-ms-empty'}">${escHtml(summary || '- Not answered -')}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="ed-ms-list" role="listbox" aria-multiselectable="true" aria-label="${escHtml(label)}" hidden>${Object.entries(ch).map(([c, l]) =>
+        `<label class="ed-ms-opt"><input type="checkbox" ${on.has(c) ? 'checked' : ''} onchange="editMulti('${f}','${escHtml(c)}',this.checked, this)">${escHtml(l)}</label>`).join('')}</div>
+    </div>`;
+  } else if (ch && type !== 'text' && type !== 'textarea') {
+    const opts = Object.entries(ch);
+    const known = opts.some(([c]) => c === _raw(v));
+    ctl = `<select id="${id}" class="ed-in" onchange="editSet('${f}', this.value)">
+      <option value="">- Not answered -</option>
+      ${opts.map(([c, l]) => `<option value="${escHtml(c)}" ${c === _raw(v) ? 'selected' : ''}>${escHtml(l)}</option>`).join('')}
+      ${!known && _raw(v) ? `<option value="${escHtml(_raw(v))}" selected>${escHtml(_raw(v))} (current, not a survey choice)</option>` : ''}
+    </select>`;
+  } else if (type === 'int' || type === 'number') {
+    ctl = `<input id="${id}" class="ed-in" type="number" inputmode="${type === 'int' ? 'numeric' : 'decimal'}" ${type === 'int' ? 'step="1"' : 'step="any"'} ${min !== undefined && min !== null ? `min="${min}"` : ''} ${max !== undefined && max !== null ? `max="${max}"` : ''}
+      value="${escHtml(_raw(v))}" oninput="editSet('${f}', this.value, this)">`;
+  } else if (type === 'date') {
+    const d = v ? new Date(typeof v === 'number' ? v : Date.parse(v)) : null;
+    const iso = d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+    ctl = `<input id="${id}" class="ed-in" type="date" value="${iso}" onchange="editSet('${f}', this.value ? Date.parse(this.value + 'T12:00:00') : '')">`;
+  } else if (type === 'textarea') {
+    ctl = `<textarea id="${id}" class="ed-in ed-ta" rows="3" maxlength="4000" oninput="editSet('${f}', this.value)">${escHtml(_raw(v))}</textarea>`;
+  } else {
+    ctl = `<input id="${id}" class="ed-in" type="text" maxlength="255" value="${escHtml(_raw(v))}" oninput="editSet('${f}', this.value)">`;
+  }
+  return `<div class="ed-row${changed ? ' ed-changed' : ''}" data-f="${escHtml(f)}"><label class="ed-k" for="${id}">${escHtml(label)}</label><div class="ed-v">${ctl}<div class="ed-err" hidden></div></div></div>`;
+}
+function editTabHTML(a, tab) {
+  const groups = EDIT_TABS(a)[tab] || [];
+  return `<div class="ed-wrap"><div class="ed-note">Editing - choice fields only offer the survey's own choices. Locked fields are calculated by the survey.</div>
+    <div class="ed-grid">${groups.map(([title, fields]) => `<div class="ov-card p2-card ed-card"><div class="ov-card-title">${escHtml(title)}</div>${fields.map(fd => editControl(a, fd)).join('')}</div>`).join('')}</div></div>`;
+}
+function editSet(f, value, el) {
+  if (el && el.type === 'number' && value !== '') {
+    const n = Number(value), mn = el.min !== '' ? Number(el.min) : -Infinity, mx = el.max !== '' ? Number(el.max) : Infinity;
+    const bad = !isFinite(n) || n < mn || n > mx || (el.step === '1' && !Number.isInteger(n));
+    const err = el.parentNode.querySelector('.ed-err');
+    if (err) { err.hidden = !bad; err.textContent = bad ? `Enter a ${el.step === '1' ? 'whole number' : 'number'} between ${el.min || '...'} and ${el.max || '...'}` : ''; }
+    if (bad) { EDIT.invalid = Object.assign(EDIT.invalid || {}, { [f]: true }); updateEditBar(); return; }
+  }
+  if (EDIT.invalid) delete EDIT.invalid[f];
+  EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
+  const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
+  if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
+  updateEditBar();
+}
+function editMulti(f, code, checked, el) {
+  const orig = _raw(EDIT.orig[f]);
+  const sep = orig.includes(',') || !orig.trim() ? ',' : ' ';          // keep the record's own separator (Survey123 uses commas)
+  const set = multiCodes(editVal(f)); checked ? set.add(code) : set.delete(code);
+  editSet(f, [...set].join(sep));
+  // refresh the dropdown's summary text
+  const box = el && el.closest('.ed-ms');
+  if (box) {
+    const labels = [...box.querySelectorAll('.ed-ms-opt')].filter(o => o.querySelector('input').checked).map(o => o.textContent.trim());
+    const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || '- Not answered -'; val.classList.toggle('ed-ms-empty', !labels.length);
+  }
+}
+function toggleMultiSelect(btn) {
+  const list = btn.parentNode.querySelector('.ed-ms-list'), open = list.hidden;
+  document.querySelectorAll('.ed-ms-list').forEach(l => { l.hidden = true; l.parentNode.querySelector('.ed-ms-btn').setAttribute('aria-expanded', 'false'); });
+  list.hidden = !open; btn.setAttribute('aria-expanded', open);
+}
+document.addEventListener('click', e => { if (!e.target.closest('.ed-ms')) document.querySelectorAll('.ed-ms-list').forEach(l => { l.hidden = true; }); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.ed-ms-list:not([hidden])').forEach(l => { l.hidden = true; }); }, true);
+function updateEditBar() {
+  const bar = document.getElementById('ed-bar'); if (!bar) return;
+  const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length;
+  bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet';
+  bar.querySelector('.ed-save').disabled = !n || !!bad;
+}
+function toggleEditMode() {
+  const a = assets.find(x => String(x.id) === String(selectedId)); if (!a) return;
+  if (EDIT.on) { return cancelEdit(); }
+  if (!canEditRecords()) return;
+  EDIT.on = true; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {};
+  EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
+  const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
+  openDetail(a); switchDetailTab(['overview', 'p154', 'nonstruct'].includes(tab) ? tab : 'overview');
+  updateEditButton();
+}
+function cancelEdit(skipConfirm) {
+  if (!skipConfirm && editChanged().length && !confirm('Discard your unsaved changes?')) return false;
+  const a = assets.find(x => String(x.id) === String(EDIT.id));
+  const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
+  EDIT.on = false; EDIT.id = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
+  closeEditReview();
+  if (a && String(selectedId) === String(a.id)) { openDetail(a); switchDetailTab(tab); }
+  updateEditButton();
+  return true;
+}
+function editLabel(f) {
+  const a = assets.find(x => String(x.id) === String(EDIT.id)) || { attrs: {} };
+  if (f === 'BuildingName') return 'Building name';
+  for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) { const hit = fields.find(x => x[0] === f); if (hit) return hit[1]; }
+  return f;
+}
+function editShow(f, v) {
+  if (v === null || v === undefined || String(v).trim() === '') return '-';
+  if (f === 'SurveyDate') { const d = new Date(typeof v === 'number' ? v : Date.parse(v)); return isNaN(d) ? String(v) : d.toLocaleDateString(); }
+  // Use the same choice list the edit control showed
+  const a = assets.find(x => String(x.id) === String(EDIT.id)) || { attrs: {} };
+  for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) {
+    const fd = fields.find(x => x[0] === f);
+    if (fd) { const ch = editChoices(f, fd[2], fd[5], fd[6]); if (ch && ['select', 'multi', 'yesno', 'yesno_dnk', 'brace'].includes(fd[2])) return [...multiCodes(v)].map(c => ch[c] || choiceLabel(f, c)).join(', ') || String(v); }
+  }
+  return multiLabels(f, v).join(', ') || String(v);
+}
+function openEditReview() {
+  const changes = editChanged(); if (!changes.length) return;
+  const box = document.getElementById('ed-review');
+  box.querySelector('.ed-rv-body').innerHTML = `<div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>` +
+    changes.map(f => `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('');
+  box.querySelector('.ed-rv-msg').textContent = '';
+  box.hidden = false;
+}
+function closeEditReview() { const b = document.getElementById('ed-review'); if (b) b.hidden = true; }
+// Sends the changed fields to the layer (applyEdits). ArcGIS decides whether
+// this user is allowed to save.
+async function saveEditsToLayer(a, attrs) {
+  const oidField = Object.keys(a.attrs || {}).find(n => /^(objectid|oid|fid)$/i.test(n)) || FIELDS.objectId;
+  const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, rollbackOnFailure: 'true',
+    updates: JSON.stringify([{ attributes: Object.assign({ [oidField]: a.id }, attrs) }]) });
+  const res = await fetch(`${CONFIG.serviceUrl}/applyEdits`, { method: 'POST', body });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message || 'ArcGIS refused the edit');
+  const r = (j.updateResults || [])[0];
+  if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'ArcGIS did not accept the edit');
+}
+async function confirmEditSave() {
+  const a = assets.find(x => String(x.id) === String(EDIT.id)); if (!a) return;
+  const changes = editChanged(); if (!changes.length) return;
+  const attrs = Object.fromEntries(changes.map(f => [f, EDIT.draft[f] === '' ? null : EDIT.draft[f]]));
+  const box = document.getElementById('ed-review'), btn = box.querySelector('.ed-rv-go'), msg = box.querySelector('.ed-rv-msg');
+  btn.disabled = true; btn.textContent = 'Saving…'; msg.textContent = '';
+  try {
+    await saveEditsToLayer(a, attrs);
+    // Update the record in the app (re-derives the list card, filters, tabs)
+    const merged = Object.assign({}, a.attrs, attrs);
+    const fresh = featureToAsset({ attributes: merged, geometry: (typeof a.lng === 'number') ? { x: a.lng, y: a.lat } : null });
+    const i = assets.findIndex(x => x.id === a.id); if (i >= 0) assets[i] = fresh;
+    try { cacheData(assets); } catch {}
+    EDIT.draft = {};
+    cancelEdit(true); renderList(); if (typeof renderMarkers === 'function') renderMarkers();
+    showToast(`Saved ${changes.length} change${changes.length > 1 ? 's' : ''}`);
+  } catch (e) {
+    console.warn('[RVS] save failed', e);
+    msg.textContent = `Couldn't save: ${e.message || e}`;
+  } finally { btn.disabled = false; btn.textContent = 'Save changes'; }
+}
+function showToast(text) {
+  let t = document.getElementById('ed-toast');
+  if (!t) { t = document.createElement('div'); t.id = 'ed-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = text; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
 function selectAsset(id, panMap = true) {
+  if (EDIT.on && String(EDIT.id) !== String(id)) { if (!cancelEdit()) return; }
   const a = assets.find(x => x.id === id);
   if (!a) return;
   selectedId = id;
@@ -2425,6 +2770,7 @@ DESKTOP_MQ.addEventListener('change', () => {
 });
 
 function openDetail(a) {
+  setTimeout(updateEditButton, 0);
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
@@ -2436,6 +2782,7 @@ function openDetail(a) {
   loadAttachments(a.id);
 }
 function closeDetail() {
+  if (EDIT.on && !cancelEdit()) return;
   clearPulse();
   document.getElementById('detail-sheet').classList.remove('open');
   document.body.style.overflow = '';
@@ -2444,6 +2791,7 @@ function closeDetail() {
 }
 
 function buildDetailHTML(a) {
+  const editing = EDIT.on && String(EDIT.id) === String(a.id);
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
   const sc = a.level1Score;
   const scColor = scoreColor(sc, a.surveyType);
@@ -2959,7 +3307,8 @@ function buildDetailHTML(a) {
     <div class="sheet-header sheet-header-row">
       <div class="sheet-icon">${ft.icon.replace(/width:\d+px;height:\d+px/, 'width:52px;height:52px')}</div>
       <div class="sheet-header-text">
-        <div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>
+        ${editing ? `<input class="ed-name" id="ed_BuildingName" aria-label="Building name" maxlength="255" value="${escHtml(_raw(editVal('BuildingName')))}" oninput="editSet('BuildingName', this.value); this.classList.toggle('ed-changed', this.value !== _raw(EDIT.orig.BuildingName))">`
+                  : `<div class="sheet-name" id="sheet-building-name">${escHtml(a.buildingName)}</div>`}
         ${addrFull ? `<a class="sheet-addr addr-link" href="${streetViewUrl}" target="_blank" rel="noopener" title="Open in Google Street View">${escHtml(addrFull)}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : ''}
         ${a.county ? `<div class="sheet-county">${escHtml(a.county)} County</div>` : ''}
         ${distHtml}
@@ -2974,14 +3323,14 @@ function buildDetailHTML(a) {
       ${tabBtn('overview', 'Facility Overview', true)}
       ${tabBtn('p154', 'P-154 Screening Details', false)}
       ${tabBtn('nonstruct', 'Nonstructural Review', false)}
-      ${tabBtn('calc', 'Calculations', false)}
-      ${tabBtn('photos', 'Photos', false)}
+      ${editing ? '' : tabBtn('calc', 'Calculations', false)}
+      ${editing ? '' : tabBtn('photos', 'Photos', false)}
     </div>
 
     <div class="detail-panels">
-      <div class="dtab-panel" data-panel="overview" role="tabpanel">${overviewHTML}</div>
-      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
-      <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
+      <div class="dtab-panel" data-panel="overview" role="tabpanel">${editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
+      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${editing ? editTabHTML(a, 'p154') : p154HTML}</div>
+      <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${editing ? editTabHTML(a, 'nonstruct') : nonstructHTML}</div>
       <div class="dtab-panel" data-panel="calc" role="tabpanel" hidden>${calcHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
         <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
@@ -2989,6 +3338,20 @@ function buildDetailHTML(a) {
         </div></div>
       </div>
     </div>
+    ${editing ? `
+    <div class="ed-bar" id="ed-bar" role="region" aria-label="Edit actions">
+      <span class="ed-count">No changes yet</span>
+      <button class="ed-cancel" onclick="cancelEdit()">Cancel</button>
+      <button class="ed-save" onclick="openEditReview()" disabled>Review &amp; Save</button>
+    </div>
+    <div class="ed-review" id="ed-review" hidden role="dialog" aria-modal="true" aria-label="Review changes">
+      <div class="ed-rv-card">
+        <div class="ed-rv-title">Review changes to ${escHtml(a.buildingName)}</div>
+        <div class="ed-rv-body"></div>
+        <div class="ed-rv-msg" role="alert"></div>
+        <div class="ed-rv-actions"><button class="ed-cancel" onclick="closeEditReview()">Keep editing</button><button class="ed-save ed-rv-go" onclick="confirmEditSave()">Save changes</button></div>
+      </div>
+    </div>` : ''}
   `;
 }
 
