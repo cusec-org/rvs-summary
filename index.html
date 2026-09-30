@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#003087">
 <meta name="referrer" content="no-referrer-when-downgrade">
-<meta http-equiv="Content-Security-Policy" content="frame-ancestors *">
 <script>
   (function() {
     const p = new URLSearchParams(window.location.search);
@@ -387,6 +386,40 @@
   .p2-none { color: var(--text3); font-style: italic; font-size: 12px; }
   .p2-sub { margin: 12px 0 2px; }
   .p2-comments { margin-top: 16px; }
+  /* Calculations tab */
+  .calc-wrap { padding: 18px 20px 22px; }
+  .calc-ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; background: #0B2E6B; color: #fff; border-radius: 10px; padding: 12px 18px; }
+  .calc-rb-title { font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; opacity: 0.85; margin-right: 4px; }
+  .calc-rb-item { display: flex; align-items: baseline; gap: 8px; }
+  .calc-rb-k { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; opacity: 0.8; }
+  .calc-rb-k sub { font-size: 0.75em; text-transform: none; }
+  .calc-rb-v { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .calc-cols { margin-top: 16px; }
+  .calc-sub { font-size: 11.5px; color: #4a5363; margin: -4px 0 8px; }
+  .calc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; min-height: 66px; } /* same height in both cards so the rows line up */
+  .calc-region { text-align: right; flex-shrink: 0; }
+  .calc-region-k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
+  .calc-region-v { font-size: 18px; font-weight: 800; color: #13233d; line-height: 1.25; }
+  .calc-why { display: inline-block; margin-top: 4px; background: #fbe3b9; color: #6b4600; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 2px 9px; }
+  .calc-why sub { font-size: 0.75em; }
+  .calc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; align-items: baseline; }
+  .calc-row:last-child { border-bottom: none; }
+  .calc-k { color: #13233d; }
+  .calc-k sub, .calc-thr sub, .calc-note sub, .calc-sub sub { font-size: 0.75em; }
+  .calc-v { font-weight: 700; color: #13233d; text-align: right; font-variant-numeric: tabular-nums; }
+  .calc-lvl { font-weight: 500; color: #4a5363; }
+  .calc-final { background: #f3f5f8; margin: 4px -8px 0; padding: 9px 8px; border-radius: 6px; border-bottom: none; }
+  .calc-final .calc-k { font-weight: 700; }
+  .calc-pending { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 10px 0; line-height: 1.45; }
+  .calc-wrap > .ov-cards + .ov-cards { margin-top: 16px; }
+  .calc-thr { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12px; }
+  .calc-thr-row { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 1fr; gap: 8px; padding: 7px 10px; border-top: 1px solid #e6e9ef; color: #13233d; }
+  .calc-thr-row:first-child { border-top: none; }
+  .calc-thr-row > div:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .calc-thr-head { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
+  .calc-unit { text-transform: none; }
+  .calc-thr-row.on { background: #fff8e6; font-weight: 700; }
+  .calc-note { font-size: 11.5px; color: #4a5363; margin-top: 8px; }
   /* Nonstructural Review tab */
   .ns-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ns-stats .ov-stat-label { white-space: normal; } /* let long box titles wrap instead of cutting off */
@@ -1119,6 +1152,28 @@ const FACILITY_SINGULAR = {
   'Medical Offices/Clinics': 'Medical Office/Clinic',
 };
 function singularFacility(t) { return FACILITY_SINGULAR[t] || t; }
+// ── Seismicity calculations (same formulas as the Survey123 XLSForm) ──
+// SeismicitySs: Ss ≥ 0.25 → 2, ≥ 0.5 → 3, ≥ 1.0 → 4, ≥ 1.5 → 5 (else '' = Low)
+// SeismicityS1: S1 ≥ 0.1 → 2, ≥ 0.2 → 3, ≥ 0.4 → 4, ≥ 0.6 → 5 (else '' = Low)
+// Seismicity region = max of the two: >4 Very High, >3 High, >2 Moderately High, >1 Moderate, else Low
+// (only when both Ss and S1 are > 0)
+const SEIS_NAMES = { 1: 'Low', 2: 'Moderate', 3: 'Moderately High', 4: 'High', 5: 'Very High' };
+function seisFromSs(ss) { if (ss === null || !isFinite(ss)) return null; return ss >= 0.25 ? (ss >= 0.5 ? (ss >= 1 ? (ss >= 1.5 ? 5 : 4) : 3) : 2) : 1; }
+function seisFromS1(s1) { if (s1 === null || !isFinite(s1)) return null; return s1 >= 0.1 ? (s1 >= 0.2 ? (s1 >= 0.4 ? (s1 >= 0.6 ? 5 : 4) : 3) : 2) : 1; }
+function seisRegionLevel(ss, s1) { if (!(ss > 0 && s1 > 0)) return null; return Math.max(seisFromSs(ss), seisFromS1(s1)); }
+// Where the two columns' inputs come from. ASCE 41-17 (BSE-2N) = the values the
+// form stored (SsSpectralAcc / S1SpectralAcc). ASCE 7-22 (MCEr) isn't stored
+// yet — this is the hook for the JavaScript that will pull it.
+function getCalcInputs(a) {
+  const at = a.attrs || {};
+  const n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
+  const pick = (...res) => { for (const re of res) { const k = Object.keys(at).find(x => re.test(x)); if (k && n(at[k]) !== null) return n(at[k]); } return null; };
+  return {
+    asce41: { ss: n(at.SsSpectralAcc), s1: n(at.S1SpectralAcc) },
+    asce722: { ss: pick(/^ss.*(7_?22|asce7)/i, /^sms$/i), s1: pick(/^s1.*(7_?22|asce7)/i, /^sm1$/i) },
+  };
+}
+
 function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
@@ -1860,14 +1915,7 @@ function updateActiveFilterBar() {
 
 function onSearch() { searchTerm = document.getElementById('search-input').value.toLowerCase(); renderList(); }
 
-function toggleSort() {
-  const modes = ['recent', 'distance', 'name', 'score'];
-  const i = modes.indexOf(sortMode);
-  sortMode = modes[(i + 1) % modes.length];
-  const labels = { recent: '🕒 Most recent', distance: '📍 Nearest first', name: '🔤 A-Z', score: '📊 Score (low→high)' };
-  document.getElementById('sort-label').textContent = labels[sortMode];
-  renderList();
-}
+function toggleSort() { /* sort options removed - list is always newest first */ }
 
 function getFiltered() {
   let list = assets.filter(a => {
@@ -2198,7 +2246,7 @@ function haversine(lat1,lon1,lat2,lon2) {
 function formatDist(m) { return m < 1000 ? `${Math.round(m)} m` : `${(m/1609.34).toFixed(1)} mi`; }
 
 function requestLocation() {
-  const lbl = document.getElementById('loc-label');
+  const lbl = document.getElementById('loc-label') || { textContent: '' }; // Locate button removed; keep this safe if called
   if (!navigator.geolocation) { lbl.textContent = 'No GPS'; return; }
   lbl.textContent = 'Locating…';
   navigator.geolocation.getCurrentPosition(pos => {
@@ -2731,6 +2779,56 @@ function buildDetailHTML(a) {
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
+  // ── Calculations tab (mockup): ASCE 41-17 vs ASCE 7-22 side by side ──
+  const CI = getCalcInputs(a);
+  const g = v => v === null ? '-' : `${Number(v.toFixed(3))} g`;
+  const lvl = L => L === null ? '-' : `${L} · ${SEIS_NAMES[L]}`;
+  const TH_SS = { 2: 0.25, 3: 0.5, 4: 1.0, 5: 1.5 }, TH_S1 = { 2: 0.1, 3: 0.2, 4: 0.4, 5: 0.6 };
+  // Why this column's region is higher than the other: which value reached the higher level
+  const whyHigher = d => {
+    const L = seisRegionLevel(d.ss, d.s1); if (!L || L < 2) return '';
+    const parts = [];
+    if (seisFromSs(d.ss) === L) parts.push(`S<sub>S</sub> ≥ ${TH_SS[L].toFixed(2)}`);
+    if (seisFromS1(d.s1) === L) parts.push(`S<sub>1</sub> ≥ ${TH_S1[L].toFixed(2)}`);
+    return `Higher: ${parts.join(', ')}`;
+  };
+  const colCard = (title, sub, d, bubble) => {
+    const rl = seisRegionLevel(d.ss, d.s1);
+    const has = d.ss !== null || d.s1 !== null;
+    return `<div class="ov-card p2-card calc-card">
+      <div class="calc-head">
+        <div><div class="ov-card-title">${title}</div><div class="calc-sub">${sub}</div></div>
+        <div class="calc-region"><div class="calc-region-k">Seismicity Region</div><div class="calc-region-v">${rl ? escHtml(SEIS_NAMES[rl]) : '-'}</div>
+          ${bubble ? `<div class="calc-why">${bubble}</div>` : ''}</div>
+      </div>
+      ${has ? `
+      <div class="calc-row"><div class="calc-k">S<sub>S</sub> Short Period (g)</div><div class="calc-v">${escHtml(g(d.ss))}</div></div>
+      <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>S</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromSs(d.ss)))}</div></div>
+      <div class="calc-row"><div class="calc-k">S<sub>1</sub> Long Period (g)</div><div class="calc-v">${escHtml(g(d.s1))}</div></div>
+      <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>1</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromS1(d.s1)))}</div></div>`
+      : `<div class="calc-pending">Awaiting data - values will fill in once the ${title} lookup is connected.</div>`}
+    </div>`;
+  };
+  const r41 = seisRegionLevel(CI.asce41.ss, CI.asce41.s1), r722 = seisRegionLevel(CI.asce722.ss, CI.asce722.s1);
+  const cmpTxt = (r41 && r722) ? (r722 > r41 ? 'Higher under ASCE 7-22' : r722 < r41 ? 'Lower under ASCE 7-22' : 'Same region') : '';
+  const diff = (x, y) => (x === null || y === null) ? '-' : `${y - x >= 0 ? '+' : '-'}${Math.abs(y - x).toFixed(3)} g${x ? ` (${y - x >= 0 ? '+' : '-'}${Math.abs((y - x) / x * 100).toFixed(0)}%)` : ''}`;
+  // Ribbon: what the database currently holds for this record
+  const dbSs = CI.asce41.ss, dbS1 = CI.asce41.s1;
+  const dbSource = attrs.SeismicitySource ? choiceLabel('SeismicitySource', attrs.SeismicitySource) : 'Not recorded';
+  const dbRibbon = `<div class="calc-ribbon">
+      <div class="calc-rb-title">Current Database</div>
+      <div class="calc-rb-item"><span class="calc-rb-k">S<sub>S</sub></span><span class="calc-rb-v">${escHtml(g(dbSs))}</span></div>
+      <div class="calc-rb-item"><span class="calc-rb-k">S<sub>1</sub></span><span class="calc-rb-v">${escHtml(g(dbS1))}</span></div>
+      <div class="calc-rb-item"><span class="calc-rb-k">Seismicity Region</span><span class="calc-rb-v">${escHtml(fieldValue('Seismicity') || '-')}</span></div>
+      <div class="calc-rb-item"><span class="calc-rb-k">Source</span><span class="calc-rb-v">${escHtml(dbSource)}</span></div>
+    </div>`;
+  const calcHTML = `<div class="calc-wrap">
+      ${dbRibbon}
+      <div class="ov-cards calc-cols">
+        ${colCard('ASCE 41-17', 'BSE-2N · USGS Design Maps', CI.asce41, r41 && r722 && r41 > r722 ? whyHigher(CI.asce41) : '')}
+        ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, r41 && r722 && r722 > r41 ? whyHigher(CI.asce722) : '')}
+      </div>
+    </div>`;
   const notesHTML = card(fieldSection('Notes & Comments', groupFields('Comments'))) || empty('No notes recorded for this building.');
 
   const reportLink = (key, label, tab) => {
@@ -2766,6 +2864,7 @@ function buildDetailHTML(a) {
       ${tabBtn('overview', 'Facility Overview', true)}
       ${tabBtn('p154', 'P-154 Screening Details', false)}
       ${tabBtn('nonstruct', 'Nonstructural Review', false)}
+      ${tabBtn('calc', 'Calculations', false)}
       ${tabBtn('photos', 'Photos', false)}
     </div>
 
@@ -2773,6 +2872,7 @@ function buildDetailHTML(a) {
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${overviewHTML}</div>
       <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
       <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
+      <div class="dtab-panel" data-panel="calc" role="tabpanel" hidden>${calcHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
         <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
           <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
@@ -3041,4 +3141,3 @@ init();
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
