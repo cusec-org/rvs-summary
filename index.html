@@ -21,6 +21,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* DM Sans draws its hyphen almost as wide as a dash (0.54em). These two
+     faces swap in a standard system hyphen (about 0.33em) for just the "-"
+     character, everywhere DM Sans is used; every other character still uses
+     DM Sans. Declared after the Google Fonts stylesheet so they take priority. */
+  /* One face per weight Google serves (400/500/600/700), so the browser treats them as part of the same DM Sans set */
+  @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 400; unicode-range: U+002D, U+2010-2011; src: local('Arial'), local('ArialMT'), local('Helvetica Neue'), local('Helvetica'), local('Segoe UI'), local('Roboto'), local('Liberation Sans'), local('DejaVu Sans'); }
+  @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 500; unicode-range: U+002D, U+2010-2011; src: local('Arial'), local('ArialMT'), local('Helvetica Neue'), local('Helvetica'), local('Segoe UI'), local('Roboto'), local('Liberation Sans'), local('DejaVu Sans'); }
+  @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 600; unicode-range: U+002D, U+2010-2011; src: local('Arial Bold'), local('Arial-BoldMT'), local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Helvetica Bold'), local('Segoe UI Bold'), local('Roboto Bold'), local('Roboto-Bold'), local('Liberation Sans Bold'), local('DejaVu Sans Bold'); }
+  @font-face { font-family: 'DM Sans'; font-style: normal; font-weight: 700; unicode-range: U+002D, U+2010-2011; src: local('Arial Bold'), local('Arial-BoldMT'), local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Helvetica Bold'), local('Segoe UI Bold'), local('Roboto Bold'), local('Roboto-Bold'), local('Liberation Sans Bold'), local('DejaVu Sans Bold'); }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #f0f2f5; --surface: #ffffff; --surface2: #f7f8fa; --border: #e2e5ea;
@@ -499,7 +508,7 @@
   .banner-score-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
   .banner-score-desc { font-size: 12px; margin-top: 3px; opacity: 0.92; line-height: 1.35; }
   .sheet-header { padding: 14px 20px 10px; }
-  /* Detail grid — same look as the RVS-Side-by-Side diff grid, one value column */
+  /* Detail grid - same look as the RVS-Side-by-Side diff grid, one value column */
   .sec-label { display: flex; align-items: center; justify-content: space-between; }
   .field-grid { display: grid; grid-template-columns: 150px 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: 12.5px; }
   .field-grid > div { background: var(--surface); padding: 7px 9px; word-break: break-word; }
@@ -732,7 +741,7 @@
   </header>
 
   <div id="offline-banner" class="offline-banner" hidden role="alert">
-    ⚠️ Offline — showing cached data
+    ⚠️ Offline - showing cached data
   </div>
   <div id="map-container" role="region" aria-label="Map">
     <div id="map"></div>
@@ -831,7 +840,7 @@ const CONFIG = {
   // ▼ Replace with your registered ArcGIS Online app client ID
   clientId:     'POwkS9wlRIsqBvrJ',
   // ▼ Must exactly match the redirect URI registered in your AGOL app
-  // Derived at runtime — just register this page's URL in your AGOL app settings
+  // Derived at runtime - just register this page's URL in your AGOL app settings
   redirectUri:  window.location.origin + window.location.pathname,
   authorizeUrl: 'https://www.arcgis.com/sharing/rest/oauth2/authorize',
   tokenUrl:     'https://www.arcgis.com/sharing/rest/oauth2/token',
@@ -999,7 +1008,7 @@ function isExcludedPhase(a) {
 }
 // Splits a multi-select value into clean display labels. Older records
 // stored these with commas (and sometimes stray/empty commas), newer ones
-// with spaces — both work, empties and duplicates are dropped.
+// with spaces - both work, empties and duplicates are dropped.
 function multiLabels(field, raw) {
   if (raw === null || raw === undefined) return [];
   const out = [];
@@ -1030,7 +1039,7 @@ const DETAIL_GROUPS = [
 const DETAIL_LABELS = {
   SsSpectralAcc: 'SS Spectral Acc (g)', S1SpectralAcc: 'S1 Spectral Acc (g)', VL1: 'Vertical Irr. (VL1)',
   PL1: 'Plan Irr. (PL1)', AdjustedBaselineScore: "Adjusted Baseline Score (S')", FinalSL1Score: 'Final SL1 Score',
-  DnsReason: 'Did-Not-Screen Reason', DnsOther: 'DNS — Other', PC1RM1BuildingQ1: 'PC1/RM1: roof-to-wall ties',
+  DnsReason: 'Did-Not-Screen Reason', DnsOther: 'DNS - Other', PC1RM1BuildingQ1: 'PC1/RM1: roof-to-wall ties',
   PC1RM1BuildingQ2: 'PC1/RM1: closely spaced walls', URMQ1: 'URM: gable walls present', MHQ1: 'MH: seismic bracing present',
   C1C2BuildingOutofPlane: 'C1/C2: beams out-of-plane', EQ1: 'Ext. Q1: URM parapet/chimney', EQ2: 'Ext. Q2: heavy cladding/veneer',
   EQ3: 'Ext. Q3: heavy canopy', EQ4: 'Ext. Q4: URM appendage', EQ5: 'Ext. Q5: hazmat sign', EQ6: 'Ext. Q6: taller adjacent URM',
@@ -1047,7 +1056,7 @@ const DETAIL_LABELS = {
   VertIrregularitiesPresent: 'Vertical Irregularities Present', PlanIrregularitiesPresent: 'Plan Irregularities Present',
 };
 // FEMA P-154 (3rd ed.) Level 1 basic scores and score modifiers, by
-// seismicity region and FEMA building type — taken from the project's
+// seismicity region and FEMA building type - taken from the project's
 // P154_*_Seismicity_Template_v1 data collection forms. null = NA on the form.
 // Keys: basic, sevV, modV, plan, pre, post, soilAB, soilE13, soilE4, smin
 const P154_SCORES = {"Low":{"W1":{"basic":6.2,"sevV":-1.5,"modV":-1.0,"plan":-1.6,"pre":null,"post":2.2,"soilAB":0.9,"soilE13":-1.2,"soilE4":-1.7,"smin":2.7},"W1A":{"basic":5.9,"sevV":-1.5,"modV":-0.9,"plan":-1.4,"pre":null,"post":2.4,"soilAB":1.1,"soilE13":-1.7,"soilE4":-2.0,"smin":2.1},"W2":{"basic":5.7,"sevV":-1.5,"modV":-0.9,"plan":-1.3,"pre":null,"post":2.5,"soilAB":1.3,"soilE13":-2.3,"soilE4":-2.2,"smin":1.5},"S1":{"basic":3.8,"sevV":-1.4,"modV":-0.9,"plan":-1.2,"pre":null,"post":2.0,"soilAB":1.0,"soilE13":-1.2,"soilE4":-1.2,"smin":0.9},"S2":{"basic":3.9,"sevV":-1.3,"modV":-0.8,"plan":-1.1,"pre":null,"post":1.6,"soilAB":1.2,"soilE13":-1.4,"soilE4":-1.4,"smin":0.8},"S3":{"basic":4.4,"sevV":-1.6,"modV":-1.0,"plan":-1.4,"pre":null,"post":1.4,"soilAB":0.8,"soilE13":-1.0,"soilE4":null,"smin":1.2},"S4":{"basic":4.1,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":null,"post":2.1,"soilAB":1.3,"soilE13":-1.7,"soilE4":-1.7,"smin":0.8},"S5":{"basic":4.5,"sevV":-1.3,"modV":-0.7,"plan":-1.1,"pre":null,"post":null,"soilAB":1.4,"soilE13":-2.0,"soilE4":-1.9,"smin":0.9},"C1":{"basic":3.3,"sevV":-1.3,"modV":-0.7,"plan":-1.0,"pre":null,"post":2.3,"soilAB":0.9,"soilE13":-1.4,"soilE4":-1.3,"smin":0.5},"C2":{"basic":4.2,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":null,"post":2.2,"soilAB":1.2,"soilE13":-2.0,"soilE4":-1.9,"smin":0.6},"C3":{"basic":3.5,"sevV":-1.1,"modV":-0.6,"plan":-0.9,"pre":null,"post":null,"soilAB":1.2,"soilE13":-1.6,"soilE4":-1.6,"smin":0.5},"PC1":{"basic":3.8,"sevV":-1.3,"modV":-0.8,"plan":-1.2,"pre":null,"post":1.9,"soilAB":1.3,"soilE13":-1.7,"soilE4":null,"smin":0.6},"PC2":{"basic":3.3,"sevV":-1.1,"modV":-0.6,"plan":-0.9,"pre":null,"post":2.6,"soilAB":1.3,"soilE13":-1.6,"soilE4":-1.6,"smin":0.4},"RM1":{"basic":3.7,"sevV":-1.1,"modV":-0.6,"plan":-0.9,"pre":null,"post":2.3,"soilAB":1.4,"soilE13":-1.7,"soilE4":-1.6,"smin":0.6},"RM2":{"basic":3.7,"sevV":-1.1,"modV":-0.6,"plan":-0.9,"pre":null,"post":2.3,"soilAB":1.4,"soilE13":-1.7,"soilE4":-1.7,"smin":0.5},"URM":{"basic":3.2,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":null,"post":null,"soilAB":1.3,"soilE13":-1.5,"soilE4":-1.4,"smin":0.4},"MH":{"basic":4.6,"sevV":null,"modV":null,"plan":null,"pre":null,"post":1.8,"soilAB":0.9,"soilE13":-2.1,"soilE4":null,"smin":2.5}},"Moderate":{"W1":{"basic":5.1,"sevV":-1.4,"modV":-0.9,"plan":-1.4,"pre":-0.3,"post":1.4,"soilAB":0.7,"soilE13":-1.2,"soilE4":-1.8,"smin":1.6},"W1A":{"basic":4.5,"sevV":-1.4,"modV":-0.9,"plan":-1.3,"pre":-0.5,"post":2.0,"soilAB":1.2,"soilE13":-1.3,"soilE4":-1.6,"smin":1.2},"W2":{"basic":3.8,"sevV":-1.4,"modV":-0.9,"plan":-1.2,"pre":-0.6,"post":2.5,"soilAB":1.8,"soilE13":-1.4,"soilE4":-1.3,"smin":0.9},"S1":{"basic":2.7,"sevV":-1.2,"modV":-0.8,"plan":-1.0,"pre":-0.3,"post":1.5,"soilAB":1.1,"soilE13":-0.9,"soilE4":-0.9,"smin":0.6},"S2":{"basic":2.6,"sevV":-1.2,"modV":-0.7,"plan":-0.9,"pre":-0.2,"post":1.5,"soilAB":1.4,"soilE13":-0.9,"soilE4":-0.9,"smin":0.6},"S3":{"basic":3.5,"sevV":-1.4,"modV":-0.9,"plan":-1.2,"pre":-0.2,"post":0.8,"soilAB":0.6,"soilE13":-1.0,"soilE4":null,"smin":0.8},"S4":{"basic":2.5,"sevV":-1.1,"modV":-0.7,"plan":-0.9,"pre":-0.3,"post":2.1,"soilAB":1.5,"soilE13":-0.9,"soilE4":-0.9,"smin":0.6},"S5":{"basic":2.7,"sevV":-1.2,"modV":-0.7,"plan":-0.9,"pre":-0.3,"post":null,"soilAB":1.6,"soilE13":-0.9,"soilE4":-1.0,"smin":0.6},"C1":{"basic":2.1,"sevV":-1.1,"modV":-0.7,"plan":-0.8,"pre":-0.3,"post":2.0,"soilAB":1.1,"soilE13":-0.7,"soilE4":-0.8,"smin":0.3},"C2":{"basic":2.5,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":-0.4,"post":2.3,"soilAB":1.5,"soilE13":-1.0,"soilE4":-1.0,"smin":0.3},"C3":{"basic":2.0,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.3,"post":null,"soilAB":1.3,"soilE13":-0.7,"soilE4":-0.8,"smin":0.3},"PC1":{"basic":2.1,"sevV":-1.1,"modV":-0.7,"plan":-0.9,"pre":-0.2,"post":2.1,"soilAB":1.6,"soilE13":-0.8,"soilE4":null,"smin":0.3},"PC2":{"basic":1.9,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.2,"post":2.5,"soilAB":1.3,"soilE13":-0.7,"soilE4":-0.7,"smin":0.2},"RM1":{"basic":2.1,"sevV":-1.1,"modV":-0.7,"plan":-0.8,"pre":-0.2,"post":2.3,"soilAB":1.4,"soilE13":-0.8,"soilE4":-0.7,"smin":0.3},"RM2":{"basic":2.1,"sevV":-1.1,"modV":-0.7,"plan":-0.8,"pre":-0.2,"post":2.3,"soilAB":1.4,"soilE13":-0.8,"soilE4":-0.8,"smin":0.3},"URM":{"basic":1.7,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.1,"post":null,"soilAB":1.3,"soilE13":-0.6,"soilE4":-0.6,"smin":0.2},"MH":{"basic":2.9,"sevV":null,"modV":null,"plan":null,"pre":-0.5,"post":1.2,"soilAB":1.6,"soilE13":-0.9,"soilE4":null,"smin":1.5}},"Moderately High":{"W1":{"basic":4.1,"sevV":-1.3,"modV":-0.8,"plan":-1.3,"pre":-0.8,"post":1.5,"soilAB":0.3,"soilE13":0.0,"soilE4":-0.5,"smin":1.6},"W1A":{"basic":3.7,"sevV":-1.3,"modV":-0.8,"plan":-1.2,"pre":-0.9,"post":1.9,"soilAB":0.6,"soilE13":-0.1,"soilE4":-0.8,"smin":1.2},"W2":{"basic":3.2,"sevV":-1.3,"modV":-0.8,"plan":-1.1,"pre":-0.9,"post":2.3,"soilAB":0.9,"soilE13":-0.3,"soilE4":-1.2,"smin":0.8},"S1":{"basic":2.3,"sevV":-1.1,"modV":-0.7,"plan":-0.9,"pre":-0.5,"post":1.4,"soilAB":0.6,"soilE13":-0.4,"soilE4":-0.7,"smin":0.5},"S2":{"basic":2.2,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.5,"post":1.4,"soilAB":0.9,"soilE13":-0.5,"soilE4":-0.7,"smin":0.5},"S3":{"basic":2.9,"sevV":-1.2,"modV":-0.8,"plan":-1.0,"pre":-0.7,"post":1.0,"soilAB":0.3,"soilE13":0.0,"soilE4":null,"smin":0.9},"S4":{"basic":2.2,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.6,"post":1.9,"soilAB":0.9,"soilE13":-0.4,"soilE4":-0.7,"smin":0.5},"S5":{"basic":2.0,"sevV":-0.9,"modV":-0.6,"plan":-0.7,"pre":-0.2,"post":null,"soilAB":0.9,"soilE13":-0.5,"soilE4":-0.6,"smin":0.5},"C1":{"basic":1.7,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.4,"post":1.9,"soilAB":0.6,"soilE13":-0.2,"soilE4":-0.6,"smin":0.3},"C2":{"basic":2.1,"sevV":-1.1,"modV":-0.6,"plan":-0.9,"pre":-0.7,"post":2.1,"soilAB":0.8,"soilE13":-0.2,"soilE4":-0.8,"smin":0.3},"C3":{"basic":1.4,"sevV":-0.8,"modV":-0.5,"plan":-0.6,"pre":-0.1,"post":null,"soilAB":0.7,"soilE13":-0.4,"soilE4":-0.4,"smin":0.3},"PC1":{"basic":1.8,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.4,"post":2.1,"soilAB":0.9,"soilE13":-0.5,"soilE4":null,"smin":0.3},"PC2":{"basic":1.5,"sevV":-0.9,"modV":-0.6,"plan":-0.7,"pre":-0.3,"post":2.4,"soilAB":0.7,"soilE13":-0.3,"soilE4":-0.5,"smin":0.2},"RM1":{"basic":1.8,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.5,"post":2.1,"soilAB":0.8,"soilE13":-0.4,"soilE4":-0.6,"smin":0.3},"RM2":{"basic":1.8,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.5,"post":2.1,"soilAB":0.8,"soilE13":-0.4,"soilE4":-0.7,"smin":0.3},"URM":{"basic":1.2,"sevV":-0.8,"modV":-0.5,"plan":-0.5,"pre":-0.1,"post":null,"soilAB":0.6,"soilE13":-0.3,"soilE4":-0.3,"smin":0.2},"MH":{"basic":2.2,"sevV":null,"modV":null,"plan":null,"pre":-0.3,"post":1.2,"soilAB":0.9,"soilE13":-0.5,"soilE4":null,"smin":1.4}},"High":{"W1":{"basic":3.6,"sevV":-1.2,"modV":-0.7,"plan":-1.1,"pre":-1.1,"post":1.6,"soilAB":0.1,"soilE13":0.2,"soilE4":-0.3,"smin":1.1},"W1A":{"basic":3.2,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":-1.0,"post":1.9,"soilAB":0.3,"soilE13":0.2,"soilE4":-0.6,"smin":0.9},"W2":{"basic":2.9,"sevV":-1.2,"modV":-0.7,"plan":-1.0,"pre":-0.9,"post":2.2,"soilAB":0.5,"soilE13":0.1,"soilE4":-0.9,"smin":0.7},"S1":{"basic":2.1,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.6,"post":1.4,"soilAB":0.4,"soilE13":-0.2,"soilE4":-0.6,"smin":0.5},"S2":{"basic":2.0,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.6,"post":1.4,"soilAB":0.6,"soilE13":-0.4,"soilE4":-0.6,"smin":0.5},"S3":{"basic":2.6,"sevV":-1.1,"modV":-0.7,"plan":-0.9,"pre":-0.8,"post":1.1,"soilAB":0.1,"soilE13":0.2,"soilE4":null,"smin":0.6},"S4":{"basic":2.0,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.6,"post":1.9,"soilAB":0.6,"soilE13":-0.1,"soilE4":-0.6,"smin":0.5},"S5":{"basic":1.7,"sevV":-0.8,"modV":-0.5,"plan":-0.6,"pre":-0.2,"post":null,"soilAB":0.5,"soilE13":-0.4,"soilE4":-0.4,"smin":0.5},"C1":{"basic":1.5,"sevV":-0.9,"modV":-0.5,"plan":-0.6,"pre":-0.4,"post":1.9,"soilAB":0.4,"soilE13":0.0,"soilE4":-0.5,"smin":0.3},"C2":{"basic":2.0,"sevV":-1.0,"modV":-0.6,"plan":-0.8,"pre":-0.7,"post":2.1,"soilAB":0.5,"soilE13":0.0,"soilE4":-0.7,"smin":0.3},"C3":{"basic":1.2,"sevV":-0.7,"modV":-0.4,"plan":-0.5,"pre":-0.1,"post":null,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.3,"smin":0.3},"PC1":{"basic":1.6,"sevV":-1.0,"modV":-0.6,"plan":-0.7,"pre":-0.5,"post":2.0,"soilAB":0.6,"soilE13":-0.3,"soilE4":null,"smin":0.2},"PC2":{"basic":1.4,"sevV":-0.9,"modV":-0.5,"plan":-0.6,"pre":-0.3,"post":2.4,"soilAB":0.4,"soilE13":-0.1,"soilE4":-0.4,"smin":0.2},"RM1":{"basic":1.7,"sevV":-0.9,"modV":-0.5,"plan":-0.7,"pre":-0.5,"post":2.1,"soilAB":0.5,"soilE13":-0.1,"soilE4":-0.5,"smin":0.3},"RM2":{"basic":1.7,"sevV":-0.9,"modV":-0.5,"plan":-0.7,"pre":-0.5,"post":2.1,"soilAB":0.5,"soilE13":-0.1,"soilE4":-0.6,"smin":0.3},"URM":{"basic":1.0,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":0.0,"post":null,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.2,"smin":0.2},"MH":{"basic":1.5,"sevV":null,"modV":null,"plan":null,"pre":-0.1,"post":1.2,"soilAB":0.3,"soilE13":-0.4,"soilE4":null,"smin":1.0}},"Very High":{"W1":{"basic":2.1,"sevV":-0.9,"modV":-0.6,"plan":-0.7,"pre":-0.3,"post":1.9,"soilAB":0.5,"soilE13":0.0,"soilE4":-0.4,"smin":0.7},"W1A":{"basic":1.9,"sevV":-0.9,"modV":-0.5,"plan":-0.7,"pre":-0.3,"post":1.9,"soilAB":0.5,"soilE13":-0.2,"soilE4":-0.4,"smin":0.7},"W2":{"basic":1.8,"sevV":-0.9,"modV":-0.5,"plan":-0.6,"pre":-0.3,"post":2.0,"soilAB":0.4,"soilE13":-0.4,"soilE4":-0.4,"smin":0.7},"S1":{"basic":1.5,"sevV":-0.8,"modV":-0.4,"plan":-0.5,"pre":-0.3,"post":1.0,"soilAB":0.3,"soilE13":-0.3,"soilE4":-0.3,"smin":0.5},"S2":{"basic":1.4,"sevV":-0.7,"modV":-0.4,"plan":-0.5,"pre":-0.2,"post":1.1,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.3,"smin":0.5},"S3":{"basic":1.6,"sevV":-0.8,"modV":-0.5,"plan":-0.6,"pre":-0.3,"post":1.1,"soilAB":0.4,"soilE13":-0.2,"soilE4":null,"smin":0.5},"S4":{"basic":1.4,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":-0.2,"post":1.5,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.3,"smin":0.5},"S5":{"basic":1.2,"sevV":-0.7,"modV":-0.3,"plan":-0.4,"pre":-0.1,"post":null,"soilAB":0.2,"soilE13":-0.1,"soilE4":-0.1,"smin":0.5},"C1":{"basic":1.0,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":-0.1,"post":1.4,"soilAB":0.2,"soilE13":-0.1,"soilE4":-0.1,"smin":0.3},"C2":{"basic":1.2,"sevV":-0.8,"modV":-0.4,"plan":-0.5,"pre":-0.2,"post":1.7,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.3,"smin":0.3},"C3":{"basic":0.9,"sevV":-0.6,"modV":-0.3,"plan":-0.3,"pre":0.0,"post":null,"soilAB":0.1,"soilE13":0.0,"soilE4":-0.1,"smin":0.3},"PC1":{"basic":1.1,"sevV":-0.7,"modV":-0.4,"plan":-0.5,"pre":-0.2,"post":1.5,"soilAB":0.3,"soilE13":-0.2,"soilE4":null,"smin":0.2},"PC2":{"basic":1.0,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":-0.1,"post":1.7,"soilAB":0.2,"soilE13":-0.1,"soilE4":-0.1,"smin":0.2},"RM1":{"basic":1.1,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":-0.2,"post":1.6,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.2,"smin":0.3},"RM2":{"basic":1.1,"sevV":-0.7,"modV":-0.4,"plan":-0.4,"pre":-0.2,"post":1.6,"soilAB":0.3,"soilE13":-0.2,"soilE4":-0.2,"smin":0.3},"URM":{"basic":0.9,"sevV":-0.6,"modV":-0.3,"plan":-0.3,"pre":0.0,"post":null,"soilAB":0.1,"soilE13":0.0,"soilE4":0.0,"smin":0.2},"MH":{"basic":1.1,"sevV":null,"modV":null,"plan":null,"pre":0.0,"post":0.5,"soilAB":0.1,"soilE13":-0.1,"soilE4":null,"smin":1.0}}};
@@ -1156,7 +1165,7 @@ const FACILITY_KEYS = Object.keys(FACILITY_TYPES);
 
 // ── Score helpers ────────────────────────────────────────────────
 // Matches Arcade logic: ≤2.0 = red, >2.0 = green, Nonstructural = amber
-// Score colors removed (red/green/amber) — every score uses one neutral style.
+// Score colors removed (red/green/amber) - every score uses one neutral style.
 const SCORE_NEUTRAL = '#3a4150';
 function scoreColor(score, surveyType) { return SCORE_NEUTRAL; }
 function scoreTextColor(score, surveyType) { return '#ffffff'; }
@@ -1166,10 +1175,10 @@ function scoreDisplay(score, surveyType) {
   return score.toFixed(1);
 }
 function scoreLabel(score, surveyType) {
-  if (surveyType === 'Nonstructural Screening') return { short: 'N/A', desc: 'Nonstructural Screening — structural score not applicable' };
+  if (surveyType === 'Nonstructural Screening') return { short: 'N/A', desc: 'Nonstructural Screening - structural score not applicable' };
   if (score === null || score === undefined || isNaN(score)) return { short: '-', desc: 'No score recorded' };
-  if (score > 2.0) return { short: score.toFixed(1), desc: 'Score above cut-off — detailed structural evaluation not indicated' };
-  return { short: score.toFixed(1), desc: 'Score at or below cut-off — detailed structural evaluation recommended' };
+  if (score > 2.0) return { short: score.toFixed(1), desc: 'Score above cut-off - detailed structural evaluation not indicated' };
+  return { short: score.toFixed(1), desc: 'Score at or below cut-off - detailed structural evaluation recommended' };
 }
 const CONFIG_SCORE = {
   green:  { color: '#228B22', bg: '#e8f5e9' },
@@ -1243,7 +1252,7 @@ function startOAuthFlow() {
     const top  = Math.max(0, (screen.height - h) / 2);
     const popup = window.open('about:blank', 'cusec_rvs_oauth',
       `width=${w},height=${h},left=${left},top=${top},toolbar=0,menubar=0,scrollbars=1`);
-    if (!popup) { setLoginError('Popup was blocked — allow popups for this site then try again.'); return; }
+    if (!popup) { setLoginError('Popup was blocked - allow popups for this site then try again.'); return; }
     try { popup.document.write('<!doctype html><title>Signing in…</title><body style="font-family:sans-serif;padding:40px;text-align:center">Signing in to ArcGIS Online…</body>'); } catch {}
     _buildAuthUrl().then(url => {
       try { popup.location.href = url; } catch { popup.location.replace(url); }
@@ -1317,7 +1326,7 @@ async function handleOAuthCallback() {
 
 async function exchangeCodeForToken(code) {
   const verifier = sessionStorage.getItem('oauth_verifier');
-  if (!verifier) throw new Error('PKCE verifier missing — please try signing in again.');
+  if (!verifier) throw new Error('PKCE verifier missing - please try signing in again.');
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: CONFIG.clientId,
@@ -1485,11 +1494,11 @@ async function resolveServiceUrl() {
 // migrated records is the date the migration script ran, not the date
 // the building was screened.
 // Candidate screening-date fields, in priority order. Each record uses the
-// FIRST one it actually has a value in — migrated Simple Form records and
+// FIRST one it actually has a value in - migrated Simple Form records and
 // new v3 submissions don't necessarily fill the same field, so picking one
 // field for the whole layer left some records with no date at all.
 let LAYER_DATES = { screenFields: [FIELDS.date], creationField: 'CreationDate', editField: 'EditDate' };
-const SCREEN_DATE_FIELDS = [FIELDS.date]; // SurveyDate — the populated Date of Screening
+const SCREEN_DATE_FIELDS = [FIELDS.date]; // SurveyDate - the populated Date of Screening
 try {
   const c = JSON.parse(localStorage.getItem('rvs_datefields_v3') || '{}');
   if (c && Array.isArray(c.screenFields)) LAYER_DATES = Object.assign(c, { screenFields: SCREEN_DATE_FIELDS });
@@ -1635,7 +1644,7 @@ const sortMode = 'recent'; // list is always newest SurveyDate first
 let refreshTimer = null;
 
 // ════════════════════════════════════════════════════════════════
-//  FILTERS — multi-select dropdown
+//  FILTERS - multi-select dropdown
 // ════════════════════════════════════════════════════════════════
 function buildFilterDropdown() {
   const dd = document.getElementById('filter-dropdown');
@@ -1693,7 +1702,7 @@ function toggleScoreFilter() {
   const i = modes.indexOf(activeScoreFilter);
   activeScoreFilter = modes[(i + 1) % modes.length];
   const btn = document.getElementById('score-filter-btn');
-  const labels = { all: 'Score', green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
+  const labels = { all: 'Score', green: 'Score ≥ 2.0', orange: 'Score 1.0-1.99', red: 'Score < 1.0' };
   btn.textContent = '';
   btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ${labels[activeScoreFilter]}`;
   btn.classList.toggle('has-filter', activeScoreFilter !== 'all');
@@ -1796,7 +1805,7 @@ function updateActiveFilterBar() {
   Object.entries(MULTI_FILTERS).forEach(([fk, f]) => f.active.forEach(k => chips.push({ kind: 'multi', filter: fk, key: k, label: `${f.label}: ${f.name(k)}` })));
   activeFilters.forEach(f => chips.push({ kind: 'facility', key: f, label: f }));
   if (activeScoreFilter !== 'all') {
-    const sl = { green: 'Score ≥ 2.0', orange: 'Score 1.0–1.99', red: 'Score < 1.0' };
+    const sl = { green: 'Score ≥ 2.0', orange: 'Score 1.0-1.99', red: 'Score < 1.0' };
     chips.push({ kind: 'score', label: sl[activeScoreFilter] });
   }
   bar.innerHTML = chips.map(c =>
@@ -1825,7 +1834,7 @@ function toggleSort() {
   const modes = ['recent', 'distance', 'name', 'score'];
   const i = modes.indexOf(sortMode);
   sortMode = modes[(i + 1) % modes.length];
-  const labels = { recent: '🕒 Most recent', distance: '📍 Nearest first', name: '🔤 A–Z', score: '📊 Score (low→high)' };
+  const labels = { recent: '🕒 Most recent', distance: '📍 Nearest first', name: '🔤 A-Z', score: '📊 Score (low→high)' };
   document.getElementById('sort-label').textContent = labels[sortMode];
   renderList();
 }
@@ -1870,12 +1879,12 @@ function renderList() {
   if (typeof renderMarkers === 'function' && markerCluster) renderMarkers();
 
   // Stats bar
-  // Stats bar — counts follow the current filters (including Phase)
+  // Stats bar - counts follow the current filters (including Phase)
   if (assets.length) {
     const total = filtered.length;
     const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
     const phases = [...activePhases];
-    const totalLabel = phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings — ${phaseName(phases[0])}`)
+    const totalLabel = phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
                      : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
@@ -2262,7 +2271,7 @@ function buildDetailHTML(a) {
     ? `<div class="sheet-dist">📍 ${formatDist(a.distance)} away</div>` : '';
   const addrFull = [a.address, a.city, a.state, a.zip].filter(Boolean).join(', ');
 
-  // Score bar (score range roughly 0.5–4.0, show as % of 4)
+  // Score bar (score range roughly 0.5-4.0, show as % of 4)
   const barPct = sc !== null ? Math.min(100, Math.max(0, (sc / 4) * 100)).toFixed(1) : 0;
 
   function flagChip(val, yesLabel, noLabel) {
@@ -2367,7 +2376,7 @@ function buildDetailHTML(a) {
   // ── Facility Overview tab (per mockup) ──
   const dash = v => (v || v === 0) ? v : '-'; // empty-value placeholder
   const soilLbl = fieldValue('SoilType');
-  const soilM = String(soilLbl).match(/^([A-F])\s*[:\-–]\s*(.+)$/i);
+  const soilM = String(soilLbl).match(/^([A-F])\s*[:\--]\s*(.+)$/i);
   const femaLbl = fieldValue('FEMABuildingType');
   const yb = fieldValue('YearBuilt');
   const addlNote = isYes(attrs.Additions) ? 'with additions'
@@ -2443,7 +2452,7 @@ function buildDetailHTML(a) {
   // comments). Right: P-154 photos. Same proportions as Facility Overview.
   const num = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
   const fmtScore = v => v === null ? '' : v.toFixed(1);
-  const fmtMod = v => v === null ? '' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  const fmtMod = v => v === null ? '' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(v).toFixed(1);
   const isNS = a.surveyType === 'Nonstructural Screening';
   const femaCodeTxt = femaCode ? femaCode[0] : (fieldValue('FEMABuildingType') || '');
   const seisTxt = fieldValue('Seismicity');
@@ -2505,7 +2514,7 @@ function buildDetailHTML(a) {
   const region = p154Region(seisTxt);
   const tcode = femaCodeTxt ? String(femaCodeTxt).toUpperCase() : '';
   const T = (region && P154_SCORES[region] && P154_SCORES[region][tcode]) || null;
-  const fmtT = v => v === null || v === undefined ? 'NA' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  const fmtT = v => v === null || v === undefined ? 'NA' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(v).toFixed(1);
   // Which modifiers apply
   const vertYes = isYes(attrs.VertIrregularities) || vIrr.items.length > 0 || vl1 !== null && vl1 !== 0;
   let sevOn = vSev, modOn = vMod;
@@ -2519,16 +2528,16 @@ function buildDetailHTML(a) {
   const modRow = (label, key, on) => {
     const v = T ? T[key] : null;
     const cls = !T ? 'p2-na' : (on && v !== null ? 'p2-on' : 'p2-off');
-    const txt = !T ? '-' : key === 'smin' ? (v === null ? 'NA' : v.toFixed(1)) : fmtT(v); // minimum score is a floor, not a +/− modifier
+    const txt = !T ? '-' : key === 'smin' ? (v === null ? 'NA' : v.toFixed(1)) : fmtT(v); // minimum score is a floor, not a +/- modifier
     const tip = T && v === null ? ` title="FEMA P-154 has no ${label.replace(/<[^>]+>/g, '')} modifier for ${escHtml(tcode)} buildings"` : '';
     return `<div class="p2-row ${cls}"><div class="p2-k">${label}</div><div class="p2-v"${tip}>${escHtml(txt)}</div></div>`;
   };
-  // One combined soil row: Soil Type (A) / (B) / (E, 1–3 stories) / (E, > 3 stories)
+  // One combined soil row: Soil Type (A) / (B) / (E, 1-3 stories) / (E, > 3 stories)
   // with its modifier; any other soil type shows N/A in the score column.
   const soilRow = (() => {
     const key = soilABOn ? 'soilAB' : soilE13On ? 'soilE13' : soilE4On ? 'soilE4' : null;
     const lbl = !soilLetter ? 'Soil Type'
-      : soilLetter === 'E' ? `Soil Type (E, ${soilE4On ? '&gt; 3' : '1–3'} stories)` : `Soil Type (${soilLetter})`;
+      : soilLetter === 'E' ? `Soil Type (E, ${soilE4On ? '&gt; 3' : '1-3'} stories)` : `Soil Type (${soilLetter})`;
     if (!key) return `<div class="p2-row p2-off"><div class="p2-k">${lbl}</div><div class="p2-v">N/A</div></div>`;
     return modRow(lbl, key, true);
   })();
@@ -2653,7 +2662,7 @@ function photoTopic(info, attrs) {
   const sev = attrs.VertIrregularitiesType ? choiceLabel('VertIrregularitiesType', attrs.VertIrregularitiesType).replace(/^./, c => c.toUpperCase()) : '';
   const geo = ['Liquefaction', 'Landslide', 'SurfaceRupture'].filter(f => isYes(attrs[f])).map(f => f === 'SurfaceRupture' ? 'Surface rupture' : f);
   const T = (tab, title, desc) => ({ tab, title, desc });
-  // Irregularity photos by number: Photo 10–11 = vertical, Photo 12–13 = plan
+  // Irregularity photos by number: Photo 10-11 = vertical, Photo 12-13 = plan
   const photoNo = (() => { const m = `${info.keywords || ''} ${info.name || ''}`.match(/\bphoto[\s_-]*(\d{1,3})(?!\d)/i); return m ? Number(m[1]) : null; })();
   if (photoNo === 10 || photoNo === 11)
     return T('p154', 'Vertical Irregularity', [sev, lbl('VertIrregularitiesPresent')].filter(Boolean).join(': ') || 'Shows the vertical irregularity noted by the screener.');
@@ -2716,8 +2725,8 @@ async function loadAttachments(objectId) {
   // Photos tab: everything, Building Photo + Sketch first
   area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
   // P-154 tab photos, in this order (skipping any that don't exist):
-  // main building photo, exterior 1–2, structural 1–2, irregularity
-  // (Photo 10–11 vertical, 12–13 plan), structural frame 1–2, drawings 1–2.
+  // main building photo, exterior 1-2, structural 1-2, irregularity
+  // (Photo 10-11 vertical, 12-13 plan), structural frame 1-2, drawings 1-2.
   const p154El = document.getElementById('p154-photos');
   if (p154El) {
     const rec = (typeof assets !== 'undefined' ? assets : []).find(x => String(x.id) === String(objectId));
@@ -2823,6 +2832,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(
 
 // ── Utility ──────────────────────────────────────────────────
 function escHtml(s) {
+  // Any dash-like character in record data (hyphen variants, en/em dash,
+  // minus sign, small/full-width hyphens) displays as a plain "-"
+  s = String(s ?? '').replace(/[\u2010-\u2015\u2043\u2212\ufe58\ufe63\uff0d]/g, '-');
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
@@ -2861,7 +2873,7 @@ async function init() {
     if (Date.now() < stored.expiresAt) {
       bootApp(); return;
     }
-    // Token expired — try refresh
+    // Token expired - try refresh
     if (stored.refreshToken && (!stored.refreshExpiresAt || Date.now() < stored.refreshExpiresAt)) {
       try {
         const fresh = await refreshAccessToken();
