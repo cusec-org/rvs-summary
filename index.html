@@ -387,6 +387,28 @@
   .p2-none { color: var(--text3); font-style: italic; font-size: 12px; }
   .p2-sub { margin: 12px 0 2px; }
   .p2-comments { margin-top: 16px; }
+  /* Nonstructural Review tab */
+  .ns-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ns-stats .ov-stat-label { white-space: normal; } /* let long box titles wrap instead of cutting off */
+  @container (max-width: 980px) { .ns-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .ns-retro { display: inline-block; background: #fbe3b9; color: #6b4600; font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 2px 9px; letter-spacing: 0.2px; }
+  .ns-sub { font-weight: 400; color: #4a5363; font-size: 12px; }
+  .ns-obs { margin-top: 10px; padding: 9px 11px; background: #f7f8fa; border: 1px solid #e6e9ef; border-left: 3px solid var(--cusec-gold); border-radius: 6px; font-size: 12.5px; }
+  .ns-obs-k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; margin-bottom: 3px; }
+  .ns-obs-v { color: #13233d; line-height: 1.45; white-space: pre-line; }
+  #ns-photos { display: flex; flex-direction: column; gap: 10px; }
+  #ns-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  .ns-brace { margin-top: 16px; }
+  .ns-br-table { border: 1px solid #dfe3ea; border-radius: 8px; overflow: hidden; font-size: 12.5px; }
+  .ns-br-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(5, minmax(52px, 72px)); border-top: 1px solid #e6e9ef; align-items: center; }
+  .ns-br-row:first-child { border-top: none; }
+  .ns-br-row > div { padding: 8px 10px; }
+  .ns-br-row > .ns-br-c { text-align: center; font-weight: 800; color: #13233d; border-left: 1px solid #eef1f5; }
+  .ns-br-head { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
+  .ns-br-head > .ns-br-c { font-weight: 700; color: #3a4453; }
+  .ns-br-k { color: #13233d; }
+  .ns-br-row.ns-gap .ns-br-k::after { content: 'Unbraced'; margin-left: 8px; font-size: 10px; font-weight: 800; color: #6b4600; background: #fbe3b9; border-radius: 999px; padding: 1px 7px; }
+  @container (max-width: 560px) { .ns-br-row { grid-template-columns: minmax(0, 1fr) repeat(5, 40px); } .ns-br-row > div { padding: 7px 5px; } .ns-br-head { font-size: 9px; } }
   .p2-cm { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
   .p2-cm:last-child { border-bottom: none; }
   .p2-cm-k { color: #4a5363; font-weight: 700; }
@@ -815,7 +837,7 @@ const CONFIG = {
   // The FeatureServer URL is looked up from this item at sign-in, so a
   // republish of the service doesn't break the app. Previous service was
   // CUSEC_RVS_All/FeatureServer/0 (Simple Form schema).
-  targetItemId: '70d1f24a8ae34897b3769f587851a756',
+  targetItemId: '307585a0e7ed4c59aa94cb3c08c9ccfb',
   // Header report links. Leave blank to have the link open the matching tab.
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
@@ -2594,11 +2616,88 @@ function buildDetailHTML(a) {
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
-  const nsHazards = groupFields('Hazards').filter(f => !GEO.includes(f) && f !== 'NonstructuralSeismicPerformance');
-  const nonstructHTML = [
-    card(fieldSection('Nonstructural Review', ['NonstructuralReview', 'NonstructuralSeismicPerformance', 'DetailedEvalRecommended'])),
-    card(fieldSection('Nonstructural Hazards', nsHazards)),
-  ].join('') || empty('No nonstructural review recorded for this building.');
+  // ── Nonstructural Review tab (mockup; modeled on the individual building
+  // Nonstructural Hazards Report and the county generator / gas shutoff roll-ups) ──
+  const findVal = (...res) => { for (const re of res) { const k = Object.keys(attrs).find(n => re.test(n)); if (k) return attrs[k]; } return undefined; };
+  const ynTxt = v => (v === undefined || v === null || String(v).trim() === '') ? '-' : isYes(v) ? 'Yes' : /^n(o)?$/i.test(String(v).trim()) ? 'No' : choiceLabel('', v);
+  const retro = '<span class="ns-retro">Retrofit recommended</span>';
+  // Generator
+  const genHas = findVal(/^onsite_?generator$/i, /^emergency_?generator$/i, /^generator$/i);
+  const genAnch = findVal(/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i);
+  const genBig = !isYes(genHas) ? (genHas ? 'None' : '-') : isYes(genAnch) ? 'Anchored' : (genAnch ? 'Not anchored' : 'Present');
+  const genSub = isYes(genHas) && genAnch && !isYes(genAnch) ? retro : (isYes(genHas) ? '<span>Standby power on site</span>' : '');
+  // Natural gas / automatic shutoff valve
+  const gasHas = attrs.NaturalGas, gasValve = attrs.GasShutoff, gasFlex = attrs.FlexibleGasLines;
+  const gasBig = !isYes(gasHas) ? (gasHas ? 'No gas service' : '-') : isYes(gasValve) ? 'Auto shutoff' : (gasValve ? 'No auto shutoff' : 'Gas service');
+  const gasSub = isYes(gasHas) && gasValve && !isYes(gasValve) ? retro : (isYes(gasHas) && gasFlex !== undefined ? `<span>Flexible gas lines: ${escHtml(ynTxt(gasFlex))}</span>` : '');
+  const htmlCard = (label, big, subHtml) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(big)}</div>${subHtml ? `<div class="ov-stat-sub">${subHtml}</div>` : ''}</div>`;
+  const nsBoxes = `<div class="ov-stats ns-stats">
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Extent of Review</div>
+        <div class="p2-dse"><span class="p2-dse-k">Exterior:</span> ${escHtml(fieldValue('Exterior') || '-')}</div>
+        <div class="p2-dse"><span class="p2-dse-k">Interior:</span> ${escHtml(fieldValue('Interior') || '-')}</div></div>
+      ${htmlCard('Emergency Generator', genBig, genSub)}
+      ${htmlCard('Natural Gas Service', gasBig, gasSub)}
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
+        <div class="p2-dse"><span class="p2-dse-k">Nonstructural:</span> ${escHtml(dseNS)}</div></div>
+    </div>`;
+  // Exterior / interior review cards (same rows as the building report)
+  const efhC = multiCodes(attrs.ExtFallingHazards);
+  const efhKnown = efhC.size > 0 || attrs.ExtFallingHazards !== undefined || !!attrs.Exterior;
+  const efhRow = (lbl, code) => nsRow(lbl, efhKnown ? (efhC.has(code) ? 'Yes' : 'No') : '-');
+  const nsRow = (k, v, extra) => `<div class="ov-row"><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(v)}${extra || ''}</div></div>`;
+  const obs = (txt) => txt ? `<div class="ns-obs"><div class="ns-obs-k">Other observations</div><div class="ns-obs-v">${escHtml(String(txt).trim())}</div></div>` : '';
+  const extObs = findVal(/^ext.*(obs|comment|note)/i, /^exterior_?(obs|comment|note)/i);
+  const intObs = findVal(/^int.*(obs|comment|note)/i, /^interior_?(obs|comment|note)/i);
+  const bracingObs = findVal(/^(bracing|restraint).*(obs|comment|note)/i) ?? attrs.OtherNonstructural;
+  const extCard = `<div class="ov-card p2-card"><div class="ov-card-title">Exterior Nonstructural Review</div>
+      ${efhRow('Unbraced chimneys', 'unbraced_chimneys')}
+      ${efhRow('Parapets', 'parapets')}
+      ${efhRow('Heavy cladding / veneer', 'heavy_cladding')}
+      ${efhRow('Appendages', 'appendages')}
+      ${obs(extObs)}
+    </div>`;
+  const intCard = `<div class="ov-card p2-card"><div class="ov-card-title">Interior Nonstructural Review</div>
+      ${nsRow('Egress routes clear', ynTxt(attrs.EgressRoutes))}
+      ${nsRow('Flexible gas lines observed', ynTxt(gasFlex))}
+      ${nsRow('Gas-fired equipment', ynTxt(attrs.GasFiredEquipment))}
+      ${obs(intObs)}
+    </div>`;
+  // Bracing / restraint chart (page 2 of the building report)
+  const BRACE = [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents'],
+    ['WaterHeaters', 'Water Heaters'], ['FireSuppression', 'Fire Suppression'], ['DropCeilings', 'Drop Ceilings'], ['LayInLightFixtures', 'Lay-In Light Fixtures'],
+    ['BoilersChillersHVACsystems', 'Boilers, Chillers, & HVAC'], ['HeavyEquipment', 'Heavy Equipment'], ['OtherMEPEquipment', 'Other MEP Equipment'],
+    ['FuelorPropaneTanks', 'Fuel/Propane/Oxygen Tanks']];
+  const braceCol = v => {
+    if (v === undefined || v === null || String(v).trim() === '') return null;
+    const t = (String(v) + ' ' + choiceLabel('', v)).toLowerCase().replace(/[^a-z/]+/g, '');
+    if (/unknown|dnk|donotknow|dontknow/.test(t)) return 'unknown';
+    if (/^n\/?a|notapplicable/.test(t)) return 'na';
+    if (/^none|^no(?!t)/.test(t)) return 'none';
+    if (/^some|partial/.test(t)) return 'some';
+    if (/^all|^full|^yes/.test(t)) return 'all';
+    return null;
+  };
+  const COLS = [['none', 'None'], ['some', 'Some'], ['all', 'All'], ['na', 'N/A'], ['unknown', 'Unknown']];
+  const braceRows = BRACE.map(([f, lbl]) => { const c = braceCol(attrs[f]); return `<div class="ns-br-row${c === 'none' ? ' ns-gap' : c === 'some' ? ' ns-part' : ''}"><div class="ns-br-k">${escHtml(lbl)}</div>${COLS.map(([k]) => `<div class="ns-br-c">${c === k ? 'X' : ''}</div>`).join('')}</div>`; }).join('');
+  const braceCard = `<div class="ov-card p2-card ns-brace"><div class="ov-card-title">Is Bracing / Restraint Present For:</div>
+      <div class="ns-br-table" role="table">
+        <div class="ns-br-row ns-br-head" role="row"><div class="ns-br-k">Component</div>${COLS.map(([, l]) => `<div class="ns-br-c">${l}</div>`).join('')}</div>
+        ${braceRows}
+      </div>
+      ${obs(bracingObs)}
+    </div>`;
+  const nonstructHTML = `
+    <div class="ov-grid">
+      <div class="ov-main">
+        ${nsBoxes}
+        <div class="ov-cards">${extCard}${intCard}</div>
+        ${braceCard}
+      </div>
+      <div class="ov-photos">
+        <div id="ns-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
+        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+      </div>
+    </div>`;
   const notesHTML = card(fieldSection('Notes & Comments', groupFields('Comments'))) || empty('No notes recorded for this building.');
 
   const reportLink = (key, label, tab) => {
@@ -2641,7 +2740,7 @@ function buildDetailHTML(a) {
     <div class="detail-panels">
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${overviewHTML}</div>
       <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${p154HTML}</div>
-      <div class="dtab-panel tab-stack" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
+      <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${nonstructHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
         <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
           <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
@@ -2683,6 +2782,26 @@ function photoTopic(info, attrs) {
   return null;
 }
 
+// Photo column used on the P-154 and Nonstructural tabs: first 3 photos,
+// the rest behind the round down arrow.
+function photoFig([i, title]) {
+  return `
+      <figure class="rp-item">
+        <div class="attachment-tile" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === i.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <img src="${escHtml(i.url)}" alt="${escHtml(title)}" onerror="this.remove()">
+          <div class="attachment-tag">${escHtml(title)}</div>
+        </div>
+      </figure>`;
+}
+function photoColumn(groups, emptyMsg) {
+  if (!groups.length) return `<div class="ov-nophoto">${escHtml(emptyMsg)}</div>`;
+  const SHOW = 3, extra = groups.slice(SHOW), n = extra.length;
+  return groups.slice(0, SHOW).map(photoFig).join('') + (n ? `
+        <div class="rp-more" hidden>${extra.map(photoFig).join('')}</div>
+        <button class="rp-expand" aria-expanded="false" onclick="toggleRelatedPhotos(this)" aria-label="Show ${n} more photo${n > 1 ? 's' : ''}" title="Show ${n} more photo${n > 1 ? 's' : ''}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>` : '');
+}
 function toggleRelatedPhotos(btn) {
   const more = btn.previousElementSibling, open = more.hidden;
   more.hidden = !open;
@@ -2743,22 +2862,20 @@ async function loadAttachments(objectId) {
     take(i => { const t = photoTopic(i, ra); return t && /Irregularity/.test(t.title); }, 4).forEach(i => { const t = photoTopic(i, ra); groups.push([i, t.title, t.desc]); });
     take(i => /frame/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Structural Frame Photo ${n + 1}`, 'Structural frame observed.']));
     take(i => /drawing/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Building Drawings ${n + 1}`, 'Photo of building drawings reviewed.']));
-    const fig = ([i, title, desc]) => `
-      <figure class="rp-item">
-        <div class="attachment-tile" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === i.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <img src="${escHtml(i.url)}" alt="${escHtml(title)}: ${escHtml(desc)}" onerror="this.remove()">
-          <div class="attachment-tag">${escHtml(title)}</div>
-        </div>
-      </figure>`;
     // First 3 photos show; the rest expand with the down-arrow button
-    const SHOW = 3, extra = groups.slice(SHOW);
-    p154El.innerHTML = !groups.length ? `<div class="ov-nophoto">No P-154 photos</div>`
-      : groups.slice(0, SHOW).map(fig).join('') + (extra.length ? `
-        <div class="rp-more" hidden>${extra.map(fig).join('')}</div>
-        <button class="rp-expand" aria-expanded="false" onclick="toggleRelatedPhotos(this)"
-          aria-label="Show ${extra.length} more photo${extra.length > 1 ? 's' : ''}" title="Show ${extra.length} more photo${extra.length > 1 ? 's' : ''}">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>` : '');
+    p154El.innerHTML = photoColumn(groups, 'No P-154 photos');
+  }
+  // Nonstructural tab photos: generator, gas meter, then nonstructural photos
+  const nsEl = document.getElementById('ns-photos');
+  if (nsEl) {
+    const imgs = result.infos.filter(i => i.isImage);
+    const key = i => `${i.keywords || ''} ${i.name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const used = new Set(), groups = [];
+    const take = (pred, max) => imgs.filter(i => !used.has(i) && pred(i)).slice(0, max).map(i => (used.add(i), i));
+    take(i => /generator/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Generator ${n + 1}` : 'Generator', '']));
+    take(i => /gasmeter|meter|gasshutoff|shutoff/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Gas Meter ${n + 1}` : 'Gas Meter', '']));
+    take(i => /nonstruct|nsphoto|bracing|restraint|interior|mep|hvac|boiler|waterheater|ceiling|tank/.test(key(i)), 8).forEach((i, n) => groups.push([i, `Nonstructural Photo ${n + 1}`, '']));
+    nsEl.innerHTML = photoColumn(groups, 'No nonstructural photos');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
   if (ov) {
@@ -2891,4 +3008,4 @@ init();
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
