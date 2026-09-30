@@ -1178,25 +1178,41 @@ async function loadAsce722(a, force) {
   const st = ASCE722_STATE[key];
   if (!force && st && (st.status === 'ok' || st.status === 'loading')) return;
   ASCE722_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
-  const url = `https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?latitude=${a.lat}&longitude=${a.lng}&riskCategory=II&siteClass=B&title=ASCE7-22`;
-  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
-  try {
-    const res = await fetch(url, { signal: ctl.signal });
-    if (!res.ok) throw new Error(`USGS returned HTTP ${res.status}`);
-    const j = await res.json();
-    if (j.error) throw new Error(typeof j.error === 'string' ? j.error : JSON.stringify(j.error));
-    const d = (j.response && j.response.data) || {};
-    const num = v => (v === null || v === undefined || !isFinite(Number(v))) ? null : Number(v);
-    if (num(d.sms) === null && num(d.sm1) === null) throw new Error('No Ss/S1 returned from USGS');
-    ASCE722_STATE[key] = { status: 'ok', ss: num(d.sms), s1: num(d.sm1) };
+  // USGS moved these services to /ws/building-codes/; the old /ws/designmaps/
+  // address redirects, and browsers block that cross-site redirect
+  // ("NetworkError"). Try the current address first, then the old one.
+  const q = `latitude=${a.lat.toFixed(5)}&longitude=${a.lng.toFixed(5)}&riskCategory=II&siteClass=B&title=RVS`;
+  const URLS = [`https://earthquake.usgs.gov/ws/building-codes/asce7-22?${q}`, `https://earthquake.usgs.gov/ws/designmaps/asce7-22.json?${q}`];
+  const num = v => (v === null || v === undefined || v === '' || !isFinite(Number(v))) ? null : Number(v);
+  // sms / sm1 can sit at different depths depending on the service version
+  const deep = (o, k, depth = 0) => { if (!o || typeof o !== 'object' || depth > 6) return undefined;
+    if (Object.prototype.hasOwnProperty.call(o, k) && typeof o[k] !== 'object') return o[k];
+    for (const v of Object.values(o)) { const r = deep(v, k, depth + 1); if (r !== undefined) return r; } return undefined; };
+  let lastErr = null;
+  for (const url of URLS) {
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
     try {
-      const keep = Object.fromEntries(Object.entries(ASCE722_STATE).filter(([, v]) => v.status === 'ok'));
-      localStorage.setItem(ASCE722_CACHE_KEY, JSON.stringify(keep));
-    } catch {}
-  } catch (e) {
-    console.warn('[RVS] ASCE 7-22 lookup failed', e);
-    ASCE722_STATE[key] = { status: 'error', error: e.name === 'AbortError' ? 'The USGS service took too long to respond.' : (e.message || String(e)) };
-  } finally { clearTimeout(timer); }
+      const res = await fetch(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`USGS returned HTTP ${res.status}`);
+      const j = await res.json();
+      if (j.error || j.status === 'error') throw new Error(typeof j.error === 'string' ? j.error : (j.message || 'USGS returned an error'));
+      const root = (j.response && (j.response.data || j.response)) || j;
+      const ss = num(deep(root, 'sms')), s1 = num(deep(root, 'sm1'));
+      if (ss === null && s1 === null) throw new Error('No Ss/S1 returned from USGS');
+      ASCE722_STATE[key] = { status: 'ok', ss, s1 };
+      try {
+        const keep = Object.fromEntries(Object.entries(ASCE722_STATE).filter(([, v]) => v.status === 'ok'));
+        localStorage.setItem(ASCE722_CACHE_KEY, JSON.stringify(keep));
+      } catch {}
+      lastErr = null; break;
+    } catch (e) {
+      console.warn('[RVS] ASCE 7-22 lookup failed for', url, e);
+      lastErr = e.name === 'AbortError' ? new Error('The USGS service took too long to respond')
+              : e instanceof TypeError ? new Error('the browser could not reach the USGS service - it may be blocking requests from this site')
+              : e;
+    } finally { clearTimeout(timer); }
+  }
+  if (lastErr) ASCE722_STATE[key] = { status: 'error', error: lastErr.message || String(lastErr) };
   refreshCalcPanel(a);
 }
 // Re-draw just the Calculations tab for the open record
