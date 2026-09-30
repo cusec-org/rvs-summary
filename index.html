@@ -884,6 +884,10 @@ const CONFIG = {
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
   reportUrls: { p154: '', nonstructural: '' },
+  // AWS Lambda that does the USGS seismic lookups (see rvs-seismic-lambda/).
+  // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
+  // Calculations tab. Leave blank to use the values saved on each record.
+  seismicProxyUrl: 'https://47nvhyuseuymzpynornkktrgre0kwwjn.lambda-url.us-east-2.on.aws/',
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
   // switched on. styleField colors polygons low→high; labelField/rangeField
@@ -1210,7 +1214,20 @@ async function loadCalcLive(a, force) {
   if (!force && st && (st.status === 'loading' || allOk)) return;
   CALC_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
   let out;
-  try { out = await Promise.race([runFunctionsJs(`${a.lat} ${a.lng}`), new Promise((_, rej) => setTimeout(() => rej(new Error('The USGS service took too long to respond')), 60000))]); }
+  if (CONFIG.seismicProxyUrl) {
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 60000);
+      const res = await fetch(`${CONFIG.seismicProxyUrl.replace(/[?&]+$/, '')}${CONFIG.seismicProxyUrl.includes('?') ? '&' : '?'}lat=${a.lat.toFixed(6)}&lng=${a.lng.toFixed(6)}`, { signal: ctl.signal });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`lookup service returned HTTP ${res.status}`);
+      const j = await res.json(), E = j.errors || {};
+      const cell = (grp, k, errKey) => (j[grp] && j[grp][k] !== null && j[grp][k] !== undefined) ? { val: Number(j[grp][k]) } : { err: E[errKey] || 'No value returned from USGS' };
+      out = { ss41: cell('asce41', 'ss', 'asce41'), s141: cell('asce41', 's1', 'asce41'), ss722: cell('asce722', 'ss', 'asce722'), s1722: cell('asce722', 's1', 'asce722') };
+    } catch (e) {
+      const err = { err: e.name === 'AbortError' ? 'The lookup service took too long to respond' : (e instanceof TypeError ? 'the browser could not reach the lookup service (check the Lambda URL and its allowed sites)' : (e.message || String(e))) };
+      out = { ss41: err, s141: err, ss722: err, s1722: err };
+    }
+  } else try { out = await Promise.race([runFunctionsJs(`${a.lat} ${a.lng}`), new Promise((_, rej) => setTimeout(() => rej(new Error('The USGS service took too long to respond')), 60000))]); }
   catch (e) { const err = { err: e.message || String(e) }; out = { ss41: err, s141: err, ss722: err, s1722: err }; }
   CALC_STATE[key] = Object.assign({ status: 'done' }, out);
   Object.entries(out).forEach(([k, v]) => { if (v.err) console.warn('[RVS] functions.js lookup failed:', k, v.err); });
@@ -1229,23 +1246,42 @@ function refreshCalcPanel(a) {
 }
 function retryCalc() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadCalcLive(a, true); }
 
+// Column values: the record's SAVED values first (41-17 = SsSpectralAcc /
+// S1SpectralAcc from the form; 7-22 = Ss_ASCE7_22 / S1_ASCE7_22, filled by the
+// form or the backfill notebook). Only a column with nothing saved tries the
+// live functions.js lookup — USGS blocks those requests from web pages, so
+// that usually ends in the "not saved yet" message.
+const CALC_FIELDS = { asce41: ['SsSpectralAcc', 'S1SpectralAcc'], asce722: ['Ss_ASCE7_22', 'S1_ASCE7_22'] };
+function calcSaved(a, which) {
+  const at = a.attrs || {}, n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
+  const [fs, f1] = CALC_FIELDS[which];
+  const pick = (exact, re) => { if (n(at[exact]) !== null) return n(at[exact]); const k = Object.keys(at).find(x => re.test(x)); return k ? n(at[k]) : null; };
+  return which === 'asce41' ? { ss: n(at[fs]), s1: n(at[f1]) }
+    : { ss: pick(fs, /^ss.*(7_?22|asce7)/i), s1: pick(f1, /^s1.*(7_?22|asce7)/i) };
+}
+function calcNeedsLive(a) { return !!CONFIG.seismicProxyUrl || ['asce41', 'asce722'].some(w => { const v = calcSaved(a, w); return v.ss === null && v.s1 === null; }); }
 function getCalcInputs(a) {
   const key = calcKey(a), st = (key && CALC_STATE[key]) || {};
-  const col = (ssK, s1K) => {
-    if (!key) return { ss: null, s1: null, status: 'nolocation' };
+  const col = (which, ssK, s1K) => {
+    const saved = calcSaved(a, which);
+    const hasSaved = saved.ss !== null || saved.s1 !== null;
+    if (hasSaved && !CONFIG.seismicProxyUrl) return { ...saved, status: 'ok', source: 'saved' };
+    if (!key) return hasSaved ? { ...saved, status: 'ok', source: 'saved' } : { ss: null, s1: null, status: 'nolocation' };
     if (!st.status || st.status === 'loading') return { ss: null, s1: null, status: 'loading' };
     const ss = st[ssK] && st[ssK].val !== undefined ? st[ssK].val : null, s1 = st[s1K] && st[s1K].val !== undefined ? st[s1K].val : null;
+    if (ss !== null || s1 !== null) return { ss, s1, status: 'ok', source: 'live' };
+    if (hasSaved) return { ...saved, status: 'ok', source: 'saved' };        // live failed: fall back to saved
     const err = (st[ssK] && st[ssK].err) || (st[s1K] && st[s1K].err) || '';
-    return { ss, s1, status: (ss !== null || s1 !== null) ? 'ok' : 'error', error: err };
+    return { ss: null, s1: null, status: !CONFIG.seismicProxyUrl && /could not reach/.test(err) ? 'notsaved' : 'error', error: err };
   };
-  return { asce41: col('ss41', 's141'), asce722: col('ss722', 's1722') };
+  return { asce41: col('asce41', 'ss41', 's141'), asce722: col('asce722', 'ss722', 's1722') };
 }
 
 function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
   const panels = document.querySelector('#sheet-body .detail-panels'); if (panels) panels.scrollTop = 0;
-  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadCalcLive(a); }
+  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a && calcNeedsLive(a)) loadCalcLive(a); }
 }
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
@@ -2875,8 +2911,9 @@ function buildDetailHTML(a) {
       <div class="calc-row"><div class="calc-k">S<sub>1</sub> Long Period (g)</div><div class="calc-v">${escHtml(g(d.s1))}</div></div>
       <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>1</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromS1(d.s1)))}</div></div>`
       : `<div class="calc-pending">${
-          d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from USGS (functions.js)…`
+          d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from USGS…`
           : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}. <button class="calc-retry" onclick="retryCalc()">Try again</button>`
+          : d.status === 'notsaved' ? `No ${title} values are saved on this record yet. They'll appear here once the ${title} fields are filled in (Survey123 form or backfill notebook).`
           : d.status === 'nolocation' ? `This record has no location, so ${title} values can't be looked up.`
           : `No ${title} values recorded.`}</div>`}
     </div>`;
