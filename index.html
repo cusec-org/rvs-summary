@@ -396,6 +396,8 @@
   .ns-obs { margin-top: 10px; padding: 9px 11px; background: #f7f8fa; border: 1px solid #e6e9ef; border-left: 3px solid var(--cusec-gold); border-radius: 6px; font-size: 12.5px; }
   .ns-obs-k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; margin-bottom: 3px; }
   .ns-obs-v { color: #13233d; line-height: 1.45; white-space: pre-line; }
+  .ns-cm { font-size: 12.5px; color: #13233d; line-height: 1.5; white-space: pre-line; }
+  .ns-cm + .ns-cm { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e6e9ef; }
   #ns-photos { display: flex; flex-direction: column; gap: 10px; }
   #ns-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
   .ns-brace { margin-top: 16px; }
@@ -2624,21 +2626,27 @@ function buildDetailHTML(a) {
   // Generator
   const genHas = findVal(/^onsite_?generator$/i, /^emergency_?generator$/i, /^generator$/i);
   const genAnch = findVal(/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i);
-  const genBig = !isYes(genHas) ? (genHas ? 'None' : '-') : isYes(genAnch) ? 'Anchored' : (genAnch ? 'Not anchored' : 'Present');
-  const genSub = isYes(genHas) && genAnch && !isYes(genAnch) ? retro : (isYes(genHas) ? '<span>Standby power on site</span>' : '');
+  // Generator box: Anchored / Non-Anchored / N/A, then the retrofit status
+  const genAnchKnown = genAnch !== undefined && genAnch !== null && String(genAnch).trim() !== '';
+  const genBig = !isYes(genHas) || !genAnchKnown ? 'N/A' : isYes(genAnch) ? 'Anchored' : 'Non-Anchored';
+  const genSub = genBig === 'Non-Anchored' ? '<span class="ns-retro">Retrofit required</span>'
+               : genBig === 'Anchored' ? '<span>No retrofit required</span>' : '';
   // Natural gas / automatic shutoff valve
   const gasHas = attrs.NaturalGas, gasValve = attrs.GasShutoff, gasFlex = attrs.FlexibleGasLines;
-  const gasBig = !isYes(gasHas) ? (gasHas ? 'No gas service' : '-') : isYes(gasValve) ? 'Auto shutoff' : (gasValve ? 'No auto shutoff' : 'Gas service');
-  const gasSub = isYes(gasHas) && gasValve && !isYes(gasValve) ? retro : (isYes(gasHas) && gasFlex !== undefined ? `<span>Flexible gas lines: ${escHtml(ynTxt(gasFlex))}</span>` : '');
+  // Natural gas box: automatic shutoff valve Present / Not Present / N/A
+  // (N/A = no gas service or not recorded), then the retrofit status
+  const gasValveKnown = gasValve !== undefined && gasValve !== null && String(gasValve).trim() !== '';
+  const gasBig = !isYes(gasHas) || !gasValveKnown ? 'N/A' : isYes(gasValve) ? 'Present' : 'Not Present';
+  const gasSub = gasBig === 'Not Present' ? '<span class="ns-retro">Retrofit required</span>'
+               : gasBig === 'Present' ? '<span>No retrofit required</span>' : '';
   const htmlCard = (label, big, subHtml) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(big)}</div>${subHtml ? `<div class="ov-stat-sub">${subHtml}</div>` : ''}</div>`;
   const nsBoxes = `<div class="ov-stats ns-stats">
       <div class="ov-card ov-stat"><div class="ov-stat-label">Extent of Review</div>
         <div class="p2-dse"><span class="p2-dse-k">Exterior:</span> ${escHtml(fieldValue('Exterior') || '-')}</div>
         <div class="p2-dse"><span class="p2-dse-k">Interior:</span> ${escHtml(fieldValue('Interior') || '-')}</div></div>
       ${htmlCard('Emergency Generator', genBig, genSub)}
-      ${htmlCard('Natural Gas Service', gasBig, gasSub)}
-      <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
-        <div class="p2-dse"><span class="p2-dse-k">Nonstructural:</span> ${escHtml(dseNS)}</div></div>
+      ${htmlCard('Auto Gas Shut-off', gasBig, gasSub)}
+      ${htmlCard('Egress Routes Clear', (v => v === '-' ? 'N/A' : v)(ynTxt(attrs.EgressRoutes)), '')}
     </div>`;
   // Exterior / interior review cards (same rows as the building report)
   const efhC = multiCodes(attrs.ExtFallingHazards);
@@ -2654,13 +2662,11 @@ function buildDetailHTML(a) {
       ${efhRow('Parapets', 'parapets')}
       ${efhRow('Heavy cladding / veneer', 'heavy_cladding')}
       ${efhRow('Appendages', 'appendages')}
-      ${obs(extObs)}
     </div>`;
-  const intCard = `<div class="ov-card p2-card"><div class="ov-card-title">Interior Nonstructural Review</div>
-      ${nsRow('Egress routes clear', ynTxt(attrs.EgressRoutes))}
-      ${nsRow('Flexible gas lines observed', ynTxt(gasFlex))}
-      ${nsRow('Gas-fired equipment', ynTxt(attrs.GasFiredEquipment))}
-      ${obs(intObs)}
+  // Nonstructural screener comments (moved up from under the bracing chart)
+  const nsComments = [bracingObs, intObs].map(v => v ? String(v).trim() : '').filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k);
+  const commentsCard = `<div class="ov-card p2-card"><div class="ov-card-title">Nonstructural Screener Comments</div>
+      ${nsComments.length ? nsComments.map(c => `<div class="ns-cm">${escHtml(c)}</div>`).join('') : '<div class="p2-none">No nonstructural comments.</div>'}
     </div>`;
   // Bracing / restraint chart (page 2 of the building report)
   const BRACE = [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents'],
@@ -2684,13 +2690,12 @@ function buildDetailHTML(a) {
         <div class="ns-br-row ns-br-head" role="row"><div class="ns-br-k">Component</div>${COLS.map(([, l]) => `<div class="ns-br-c">${l}</div>`).join('')}</div>
         ${braceRows}
       </div>
-      ${obs(bracingObs)}
     </div>`;
   const nonstructHTML = `
     <div class="ov-grid">
       <div class="ov-main">
         ${nsBoxes}
-        <div class="ov-cards">${extCard}${intCard}</div>
+        <div class="ov-cards">${extCard}${commentsCard}</div>
         ${braceCard}
       </div>
       <div class="ov-photos">
@@ -2865,7 +2870,7 @@ async function loadAttachments(objectId) {
     // First 3 photos show; the rest expand with the down-arrow button
     p154El.innerHTML = photoColumn(groups, 'No P-154 photos');
   }
-  // Nonstructural tab photos: generator, gas meter, then nonstructural photos
+  // Nonstructural tab photos: generator, gas meter, then Photo 6, 7, 16 (nothing else)
   const nsEl = document.getElementById('ns-photos');
   if (nsEl) {
     const imgs = result.infos.filter(i => i.isImage);
@@ -2874,7 +2879,9 @@ async function loadAttachments(objectId) {
     const take = (pred, max) => imgs.filter(i => !used.has(i) && pred(i)).slice(0, max).map(i => (used.add(i), i));
     take(i => /generator/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Generator ${n + 1}` : 'Generator', '']));
     take(i => /gasmeter|meter|gasshutoff|shutoff/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Gas Meter ${n + 1}` : 'Gas Meter', '']));
-    take(i => /nonstruct|nsphoto|bracing|restraint|interior|mep|hvac|boiler|waterheater|ceiling|tank/.test(key(i)), 8).forEach((i, n) => groups.push([i, `Nonstructural Photo ${n + 1}`, '']));
+    // Nonstructural photos: only Photo 6, Photo 7, and Photo 16, in that order
+    const numOf = i => { const m = `${i.keywords || ''} ${i.name || ''}`.match(/\bphoto[\s_-]*(\d{1,3})(?!\d)/i); return m ? Number(m[1]) : null; };
+    [6, 7, 16].forEach(n => take(i => numOf(i) === n, 1).forEach(i => groups.push([i, `Photo ${n}`, ''])));
     nsEl.innerHTML = photoColumn(groups, 'No nonstructural photos');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
