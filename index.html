@@ -556,6 +556,12 @@
   .show-all-photos:hover { border-color: var(--cusec-blue); }
   .show-all-photos + .attachment-grid { margin-top: 8px; }
   .attachment-grid[hidden] { display: none; }
+  /* Photos tab: small thumbnails (click to open full size in the viewer) */
+  [data-panel="photos"] #attachment-area .attachment-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } /* three across */
+  [data-panel="photos"] #attachment-area .attachment-tile { aspect-ratio: 4 / 3; height: auto; }
+  [data-panel="photos"] #attachment-area .attachment-tile img { width: 100%; height: 100%; object-fit: cover; }
+  [data-panel="photos"] #attachment-area .attachment-tag { font-size: 10px; padding: 3px 5px; }
+  @container (max-width: 480px) { [data-panel="photos"] #attachment-area .attachment-grid { gap: 6px; } }
   .sheet-dock-btn { display: none; }
   .sheet-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 3px; }
   .sheet-addr { font-size: 13px; color: var(--text2); line-height: 1.4; }
@@ -2624,13 +2630,35 @@ function buildDetailHTML(a) {
   const ynTxt = v => (v === undefined || v === null || String(v).trim() === '') ? '-' : isYes(v) ? 'Yes' : /^n(o)?$/i.test(String(v).trim()) ? 'No' : choiceLabel('', v);
   const retro = '<span class="ns-retro">Retrofit recommended</span>';
   // Generator
-  const genHas = findVal(/^onsite_?generator$/i, /^emergency_?generator$/i, /^generator$/i);
-  const genAnch = findVal(/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i);
+  // Generator: the "has a generator" answer and the "anchored" answer. Field
+  // names vary between form versions, so look broadly; some forms also put
+  // the anchorage right in the generator answer (e.g. "yes_anchored").
+  const genHasRaw = findVal(/^onsite_?generator$/i, /^emergency_?generator$/i, /^(standby_?)?generator(_?present|_?onsite)?$/i, /^has_?generator$/i,
+                            new RegExp('^(?!.*anchor).*generator', 'i'));
+  const genAnchRaw = findVal(/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i, /^(is_?)?anchored$/i, /anchor/i);
+  const _t = v => String(v ?? '').toLowerCase().replace(/[^a-z]+/g, '');
+  const _blank = v => v === undefined || v === null || String(v).trim() === '';
+  let genPresent = null, genAnchored = null;          // true / false / null (unknown)
+  const gh = _t(genHasRaw), gh2 = _t(choiceLabel('', genHasRaw || ''));
+  if (/notanchor|unanchor|nonanchor|anchorno/.test(gh + gh2)) { genPresent = true; genAnchored = false; }
+  else if (/anchor/.test(gh + gh2)) { genPresent = true; genAnchored = true; }
+  else if (isYes(genHasRaw) || /^(y|yes|true|1|present|onsite)/.test(gh)) genPresent = true;
+  else if (/^(n|no|none|false|0)/.test(gh)) genPresent = false;
+  if (!_blank(genAnchRaw)) {
+    const ga = _t(genAnchRaw) + _t(choiceLabel('', genAnchRaw));
+    if (isYes(genAnchRaw) || /^(y|yes|true|1)/.test(ga) || (/anchored/.test(ga) && !/not|non|un/.test(ga))) genAnchored = true;
+    else if (/^(n|no|false|0)/.test(ga) || /notanchor|unanchor|nonanchor/.test(ga)) genAnchored = false;
+    if (genAnchored !== null && genPresent === null) genPresent = true;   // an anchorage answer means there is a generator
+  }
+  const genHas = genPresent === true ? 'yes' : genPresent === false ? 'no' : genHasRaw;
+  const genAnch = genAnchored === true ? 'yes' : genAnchored === false ? 'no' : undefined;
+  if (typeof console !== 'undefined') console.info('[RVS] generator fields for', a.buildingName, Object.fromEntries(Object.entries(attrs).filter(([k]) => /gen|anchor/i.test(k))));
   // Generator box: Anchored / Non-Anchored / N/A, then the retrofit status
   const genAnchKnown = genAnch !== undefined && genAnch !== null && String(genAnch).trim() !== '';
-  const genBig = !isYes(genHas) || !genAnchKnown ? 'N/A' : isYes(genAnch) ? 'Anchored' : 'Non-Anchored';
+  // N/A = no generator; 'Not recorded' = generator present but anchorage wasn't answered
+  const genBig = !isYes(genHas) ? 'N/A' : !genAnchKnown ? 'Not recorded' : isYes(genAnch) ? 'Anchored' : 'Non-Anchored';
   const genSub = genBig === 'Non-Anchored' ? '<span class="ns-retro">Retrofit required</span>'
-               : genBig === 'Anchored' ? '<span>No retrofit required</span>' : '';
+               : genBig === 'Anchored' ? '<span>No retrofit recommended</span>' : '';
   // Natural gas / automatic shutoff valve
   const gasHas = attrs.NaturalGas, gasValve = attrs.GasShutoff, gasFlex = attrs.FlexibleGasLines;
   // Natural gas box: automatic shutoff valve Present / Not Present / N/A
@@ -2638,7 +2666,7 @@ function buildDetailHTML(a) {
   const gasValveKnown = gasValve !== undefined && gasValve !== null && String(gasValve).trim() !== '';
   const gasBig = !isYes(gasHas) || !gasValveKnown ? 'N/A' : isYes(gasValve) ? 'Present' : 'Not Present';
   const gasSub = gasBig === 'Not Present' ? '<span class="ns-retro">Retrofit required</span>'
-               : gasBig === 'Present' ? '<span>No retrofit required</span>' : '';
+               : gasBig === 'Present' ? '<span>No retrofit recommended</span>' : '';
   const htmlCard = (label, big, subHtml) => `<div class="ov-card ov-stat"><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(big)}</div>${subHtml ? `<div class="ov-stat-sub">${subHtml}</div>` : ''}</div>`;
   const nsBoxes = `<div class="ov-stats ns-stats">
       <div class="ov-card ov-stat"><div class="ov-stat-label">Extent of Review</div>
@@ -2739,7 +2767,6 @@ function buildDetailHTML(a) {
       ${tabBtn('p154', 'P-154 Screening Details', false)}
       ${tabBtn('nonstruct', 'Nonstructural Review', false)}
       ${tabBtn('photos', 'Photos', false)}
-      ${tabBtn('notes', 'Notes', false)}
     </div>
 
     <div class="detail-panels">
@@ -2751,7 +2778,6 @@ function buildDetailHTML(a) {
           <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
         </div></div>
       </div>
-      <div class="dtab-panel tab-stack" data-panel="notes" role="tabpanel" hidden>${notesHTML}</div>
     </div>
   `;
 }
@@ -2789,12 +2815,12 @@ function photoTopic(info, attrs) {
 
 // Photo column used on the P-154 and Nonstructural tabs: first 3 photos,
 // the rest behind the round down arrow.
-function photoFig([i, title]) {
+function photoFig([i, title, alt]) {
   return `
       <figure class="rp-item">
         <div class="attachment-tile" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === i.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <img src="${escHtml(i.url)}" alt="${escHtml(title)}" onerror="this.remove()">
-          <div class="attachment-tag">${escHtml(title)}</div>
+          <img src="${escHtml(i.url)}" alt="${escHtml(title || alt || 'Photo')}" onerror="this.remove()">
+          ${title ? `<div class="attachment-tag">${escHtml(title)}</div>` : ''}
         </div>
       </figure>`;
 }
@@ -2881,7 +2907,7 @@ async function loadAttachments(objectId) {
     take(i => /gasmeter|meter|gasshutoff|shutoff/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Gas Meter ${n + 1}` : 'Gas Meter', '']));
     // Nonstructural photos: only Photo 6, Photo 7, and Photo 16, in that order
     const numOf = i => { const m = `${i.keywords || ''} ${i.name || ''}`.match(/\bphoto[\s_-]*(\d{1,3})(?!\d)/i); return m ? Number(m[1]) : null; };
-    [6, 7, 16].forEach(n => take(i => numOf(i) === n, 1).forEach(i => groups.push([i, `Photo ${n}`, ''])));
+    [6, 7, 16].forEach(n => take(i => numOf(i) === n, 1).forEach(i => groups.push([i, '', `Photo ${n}`])));  // no caption bar on these
     nsEl.innerHTML = photoColumn(groups, 'No nonstructural photos');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
