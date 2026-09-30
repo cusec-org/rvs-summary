@@ -458,6 +458,24 @@
   .calc-rb-k sub { font-size: 0.75em; text-transform: none; }
   .calc-rb-v { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .calc-cols { margin-top: 16px; }
+  /* Liquefaction card: spans both columns, shows the map's 5-level scale */
+  .calc-liq { grid-column: 1 / -1; }
+  .calc-liq .calc-head { min-height: 0; margin-bottom: 10px; }
+  .liq-badge { display: inline-block; font-size: 15px; font-weight: 800; border-radius: 999px; padding: 3px 14px; margin-top: 2px; }
+  .liq-badge.yes { background: #13233d; color: #fff; } .liq-badge.no { background: #e6e9ef; color: #13233d; } .liq-badge.na { background: #f3f5f8; color: var(--text3); }
+  .liq-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr); gap: 24px; align-items: center; }
+  .liq-scale { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .liq-seg { text-align: center; }
+  .liq-bar { height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); opacity: 0.55; transition: all 0.2s; }
+  .liq-lbl { font-size: 11px; color: #4a5363; margin-top: 5px; }
+  .liq-seg.on .liq-bar { opacity: 1; height: 26px; margin-top: -5px; border: 2px solid #13233d; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+  .liq-seg.on .liq-lbl { color: #13233d; font-weight: 800; }
+  .liq-seg.on .liq-lbl::before { content: '▲ '; font-size: 9px; }
+  .liq-scale-off .liq-bar { opacity: 0.25; filter: grayscale(1); }
+  .liq-rule { position: relative; margin: 8px 0 0 60%; font-size: 11px; color: #4a5363; text-align: center; border-top: 2px solid #13233d; padding-top: 3px; }
+  .liq-facts .calc-row:first-child { padding-top: 0; }
+  @container (max-width: 640px) { .liq-body { grid-template-columns: 1fr; } }
+
   .calc-sub { font-size: 11.5px; color: #4a5363; margin: -4px 0 8px; }
   .calc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; min-height: 66px; } /* same height in both cards so the rows line up */
   .calc-region { text-align: right; flex-shrink: 0; }
@@ -766,8 +784,9 @@
     /* Full screen: covers the whole window, no rounded corners, above everything */
     #detail-sheet.fullscreen { z-index: 4000; }
     #detail-sheet.fullscreen #detail-content, #detail-sheet.fullscreen.docked #detail-content {
-      top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: none; border-radius: 0; border: none; transform: none; opacity: 1; }
-    #detail-sheet.fullscreen.open #detail-content { transform: none; }
+      top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: none; border-radius: 0; border: none; transform: none; }
+    #detail-sheet.fullscreen:not(.open) #detail-content { opacity: 0; visibility: hidden; }
+    #detail-sheet.fullscreen.open #detail-content { transform: none; opacity: 1; visibility: visible; }
     #sheet-body .sheet-ribbon { padding-right: 212px; }
     /* Docked: flush to the right edge of the map, full height */
     #detail-sheet.docked #detail-content {
@@ -1295,10 +1314,39 @@ const CALC_CACHE_KEY = 'rvs_calc_live_v1';
 const CALC_STATE = {};   // "lat,lng" → { status: 'loading' | 'done', ss41, s141, ss722, s1722 (each {val} or {err}) }
 try { Object.assign(CALC_STATE, JSON.parse(localStorage.getItem(CALC_CACHE_KEY) || '{}')); } catch {}
 function calcKey(a) { return (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(6)},${a.lng.toFixed(6)}` : null; }
+// Soil type from the USGS global Vs30 image service (returnSoilType in
+// functions.js): Vs30 > 1500 A · 760-1500 B · 360-760 C · 180-360 D · < 180 E
+const VS30_URL = 'https://iservices3.arcgis.com/mQsIDpmRUmYltsYD/arcgis/rest/services/global_vs30_v2/ImageServer/identify';
+const SITE_CLASS = { A: 'Hard Rock', B: 'Average Rock', C: 'Dense Soil', D: 'Stiff Soil', E: 'Soft Soil' };
+function vs30Class(v) { return v > 1500 ? 'A' : v >= 760 ? 'B' : v >= 360 ? 'C' : v >= 180 ? 'D' : 'E'; }
+async function lookupSoilVs30(a) {
+  const geom = encodeURIComponent(JSON.stringify({ x: a.lng, y: a.lat }));
+  const url = `${VS30_URL}?geometry=${geom}&geometryType=esriGeometryPoint&mosaicRule=&pixelSize=0.5,0.5&returnGeometry=false&returnCatalogItems=false&f=pjson&token=${encodeURIComponent(TOKEN ? TOKEN.accessToken : '')}`;
+  const j = await (await fetch(url)).json();
+  if (j.error) throw new Error(j.error.message || 'Vs30 service error');
+  const v = Number(j.value);
+  if (!isFinite(v) || v <= 0) throw new Error('No Vs30 value at this location');
+  return { vs30: v, cls: vs30Class(v) };
+}
+// Liquefaction susceptibility (returnLiquefaction in functions.js):
+// High / Very High → Yes; Moderate / Low / Very Low / None → No
+const LIQ_URL = 'https://services1.arcgis.com/utFj6xjAHT9GdIit/ArcGIS/rest/services/Soil_Liquefaction_Susceptibility_Map/FeatureServer/0/query';
+async function lookupLiquefaction(a) {
+  const geometry = encodeURIComponent(JSON.stringify({ x: a.lng, y: a.lat, spatialReference: { wkid: 4326 } }));
+  const url = `${LIQ_URL}?where=1%3D1&geometry=${geometry}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=TypeDescription&returnGeometry=false&f=json`;
+  const j = await (await fetch(url)).json();
+  if (j.error) throw new Error(j.error.message || 'Liquefaction service error');
+  const f = (j.features || [])[0];
+  if (!f) return { desc: null, hazard: null, outside: true };      // point isn't covered by the map
+  const d = f.attributes.TypeDescription;
+  const hazard = /^(high|very high)$/i.test(d) ? 'Yes' : /^(moderate|low|very low|none)$/i.test(d) ? 'No' : null;
+  return { desc: d, hazard };
+}
+
 async function loadCalcLive(a, force) {
   const key = calcKey(a); if (!key) return;
   const st = CALC_STATE[key];
-  const allOk = st && st.status === 'done' && ['ss41', 's141', 'ss722', 's1722'].every(k => st[k] && st[k].val !== undefined);
+  const allOk = st && st.status === 'done' && ['ss722', 's1722'].every(k => st[k] && st[k].val !== undefined) && st.soil && st.soil.ok && st.liq && st.liq.ok;
   if (!force && st && (st.status === 'loading' || allOk)) return;
   CALC_STATE[key] = { status: 'loading' }; refreshCalcPanel(a);
   let out;
@@ -1317,10 +1365,15 @@ async function loadCalcLive(a, force) {
     }
   } else try { out = await Promise.race([runFunctionsJs(`${a.lat} ${a.lng}`), new Promise((_, rej) => setTimeout(() => rej(new Error('The USGS service took too long to respond')), 60000))]); }
   catch (e) { const err = { err: e.message || String(e) }; out = { ss41: err, s141: err, ss722: err, s1722: err }; }
-  CALC_STATE[key] = Object.assign({ status: 'done' }, out);
+  // Soil type + liquefaction lookups run alongside
+  const [soil, liq] = await Promise.all([
+    lookupSoilVs30(a).then(v => ({ ok: v }), e => ({ err: (e instanceof TypeError) ? "couldn't reach the Vs30 service" : (e.message || String(e)) })),
+    lookupLiquefaction(a).then(v => ({ ok: v }), e => ({ err: (e instanceof TypeError) ? "couldn't reach the liquefaction map" : (e.message || String(e)) })),
+  ]);
+  CALC_STATE[key] = Object.assign({ status: 'done', soil, liq }, out);
   Object.entries(out).forEach(([k, v]) => { if (v.err) console.warn('[RVS] functions.js lookup failed:', k, v.err); });
   try {
-    const keep = Object.fromEntries(Object.entries(CALC_STATE).filter(([, v]) => v.status === 'done' && ['ss41', 's141', 'ss722', 's1722'].every(k => v[k] && v[k].val !== undefined)));
+    const keep = Object.fromEntries(Object.entries(CALC_STATE).filter(([, v]) => v.status === 'done' && ['ss722', 's1722'].every(k => v[k] && v[k].val !== undefined) && v.soil && v.soil.ok && v.liq && v.liq.ok));
     localStorage.setItem(CALC_CACHE_KEY, JSON.stringify(keep));
   } catch {}
   refreshCalcPanel(a);
@@ -1347,7 +1400,7 @@ function calcSaved(a, which) {
   return which === 'asce41' ? { ss: n(at[fs]), s1: n(at[f1]) }
     : { ss: pick(fs, /^ss.*(7_?22|asce7)/i), s1: pick(f1, /^s1.*(7_?22|asce7)/i) };
 }
-function calcNeedsLive(a) { return !!CONFIG.seismicProxyUrl || ['asce41', 'asce722'].some(w => { const v = calcSaved(a, w); return v.ss === null && v.s1 === null; }); }
+function calcNeedsLive(a) { return true; }   // soil type + liquefaction are always looked up live (7-22 too when the Lambda is set)
 function getCalcInputs(a) {
   const key = calcKey(a), st = (key && CALC_STATE[key]) || {};
   const col = (which, ssK, s1K) => {
@@ -2837,6 +2890,7 @@ function openDetail(a) {
 }
 function closeDetail() {
   if (EDIT.on && !cancelEdit()) return;
+  toggleFullscreenPanel(false);          // back to the normal map + list view
   clearPulse();
   document.getElementById('detail-sheet').classList.remove('open');
   document.body.style.overflow = '';
@@ -3324,9 +3378,62 @@ function buildDetailHTML(a) {
   const r41 = seisRegionLevel(CI.asce41.ss, CI.asce41.s1), r722 = seisRegionLevel(CI.asce722.ss, CI.asce722.s1);
   const cmpTxt = (r41 && r722) ? (r722 > r41 ? 'Higher under ASCE 7-22' : r722 < r41 ? 'Lower under ASCE 7-22' : 'Same region') : '';
   const diff = (x, y) => (x === null || y === null) ? '-' : `${y - x >= 0 ? '+' : '-'}${Math.abs(y - x).toFixed(3)} g${x ? ` (${y - x >= 0 ? '+' : '-'}${Math.abs((y - x) / x * 100).toFixed(0)}%)` : ''}`;
+  // Soil Type + Liquefaction cards (live lookups, compared with the database)
+  const LS = (calcKey(a) && CALC_STATE[calcKey(a)]) || {};
+  const pending = !LS.status || LS.status === 'loading';
+  const miniCard = (title, sub, resultK, result, bubble, rows, state) => `<div class="ov-card p2-card calc-card">
+      <div class="calc-head">
+        <div><div class="ov-card-title">${title}</div><div class="calc-sub">${sub}</div></div>
+        <div class="calc-region"><div class="calc-region-k">${resultK}</div><div class="calc-region-v">${escHtml(result || '-')}</div>${bubble ? `<div class="calc-why">${bubble}</div>` : ''}</div>
+      </div>
+      ${state ? `<div class="calc-pending">${state}</div>` : rows.map(([k, v]) => `<div class="calc-row"><div class="calc-k">${k}</div><div class="calc-v">${escHtml(v)}</div></div>`).join('')}
+    </div>`;
+  const retry = ' <button class="calc-retry" onclick="retryCalc()">Try again</button>';
+  const dbSoil = fieldValue('SoilType'), dbSoilLetter = (String(dbSoil).match(/^([A-F])\b/i) || [])[1];
+  const soilCard = (() => {
+    const r = LS.soil || {};
+    const state = !calcKey(a) ? 'This record has no location to look up.' : pending ? 'Looking up Vs30 from USGS…' : r.err ? `Couldn't get Vs30 (${escHtml(r.err)}).${retry}` : '';
+    const cls = r.ok ? r.ok.cls : null;
+    const differs = cls && dbSoilLetter && cls.toUpperCase() !== dbSoilLetter.toUpperCase();
+    return miniCard('Soil Type', 'USGS Global Vs30', 'Site Class', cls ? `${cls} · ${SITE_CLASS[cls]}` : '', differs ? `Differs: database is ${escHtml(dbSoilLetter.toUpperCase())}` : '',
+      r.ok ? [['V<sub>S30</sub> (m/s)', String(Math.round(r.ok.vs30))], ['Site class from V<sub>S30</sub>', `${cls} · ${SITE_CLASS[cls]}`], ['In the database', dbSoil || '-']] : [], state);
+  })();
+  // Liquefaction: full-width card with the map's own 5-level scale
+  const LIQ_LEVELS = [['Very Low', '#4ce600'], ['Low', '#e9ffbe'], ['Moderate', '#ffff00'], ['High', '#ffbebe'], ['Very High', '#ff0000']];
+  const liqCard = (() => {
+    const r = LS.liq || {};
+    const state = !calcKey(a) ? 'This record has no location to look up.' : pending ? 'Checking the liquefaction susceptibility map…' : r.err ? `Couldn't check liquefaction (${escHtml(r.err)}).${retry}` : '';
+    const o = r.ok || {};
+    const dbLiq = fieldValue('Liquefaction');
+    const differs = o.hazard && dbLiq && dbLiq !== '-' && !new RegExp('^' + o.hazard, 'i').test(dbLiq);
+    const idx = o.desc ? LIQ_LEVELS.findIndex(([n]) => n.toLowerCase() === String(o.desc).toLowerCase()) : -1;
+    const hz = o.outside ? 'Not mapped' : (o.hazard || '-');
+    const scale = `<div class="liq-scale${o.outside || idx < 0 ? ' liq-scale-off' : ''}" role="img" aria-label="Liquefaction susceptibility: ${escHtml(o.desc || 'not available')}">
+        ${LIQ_LEVELS.map(([n, c], k) => `<div class="liq-seg${k === idx ? ' on' : ''}${k >= 3 ? ' liq-hz' : ''}"><div class="liq-bar" style="background:${c}"></div><div class="liq-lbl">${n}</div></div>`).join('')}
+      </div>
+      <div class="liq-rule"><span class="liq-bracket"></span>High / Very High = liquefaction hazard</div>`;
+    return `<div class="ov-card p2-card calc-card calc-liq">
+      <div class="calc-head">
+        <div><div class="ov-card-title">Liquefaction</div><div class="calc-sub">Soil Liquefaction Susceptibility Map</div></div>
+        <div class="calc-region"><div class="calc-region-k">Liquefaction Hazard</div>
+          <div class="calc-region-v"><span class="liq-badge ${hz === 'Yes' ? 'yes' : hz === 'No' ? 'no' : 'na'}">${escHtml(hz)}</span></div>
+          ${differs ? `<div class="calc-why">Differs: database is ${escHtml(dbLiq)}</div>` : ''}</div>
+      </div>
+      ${state ? `<div class="calc-pending">${state}</div>` : `
+      <div class="liq-body">
+        <div class="liq-left">${scale}</div>
+        <div class="liq-facts">
+          <div class="calc-row"><div class="calc-k">Susceptibility</div><div class="calc-v">${escHtml(o.outside ? 'Outside the mapped area' : (o.desc || '-'))}</div></div>
+          <div class="calc-row"><div class="calc-k">Hazard</div><div class="calc-v">${escHtml(hz)}</div></div>
+          <div class="calc-row"><div class="calc-k">In the database</div><div class="calc-v">${escHtml(dbLiq || '-')}</div></div>
+        </div>
+      </div>`}
+    </div>`;
+  })();
   // Ribbon: what the database currently holds for this record
   const _n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
   const dbSs = _n(attrs.SsSpectralAcc), dbS1 = _n(attrs.S1SpectralAcc);
+  const rDb = seisRegionLevel(dbSs, dbS1);   // region from the saved (database) values
   const dbSource = attrs.SeismicitySource ? choiceLabel('SeismicitySource', attrs.SeismicitySource) : 'Not recorded';
   const dbRibbon = `<div class="calc-ribbon">
       <div class="calc-rb-title">Current Database</div>
@@ -3338,8 +3445,9 @@ function buildDetailHTML(a) {
   const calcHTML = `<div class="calc-wrap">
       ${dbRibbon}
       <div class="ov-cards calc-cols">
-        ${colCard('ASCE 41-17', 'BSE-2N · USGS Design Maps', CI.asce41, r41 && r722 && r41 > r722 ? whyHigher(CI.asce41) : '')}
-        ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, r41 && r722 && r722 > r41 ? whyHigher(CI.asce722) : '')}
+        ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, '')}
+        ${soilCard}
+        ${liqCard}
       </div>
     </div>`;
   const notesHTML = card(fieldSection('Notes & Comments', groupFields('Comments'))) || empty('No notes recorded for this building.');
