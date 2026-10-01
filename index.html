@@ -751,6 +751,21 @@
   .wiz-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 20px 0; text-align: center; }
   .wiz-foot { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: #fff; border-top: 1px solid var(--border); }
   .wiz-foot .ed-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+  .seismo { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+  .seismo-cv { width: 120px; height: 120px; display: block; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,.85), 0 0 26px 10px rgba(242,201,76,.55), 0 4px 14px rgba(11,46,107,.25); }
+  .seismo-t { font: 700 14px 'DM Sans', sans-serif; color: #13233d; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #fff; padding: 6px 14px; border-radius: 999px; box-shadow: 0 2px 10px rgba(11,46,107,.18); margin-top: 6px; }
+  .seismo-s { background: #fff; padding: 6px 12px; border-radius: 8px; max-width: 260px; box-shadow: 0 2px 10px rgba(11,46,107,.14); }
+  .seismo-s { font-size: 12.5px; color: var(--text2); }
+  .seismo-ok { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: #2e7d32; color: #fff; font-size: 12px; align-items: center; justify-content: center; }
+  .seismo-pop { position: absolute; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(12,20,36,0.28); animation: seismoIn .2s ease-out; }
+  .seismo-pop.closing { opacity: 0; transition: opacity .2s; }
+  .seismo-card { position: relative; padding: 12px; }
+  .seismo-hide { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(11,46,107,.25); font: 700 16px/1 'DM Sans', sans-serif; color: #4a5363; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .seismo-hide:hover { color: #0B2E6B; }
+  .seismo-pop.done .seismo-cv { opacity: .55; transition: opacity .3s; }
+  .calc-seismo { display: flex; justify-content: center; padding: 14px 0 6px; margin-bottom: 8px; }
+  @keyframes seismoIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .seismo-pop { animation: none; } }
   .ac-wrap { position: absolute; inset: 0; z-index: 40; background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
   .ac-card { background: #fff; border-radius: 12px; padding: 18px 20px; width: min(380px, 100%); box-shadow: var(--shadow-lg); }
   .ac-msg { font-size: 15px; font-weight: 700; color: #13233d; margin-bottom: 14px; }
@@ -1822,6 +1837,69 @@ async function lookupLiquefaction(a) {
   return { desc: d, hazard };
 }
 
+// ── Seismograph: a needle drawing a live trace while the lookups run ──
+const SEISMO = { raf: 0, seq: new WeakMap() };
+const SEISMO_LIST = '<b>Seismicity</b> (ASCE 7-22) · <b>Soil Type</b> (Vs30) · <b>Liquefaction</b>';
+function seismoHTML(title, sub) {
+  return `<div class="seismo" role="status" aria-live="polite"><canvas class="seismo-cv" aria-hidden="true"></canvas>
+    <div class="seismo-t">${title}</div>${sub ? `<div class="seismo-s">${sub}</div>` : ''}</div>`;
+}
+function seismoStart() { if (!SEISMO.raf) SEISMO.raf = requestAnimationFrame(seismoFrame); }
+function seismoFrame() {
+  const cvs = [...document.querySelectorAll('canvas.seismo-cv')].filter(c => c.isConnected && c.offsetParent !== null);
+  if (!document.querySelector('canvas.seismo-cv')) { SEISMO.raf = 0; return; }
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  cvs.forEach(cv => {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    let st = SEISMO.seq.get(cv);
+    if (!st) { st = { y: [], t: 0, env: 0, next: 30, shift: 0 }; SEISMO.seq.set(cv, st); }
+    const penX = w, mid = h / 2, steps = still ? 0 : 2;
+    const sample = () => {                                 // quiet background with sudden, decaying bursts
+      st.t++;
+      if (st.t >= st.next) { st.env = 0.55 + Math.random() * 0.45; st.next = st.t + 40 + Math.random() * 90; }
+      st.env *= 0.955;
+      const amp = (0.05 + st.env) * (h * 0.44);
+      const sign = st.t % 2 ? 1 : -1;                      // alternate up / down → sharp, needle-like spikes
+      return mid + sign * amp * (0.35 + Math.random() * 0.65);
+    };
+    if (!st.y.length) { for (let i = 0; i < penX; i += 2) st.y.push(sample()); }
+    for (let k = 0; k < steps; k++) { st.y.push(sample()); if (st.y.length > penX / 2 + 2) st.y.shift(); st.shift = (st.shift + 2) % 16; }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    g.save(); g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); g.clip();   // round dial
+    // paper with a scrolling grid
+    g.fillStyle = '#fbfaf5'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(11,46,107,0.08)'; g.lineWidth = 1; g.beginPath();
+    for (let x = penX - st.shift; x > 0; x -= 16) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, h); }
+    for (let y = mid % 12; y < h; y += 12) { g.moveTo(0, y + 0.5); g.lineTo(w, y + 0.5); }
+    g.stroke();
+    g.strokeStyle = 'rgba(11,46,107,0.18)'; g.beginPath(); g.moveTo(0, mid + 0.5); g.lineTo(w, mid + 0.5); g.stroke();
+    // the trace, ending at the pen
+    g.strokeStyle = '#b3261e'; g.lineWidth = 1.4; g.lineJoin = 'miter'; g.beginPath();
+    const n = st.y.length; st.y.forEach((y, i) => { const x = penX - (n - 1 - i) * 2; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+    g.restore();
+    g.strokeStyle = '#d9cfb0'; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); g.stroke();
+  });
+  SEISMO.raf = still ? 0 : requestAnimationFrame(seismoFrame);
+}
+// Pop-up over the open panel while the post data collection lookups run (closes when they finish)
+function seismoPopShow() {
+  const host = document.getElementById('detail-content'); if (!host) return;
+  let box = document.getElementById('seismo-pop');
+  if (!box) { box = document.createElement('div'); box.id = 'seismo-pop'; host.appendChild(box); }
+  box.className = 'seismo-pop';
+  box.innerHTML = `<div class="seismo-card">${seismoHTML('Taking a reading', '')}
+    <button type="button" class="seismo-hide" onclick="seismoPopHide()" aria-label="Hide" title="Hide">×</button></div>`;
+  seismoStart();
+}
+function seismoPopDone(msg, ok) {
+  const box = document.getElementById('seismo-pop'); if (!box) return;
+  const t = box.querySelector('.seismo-t'), s = box.querySelector('.seismo-s');
+  if (t) t.innerHTML = ok ? '<span class="seismo-ok" aria-hidden="true">✓</span> Reading complete' : 'Some lookups didn\'t finish';
+  if (!ok && msg && t) t.insertAdjacentHTML('afterend', `<div class="seismo-s">${escHtml(msg)}</div>`);
+  box.classList.add('done'); setTimeout(seismoPopHide, ok ? 1100 : 4000);
+}
+function seismoPopHide() { const box = document.getElementById('seismo-pop'); if (box) { box.classList.add('closing'); setTimeout(() => box.remove(), 220); } }
 async function loadCalcLive(a, force) {
   const key = calcKey(a); if (!key) return;
   const st = CALC_STATE[key];
@@ -4107,8 +4185,10 @@ function waitForCalc(a, ms = 60000) {
 async function autoFillFromLookups(a) {
   if (!calcKey(a)) { EDIT.autoStatus = 'This record has no location, so the lookups could not run.'; return; }
   EDIT.autoStatus = 'Running the lookups (ASCE 7-22 seismicity, soil type, liquefaction)…'; refreshAutoStatus();
-  loadCalcLive(a); const st = await waitForCalc(a);
-  if (!(EDIT.on && String(EDIT.id) === String(a.id))) return;                 // editing ended meanwhile
+  loadCalcLive(a);
+  if ((CALC_STATE[calcKey(a)] || {}).status === 'loading') seismoPopShow();   // only when a lookup is actually running
+  const st = await waitForCalc(a);
+  if (!(EDIT.on && String(EDIT.id) === String(a.id))) { seismoPopHide(); return; }   // editing ended meanwhile
   const filled = [], failed = [];
   const put = (f, v) => { EDIT.draft[f] = v; filled.push(editLabel(f)); };
   const has = f => Object.prototype.hasOwnProperty.call(a.attrs || {}, f) || (LAYER_FIELD_TYPES || {})[f];
@@ -4135,6 +4215,7 @@ async function autoFillFromLookups(a) {
   } else failed.push('liquefaction');
   const changed = filled.filter((x, k, arr) => arr.indexOf(x) === k);
   EDIT.autoStatus = (changed.length ? `Filled in from the lookups: ${changed.join(', ')}.` : '') + (failed.length ? ` Couldn't run: ${failed.join(', ')}.` : '');
+  seismoPopDone(failed.length ? `Couldn't run: ${failed.join(', ')}. You can still edit these yourself.` : 'Seismicity, Soil Type and Liquefaction are filled in - check them in Review & Save.', !failed.length);
   const step = comboCurrent(); openDetail(a); comboGo(step); updateEditBar();
 }
 function refreshAutoStatus() { const el = document.getElementById('cb-auto'); if (el) el.textContent = EDIT.autoStatus || ''; }
@@ -5394,7 +5475,9 @@ function buildDetailHTML(a) {
       <div class="calc-rb-item"><span class="calc-rb-k">Seismicity Region</span><span class="calc-rb-v">${escHtml(fieldValue('Seismicity') || '-')}</span></div>
       <div class="calc-rb-item"><span class="calc-rb-k">Source</span><span class="calc-rb-v">${escHtml(dbSource)}</span></div>
     </div>`;
-  const calcHTML = `<div class="calc-wrap">
+  const calcRunning = calcKey(a) && CALC_STATE[calcKey(a)] && CALC_STATE[calcKey(a)].status === 'loading';
+  if (calcRunning) setTimeout(seismoStart, 0);
+  const calcHTML = `<div class="calc-wrap">${calcRunning ? `<div class="calc-seismo">${seismoHTML('Taking a reading', '')}</div>` : ''}
       ${dbRibbon}
       <div class="ov-cards calc-cols">
         ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, '')}
