@@ -527,6 +527,18 @@
   .cb-auto:empty { display: none; }
   /* Notes / Reports tabs, P-154 edit layout */
   .rp-wrap { padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .cb-rv-two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .cb-rv-two > .ov-card { margin: 0; }
+  @container (max-width: 760px) { .cb-rv-two { grid-template-columns: 1fr; } .cb-rv-two > .ov-card:last-child { order: -1; } }
+  .ph-note { font-size: 13px; color: var(--text2); margin: 2px 0 10px; }
+  .ph-btns { display: flex; flex-direction: column; gap: 8px; }
+  .ph-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; text-align: left; font: 600 14px 'DM Sans', sans-serif;
+    background: var(--surface); color: var(--text); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+  .ph-btn:hover { border-color: #0B2E6B; }
+  .ph-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .ph-btn.on { background: #0B2E6B; border-color: #0B2E6B; color: #fff; }
+  .ph-cur { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .ph-btn.on .ph-cur { background: rgba(255,255,255,.16); color: #fff; border-color: rgba(255,255,255,.35); }
   .nt-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   @container (max-width: 760px) { .nt-two { grid-template-columns: 1fr; } }
   .nt-na { font-size: 13px; color: var(--text3); font-style: italic; padding: 4px 0; }
@@ -1226,6 +1238,16 @@ const CONFIG = {
   historyField: 'EditHistory',
   // Reports / attachments tab: up to this many files, each up to this size
   reportSlots: 3, reportMaxBytes: 3 * 1024 * 1024,
+  // Reports / attachments are kept on a separate related layer (one building →
+  // many records), linked by ParentID = the building's globalid on parentItemId.
+  // Viewing reads viewItemId; editing reads and writes editItemId.
+  reports: {
+    parentItemId: '70d1f24a8ae34897b3769f587851a756',
+    viewItemId:   '44e9b6ccce7f46b981ec4ff01348087f',
+    editItemId:   'ed145a3c9b1f4a818a97bd78f816e653',
+    layerIndex: 0,
+    fields: { parent: 'ParentID', fileName: 'FileName', city: 'City', state: 'State', county: 'County', slots: ['attachment1', 'attachment2', 'attachment3'] },
+  },
   // Questions the survey marks required (XLSForm "required" column). Required
   // dropdowns don't offer "Not answered"; required text/number boxes can't be
   // left empty. Fields the layer itself marks as not-nullable are added
@@ -2511,8 +2533,8 @@ const MULTI_FILTERS = {
             name: k => { if (k === NO_VALUE) return 'No County'; const [c, st] = k.split('|'); return st ? `${choiceLabel(FIELDS.county, c)}, ${choiceLabel(FIELDS.state, st)}` : choiceLabel(FIELDS.county, c); },
             scope: a => MULTI_FILTERS.state.active.size === 0 || MULTI_FILTERS.state.active.has(MULTI_FILTERS.state.get(a)) },
 };
-function passesMultiFilters(a) {
-  return Object.values(MULTI_FILTERS).every(f => f.active.size === 0 || f.active.has(f.get(a)));
+function passesMultiFilters(a, skipPhase) {
+  return Object.entries(MULTI_FILTERS).every(([k, f]) => (skipPhase && k === 'phase') || f.active.size === 0 || f.active.has(f.get(a)));
 }
 function closeMultiDropdowns(except) {
   Object.entries(MULTI_FILTERS).forEach(([key, f]) => {
@@ -2601,9 +2623,9 @@ function onSearch() { searchTerm = document.getElementById('search-input').value
 
 function toggleSort() { /* sort options removed - list is always newest first */ }
 
-function getFiltered() {
+function getFiltered(skipPhase) {
   let list = assets.filter(a => {
-    if (!passesMultiFilters(a)) return false;
+    if (!passesMultiFilters(a, skipPhase)) return false;
     if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
       const s = a.level1Score;
@@ -2651,7 +2673,19 @@ function renderList() {
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
     statsBar.style.display = 'grid';
-    statsBar.innerHTML = `
+    // Edit mode: how many screenings sit in this session's phase, and how many have moved on to the next
+    // (follows the other filters, not the Phase filter)
+    const qk = queuePhaseIndex(), scope = EDIT_URL_ON ? getFiltered(true) : [], inPhase = k => scope.filter(a => recordPhaseIndex(a) === k).length;
+    if (EDIT_URL_ON) statsBar.innerHTML = `
+      <div class="stats-tile">
+        <div class="stats-label">Queue</div>
+        <div class="stats-num">${inPhase(qk).toLocaleString()}</div>
+      </div>
+      <div class="stats-tile">
+        <div class="stats-label">${qk < PHASE_FLOW.length - 1 ? `Submitted to ${escHtml(PHASE_FLOW[qk + 1].name)}` : 'All Screenings'}</div>
+        <div class="stats-num">${(qk < PHASE_FLOW.length - 1 ? inPhase(qk + 1) : scope.length).toLocaleString()}</div>
+      </div>`;
+    else statsBar.innerHTML = `
       <div class="stats-tile">
         <div class="stats-label">${escHtml(totalLabel)}</div>
         <div class="stats-num">${total.toLocaleString()}</div>
@@ -2978,6 +3012,56 @@ const EDIT_PHASE = (() => {
   return 'field';
 })();
 function phaseCfg() { return (CONFIG.editPhases || {})[window.EDIT_PHASE_OVERRIDE || EDIT_PHASE] || null; }
+// ── Screening phases (the Phase field): Post → QA/QC → Engineer Review → Complete ──
+const PHASE_FLOW = [
+  { key: 'post',     name: 'Post',            match: /^post/ },
+  { key: 'qaqc',     name: 'QA/QC',           match: /^qa(qc)?$/ },
+  { key: 'engineer', name: 'Engineer Review', match: /^engineer/ },
+  { key: 'complete', name: 'Complete',        match: /^complete/ },
+];
+// Position of a Phase value (code or label) in the flow, -1 if it isn't one of the four
+function phaseIndexOf(raw) {
+  if (raw === null || raw === undefined || String(raw).trim() === '') return -1;
+  const vals = [_norm(raw), _norm(choiceLabel(FIELDS.phase, raw))];
+  return PHASE_FLOW.findIndex(p => vals.some(v => p.match.test(v)));
+}
+const recordPhaseIndex = a => phaseIndexOf((a.attrs || {})[FIELDS.phase] ?? a.phase);
+// The phase this edit session works on, from ?phase= (field collection feeds Post)
+function queuePhaseIndex() {
+  const v = _norm(window.EDIT_PHASE_OVERRIDE || EDIT_PHASE), k = PHASE_FLOW.findIndex(p => p.key === v || p.match.test(v));
+  return k < 0 ? 0 : k;
+}
+// The layer's own value for a phase (its coded value, or the value the data already uses)
+function phaseCode(k) {
+  const p = PHASE_FLOW[k]; if (!p) return null;
+  const hit = Object.entries(DOMAIN_LABELS[FIELDS.phase] || {}).find(([c, l]) => p.match.test(_norm(l)) || p.match.test(_norm(c)));
+  if (hit) return hit[0];
+  const seen = (typeof assets !== 'undefined' ? assets : []).map(a => (a.attrs || {})[FIELDS.phase]).find(v => phaseIndexOf(v) === k);
+  return seen ?? p.name;
+}
+// Edit mode: start each screening set to move on to the next phase
+function setDefaultPhaseMove() {
+  const cur = phaseIndexOf(EDIT.orig[FIELDS.phase]), next = Math.min(cur < 0 ? queuePhaseIndex() : cur + 1, PHASE_FLOW.length - 1);
+  delete EDIT.draft[FIELDS.phase]; EDIT.phaseAuto = false;
+  if (next !== cur) { EDIT.draft[FIELDS.phase] = phaseCode(next); EDIT.phaseAuto = true; }
+}
+// Unsaved changes the user made themselves (the automatic next-phase default doesn't count)
+function userChanges() { return editChanged().filter(f => !(f === FIELDS.phase && EDIT.phaseAuto)); }
+function phaseMoveHTML() {
+  const cur = phaseIndexOf(EDIT.orig[FIELDS.phase]), sel = phaseIndexOf(editVal(FIELDS.phase));
+  const btns = PHASE_FLOW.map((p, k) => `<button type="button" class="ph-btn${k === sel ? ' on' : ''}" aria-pressed="${k === sel}" onclick="phaseMove(${k})">
+      <span>${escHtml(p.name)}</span>${k === cur ? '<span class="ph-cur">Current</span>' : ''}</button>`).join('');
+  return `<div class="ov-card p2-card"><div class="ov-card-title">Screening Phase</div>
+    <div class="ph-note">Move this screening to:</div>
+    <div class="ph-btns" role="group" aria-label="Move this screening to">${btns}</div>
+    ${cur < 0 ? `<div class="ph-note">Current phase: ${escHtml(choiceLabel(FIELDS.phase, EDIT.orig[FIELDS.phase]) || 'No phase')}</div>` : ''}</div>`;
+}
+function phaseMove(k) {
+  k = Number(k); EDIT.phaseAuto = false;
+  const code = k < 0 ? EDIT.orig[FIELDS.phase] : phaseCode(k);
+  if (_raw(code) === _raw(EDIT.orig[FIELDS.phase])) delete EDIT.draft[FIELDS.phase]; else EDIT.draft[FIELDS.phase] = code;
+  renderComboReview(); updateEditBar();
+}
 // In a configured phase: 'edit' | 'view' | 'hidden' for a field (null = field-phase rules)
 function phaseMode(f) {
   const ph = phaseCfg(); if (!ph) return null;
@@ -3588,10 +3672,10 @@ function renderComboReview() {
   EDIT.missing = miss;
   const missHtml = miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
       <span>These became required because of an answer you changed (for example, a generator now marked Yes needs "Generator anchored").</span></div>` : '';
-  el.innerHTML = missHtml + (ch.length
+  el.innerHTML = missHtml + `<div class="cb-rv-two">` + (ch.length
     ? `<div class="ov-card p2-card"><div class="ov-card-title">Review your changes</div><div class="ed-rv-body"><div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>${ch.map(f =>
         `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('')}</div><div class="ed-rv-msg" role="alert"></div></div>`
-    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`);
+    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`) + phaseMoveHTML() + '</div>';
 }
 async function comboSave(btn) {
   const a = currentRecord(); if (!a) return;
@@ -3620,13 +3704,11 @@ async function comboSave(btn) {
   try {
     if (Object.keys(attrs).length) await saveEditsToLayer(a, attrs);
     // attachments: removals, then new files
-    const infos = String(LAST_ATTACH.id) === String(a.id) ? LAST_ATTACH.infos : [];
-    for (const f of changes.filter(x => /^__del\d$/.test(x))) { const k = Number(f.slice(5)); const ex = infos.find(i => reportSlotOf(i) === k); if (ex) await deleteReport(a, ex.id); }
-    for (const f of changes.filter(x => /^__att\d$/.test(x))) { const k = Number(f.slice(5)); if (REPORT_PENDING[k]) await uploadReport(a, k, REPORT_PENDING[k]); }
+    if (changes.some(f => /^__(att|del)\d+$/.test(f))) await saveReports(a, changes);
     Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
     applySavedEdits(a, attrs); updateEditButton();
-    if (changes.some(f => f.startsWith('__'))) loadAttachments(a.id);
+    if (changes.some(f => f.startsWith('__'))) loadReports(a);
     showToast(`Saved ${changes.length} change${changes.length > 1 ? 's' : ''}`);
   } catch (e) { btn.disabled = false; btn.textContent = 'Save changes'; const m = document.querySelector('#cb-review .ed-rv-msg'); if (m) m.textContent = `Couldn't save: ${e.message || e}`; }
 }
@@ -3689,7 +3771,7 @@ function restartComboEdit() {
   const go = () => { const a = currentRecord(); if (!a) return;
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.invalid = {}; EDIT.missing = [];
     startComboEdit(); showToast('Changes discarded - back to step 1'); };
-  if (!editChanged().length) return go();
+  if (!userChanges().length) return go();
   appConfirm('Discard your changes and start again from step 1?', 'Discard changes', 'Keep editing').then(ok => { if (ok) go(); });
 }
 // ── Notes tab (editors only): comments + edit history ──
@@ -3791,36 +3873,130 @@ function p154ScorePane(a) {
     `<div class="p2-row p2-final"><div class="p2-k">Final Level 1 Score (S<sub>MIN</sub> = ${c.T.smin.toFixed(1)})</div><div class="p2-v">${c.final.toFixed(1)}</div></div>`,
   ].join('');
 }
-function refreshScorePane() { const el = document.getElementById('cb-score'); const a = currentRecord(); if (el && a) el.innerHTML = p154ScorePane(a); }
+function refreshScorePane() { const el = document.getElementById('cb-score'); const a = currentRecord(); if (el && a) el.innerHTML = p154ScorePane(a); refreshHeaderScore(); }
+// Header "Final RVS Score" follows the live P-154 score while editing, once a
+// modifier changes (same fields and rule as the score update on Save)
+const SCORE_INPUTS = ['FEMABuildingType', 'VertIrregularitiesPresent', 'PlanIrregularitiesPresent', 'PreCodeQ', 'PostBenchmarkQ', 'SoilType', 'Seismicity', 'StoriesAboveGrade'];
+function liveHeaderScore(a) {
+  if (!a || !EDIT.on || String(EDIT.id) !== String(a.id) || a.surveyType === 'Nonstructural Screening') return null;
+  if (!editChanged().some(f => SCORE_INPUTS.includes(f))) return null;
+  const c = computeP154(f => editCurrent(f) ?? (a.attrs || {})[f]);
+  return c.T ? c.final : null;
+}
+function refreshHeaderScore() {
+  const a = currentRecord(); const pill = document.querySelector('#sheet-body .sheet-score-pill'); if (!a || !pill) return;
+  const live = liveHeaderScore(a), info = scoreLabel(live ?? a.level1Score, a.surveyType);
+  pill.textContent = info.short; if (pill.parentNode) pill.parentNode.title = info.desc;
+}
 
 // ── Reports / Attachments tab ──
+// Files live on a separate related layer (one building → many related records),
+// linked by ParentID = the building's globalid on the parent layer
+// (CONFIG.reports.parentItemId). Viewing reads the view layer; while editing,
+// the editable layer is read and written. Each save that adds files creates one
+// related record holding up to CONFIG.reportSlots files (attachment1..3).
+// Building photos still come from the screening record's own attachments.
 let LAST_ATTACH = { id: null, infos: [] };
 const REPORT_PENDING = {};   // slot → File (chosen in edit mode, uploaded on Save)
-function reportSlotOf(info) { const m = String(info.keywords || '').match(/^report\s*([1-9])$/i) || String(info.name || '').match(/^report[_\s-]?([1-9])\b/i); return m ? Number(m[1]) : null; }
+const REPORTS = { id: null, src: null, state: 'idle', msg: '', rows: [], files: [], req: 0 };
+const _ITEM_URLS = {}, _LAYER_INFO = {}, _PARENT_GID = {};
+async function itemLayerUrl(itemId) {
+  if (_ITEM_URLS[itemId]) return _ITEM_URLS[itemId];
+  const data = await arcgisFetch(`${CONFIG.itemInfoUrl}/${itemId}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+  if (!data.url) throw new Error(`item ${itemId} has no hosted service URL`);
+  let url = String(data.url).replace(/\/+$/, '');
+  if (!/\/\d+$/.test(url)) url += `/${(CONFIG.reports && CONFIG.reports.layerIndex) || 0}`;
+  return (_ITEM_URLS[itemId] = url);
+}
+async function layerInfoOf(url) {
+  return _LAYER_INFO[url] || (_LAYER_INFO[url] = await arcgisFetch(`${url}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`));
+}
+// Real field name on a layer (case-insensitive), or null if the layer doesn't have it
+function layerField(info, name) { const f = (info.fields || []).find(x => x.name.toLowerCase() === String(name).toLowerCase()); return f || null; }
+const _gidOf = at => { const k = Object.keys(at || {}).find(n => /^globalid$/i.test(n)); return k ? String(at[k]) : ''; };
+const _sqlq = v => `'${String(v).replace(/'/g, "''")}'`;
+// The building's globalid on the parent layer (the screening records' layer)
+async function reportParentGid(a) {
+  if (_PARENT_GID[a.id]) return _PARENT_GID[a.id];
+  const R = CONFIG.reports, own = _gidOf(a.attrs);
+  if (activeItemId() === R.parentItemId) { if (!own) throw new Error('this record has no globalid'); return (_PARENT_GID[a.id] = own); }
+  // Opened on another layer (e.g. the editable one): find the same building on the parent layer
+  const purl = await itemLayerUrl(R.parentItemId), pinfo = await layerInfoOf(purl);
+  const gidField = pinfo.globalIdField || 'globalid', oidField = pinfo.objectIdField || 'objectid';
+  const q = async where => (await arcgisFetch(`${purl}/query?where=${encodeURIComponent(where)}&outFields=${encodeURIComponent(gidField)}&returnGeometry=false&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`)).features || [];
+  let hit = own ? await q(`${gidField} = ${_sqlq(own)}`) : [];
+  if (!hit.length) { hit = await q(`${oidField} = ${Number(a.id)}`); if (hit.length) console.warn('[RVS] reports: matched parent record by objectid, globalid differs between layers'); }
+  if (!hit.length) throw new Error('this building was not found on the parent layer');
+  return (_PARENT_GID[a.id] = String(hit[0].attributes[gidField]));
+}
+function reportsSource(a) { return (EDIT.on && String(EDIT.id) === String(a.id)) ? 'edit' : 'view'; }
+async function loadReports(a) {
+  const R = CONFIG.reports; if (!R || !TOKEN || !a) return;
+  const src = reportsSource(a), req = ++REPORTS.req;
+  if (String(REPORTS.id) !== String(a.id) || REPORTS.src !== src) Object.assign(REPORTS, { id: a.id, src, state: 'loading', msg: '', rows: [], files: [] });
+  renderReports();
+  try {
+    const url = await itemLayerUrl(src === 'edit' ? R.editItemId : R.viewItemId), info = await layerInfoOf(url);
+    const gid = await reportParentGid(a), bare = gid.replace(/[{}]/g, '');
+    const pf = (layerField(info, R.fields.parent) || {}).name || R.fields.parent, oidF = info.objectIdField || 'objectid';
+    const vals = [...new Set([`{${bare.toUpperCase()}}`, `{${bare.toLowerCase()}}`, bare.toUpperCase(), bare.toLowerCase()])].map(_sqlq).join(',');
+    const rows = (await arcgisFetch(`${url}/query?where=${encodeURIComponent(`${pf} IN (${vals})`)}&outFields=*&returnGeometry=false&orderByFields=${encodeURIComponent(oidF)}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`)).features || [];
+    const files = [];
+    if (rows.length) {
+      const ids = rows.map(r => r.attributes[oidF]);
+      let groups = [];
+      try { groups = (await arcgisFetch(`${url}/queryAttachments?objectIds=${ids.join(',')}&returnMetadata=true&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`)).attachmentGroups || []; }
+      catch { for (const id of ids) { const d = await arcgisFetch(`${url}/${id}/attachments?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`); groups.push({ parentObjectId: id, attachmentInfos: d.attachmentInfos || [] }); } }
+      ids.forEach(rid => {
+        const g = groups.find(x => String(x.parentObjectId) === String(rid)); if (!g) return;
+        g.attachmentInfos.map(i => ({ i, slot: Number((String(i.keywords || '').match(/attachment\s*_?(\d+)/i) || [])[1]) || 99 }))
+          .sort((x, y) => x.slot - y.slot || x.i.id - y.i.id).forEach(({ i, slot }) => {
+            let u = i.url || `${url}/${rid}/attachments/${i.id}`;
+            if (!/^(data|blob):/.test(u) && !/[?&]token=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN.accessToken);
+            files.push({ rid, attId: i.id, slot, name: i.name, size: i.size, contentType: i.contentType, url: u });
+          });
+      });
+    }
+    if (req !== REPORTS.req) return;
+    Object.assign(REPORTS, { id: a.id, src, state: 'ok', msg: '', rows: rows.map(r => r.attributes), files, oidF });
+  } catch (e) {
+    if (req !== REPORTS.req) return;
+    console.warn('[RVS] reports layer', e);
+    Object.assign(REPORTS, { id: a.id, src, state: 'error', msg: e.message || String(e), rows: [], files: [] });
+  }
+  renderReports();
+}
 function renderReports() {
   const el = document.getElementById('reports-area'); const a = currentRecord(); if (!el || !a) return;
-  const infos = String(LAST_ATTACH.id) === String(a.id) ? LAST_ATTACH.infos : [];
+  const mine = String(REPORTS.id) === String(a.id);
   const editing = EDIT.on && String(EDIT.id) === String(a.id) && canEditRecords();
   const n = CONFIG.reportSlots || 3, maxMB = ((CONFIG.reportMaxBytes || 3e6) / 1048576).toFixed(0);
-  const bySlot = {}; infos.forEach(i => { const k = reportSlotOf(i); if (k && k <= n && !bySlot[k]) bySlot[k] = i; });
   const size = b => b ? (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB') : '';
-  let html = '', shownEmpty = false;
-  for (let k = 1; k <= n; k++) {
-    const ex = bySlot[k], pend = REPORT_PENDING[k], removing = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, '__del' + k);
-    if (ex && !removing) {
-      html += `<div class="rp-row"><span class="rp-n">${k}</span><a class="rp-name" href="${escHtml(ex.url)}" target="_blank" rel="noopener">${escHtml(ex.name)}</a><span class="rp-size">${size(ex.size)}</span>
-        ${editing ? `<button class="ie-x" onclick="reportRemove(${k}, ${JSON.stringify(ex.name).replace(/"/g, '&quot;')})">Remove</button>` : ''}</div>`;
-    } else if (pend && editing) {
-      html += `<div class="rp-row rp-pend"><span class="rp-n">${k}</span><span class="rp-name">${escHtml(pend.name)}</span><span class="rp-size">${size(pend.size)} · will upload on save</span><button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`;
-    } else if (editing && !shownEmpty) {
-      shownEmpty = true;                          // only the next empty slot is offered
-      html += `<div class="rp-drop-wrap"><label class="rp-drop" ondragover="event.preventDefault(); this.classList.add('over')" ondragleave="this.classList.remove('over')"
-          ondrop="event.preventDefault(); this.classList.remove('over'); reportDrop(${k}, event)">
-        <svg class="rp-clip" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        <span class="rp-drop-t">Click to attach or drag &amp; drop</span>
-        <span class="rp-drop-s">Attachment ${k} of ${n} - max ${maxMB} MB</span>
-        <input type="file" class="rp-file" onchange="reportPick(${k}, this)"></label>
-        <div class="ed-err" hidden></div></div>`;
+  if (!mine || REPORTS.state === 'loading' || REPORTS.state === 'idle') { el.innerHTML = '<div class="nt-na">Loading attachments…</div>'; return; }
+  if (REPORTS.state === 'error') { el.innerHTML = `<div class="nt-na">Couldn't load the attachments: ${escHtml(REPORTS.msg)}</div>`; return; }
+  let html = '', num = 0;
+  REPORTS.files.forEach(x => {
+    const removing = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, '__del' + x.attId);
+    if (removing) return;
+    num++;
+    html += `<div class="rp-row"><span class="rp-n">${num}</span><a class="rp-name" href="${escHtml(x.url)}" target="_blank" rel="noopener">${escHtml(x.name)}</a><span class="rp-size">${size(x.size)}</span>
+      ${editing ? `<button class="ie-x" onclick="reportRemove(${x.attId})">Remove</button>` : ''}</div>`;
+  });
+  if (editing) {
+    let shownEmpty = false;
+    for (let k = 1; k <= n; k++) {
+      const pend = REPORT_PENDING[k];
+      if (pend) { num++; html += `<div class="rp-row rp-pend"><span class="rp-n">${num}</span><span class="rp-name">${escHtml(pend.name)}</span><span class="rp-size">${size(pend.size)} · will upload on save</span><button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`; }
+      else if (!shownEmpty) {
+        shownEmpty = true;                          // only the next empty slot is offered
+        html += `<div class="rp-drop-wrap"><label class="rp-drop" ondragover="event.preventDefault(); this.classList.add('over')" ondragleave="this.classList.remove('over')"
+            ondrop="event.preventDefault(); this.classList.remove('over'); reportDrop(${k}, event)">
+          <svg class="rp-clip" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span class="rp-drop-t">Click to attach or drag &amp; drop</span>
+          <span class="rp-drop-s">Attachment ${k} of ${n} - max ${maxMB} MB</span>
+          <input type="file" class="rp-file" onchange="reportPick(${k}, this)"></label>
+          <div class="ed-err" hidden></div></div>`;
+      }
     }
   }
   el.innerHTML = html || '<div class="nt-na">No reports or attachments yet.</div>';
@@ -3836,16 +4012,44 @@ function reportPick(k, input) {
   REPORT_PENDING[k] = f; EDIT.draft['__att' + k] = f.name; renderReports(); updateEditBar();
 }
 function reportUnpick(k) { delete REPORT_PENDING[k]; delete EDIT.draft['__att' + k]; renderReports(); updateEditBar(); }
-function reportRemove(k, name) { EDIT.orig['__del' + k] = name; EDIT.draft['__del' + k] = 'Removed'; renderReports(); updateEditBar(); }
-async function uploadReport(a, k, file) {
-  const fd = new FormData(); fd.append('attachment', file, file.name); fd.append('keywords', 'Report' + k); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
-  const j = await (await fetch(`${CONFIG.serviceUrl}/${a.id}/addAttachment`, { method: 'POST', body: fd })).json();
-  if (j.error || !(j.addAttachmentResult && j.addAttachmentResult.success)) throw new Error((j.error && j.error.message) || `attachment ${k} was not added`);
+function reportRemove(attId) { const x = REPORTS.files.find(f => f.attId === attId); if (!x) return; EDIT.orig['__del' + attId] = x.name; EDIT.draft['__del' + attId] = 'Removed'; renderReports(); updateEditBar(); }
+async function repPost(url, params) {
+  const j = await (await fetch(url, { method: 'POST', body: new URLSearchParams(Object.assign({ f: 'json', token: TOKEN.accessToken }, params)) })).json();
+  if (j.error) throw new Error(/permission|not authorized|403|does not have/i.test(j.error.message || '') ? "your account can't edit the attachments layer" : (j.error.message || 'the attachments layer refused the edit'));
+  return j;
 }
-async function deleteReport(a, id) {
-  const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, attachmentIds: String(id) });
-  const j = await (await fetch(`${CONFIG.serviceUrl}/${a.id}/deleteAttachments`, { method: 'POST', body })).json();
-  if (j.error) throw new Error(j.error.message || 'attachment was not removed');
+// Save the attachment changes in this edit to the editable related layer
+async function saveReports(a, changes) {
+  const R = CONFIG.reports, url = await itemLayerUrl(R.editItemId), info = await layerInfoOf(url);
+  const oidF = info.objectIdField || 'objectid', F = n => (layerField(info, n) || {}).name;
+  // removals: drop each file; a related record left with no files is removed too
+  const dels = changes.filter(f => /^__del\d+$/.test(f)).map(f => Number(f.slice(5)));
+  const byRec = {}; dels.forEach(id => { const x = REPORTS.files.find(f => f.attId === id); if (x) (byRec[x.rid] = byRec[x.rid] || []).push(x); });
+  for (const [rid, xs] of Object.entries(byRec)) {
+    await repPost(`${url}/${rid}/deleteAttachments`, { attachmentIds: xs.map(x => x.attId).join(',') });
+    const left = REPORTS.files.filter(f => String(f.rid) === String(rid) && !xs.includes(f));
+    if (!left.length) await repPost(`${url}/applyEdits`, { deletes: String(rid) });
+    else { const clr = Object.fromEntries(xs.map(x => F(R.fields.slots[x.slot - 1] || '')).filter(Boolean).map(f => [f, null])); if (Object.keys(clr).length) await repPost(`${url}/applyEdits`, { updates: JSON.stringify([{ attributes: Object.assign({ [oidF]: Number(rid) }, clr) }]) }); }
+  }
+  // new files: one new related record holding them as attachment1..3
+  const adds = Object.keys(REPORT_PENDING).map(Number).sort((x, y) => x - y).filter(k => changes.includes('__att' + k) && REPORT_PENDING[k]);
+  if (!adds.length) return;
+  const gid = await reportParentGid(a), at = a.attrs || {}, attrs = {};
+  const put = (name, v) => { const f = layerField(info, name); if (!f || v === undefined || v === null || v === '') return; attrs[f.name] = (f.type === 'esriFieldTypeString' && f.length) ? String(v).slice(0, f.length) : v; };
+  put(R.fields.parent, gid);
+  put(R.fields.fileName, adds.map(k => REPORT_PENDING[k].name).join('; '));
+  put(R.fields.city, at.City ?? a.city); put(R.fields.state, at.State ?? a.state); put(R.fields.county, at.County ?? a.county);
+  adds.forEach((k, n) => { const sf = layerField(info, R.fields.slots[n] || ''); if (sf && sf.type === 'esriFieldTypeString') put(sf.name, REPORT_PENDING[k].name); });
+  const feature = { attributes: attrs };
+  if (info.geometryType && typeof a.lat === 'number' && typeof a.lng === 'number') feature.geometry = { x: a.lng, y: a.lat, spatialReference: { wkid: 4326 } };
+  const j = await repPost(`${url}/applyEdits`, { adds: JSON.stringify([feature]), rollbackOnFailure: 'true' });
+  const r = (j.addResults || [])[0]; if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'the attachments record was not created');
+  for (let n = 0; n < adds.length; n++) {
+    const file = REPORT_PENDING[adds[n]], fd = new FormData();
+    fd.append('attachment', file, file.name); fd.append('keywords', R.fields.slots[n] || ('attachment' + (n + 1))); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
+    const k = await (await fetch(`${url}/${r.objectId}/addAttachment`, { method: 'POST', body: fd })).json();
+    if (k.error || !(k.addAttachmentResult && k.addAttachmentResult.success)) throw new Error((k.error && k.error.message) || `${file.name} was not uploaded`);
+  }
 }
 
 function startComboEdit() {
@@ -3853,7 +4057,7 @@ function startComboEdit() {
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
   Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
-  EDIT.autoStatus = '';
+  EDIT.autoStatus = ''; setDefaultPhaseMove();
   openDetail(a); comboGo('overview'); updateEditButton();
   if (phaseCfg() && phaseCfg().autoFill) autoFillFromLookups(a);
 }
@@ -3888,13 +4092,14 @@ function toggleEditMode() {
   updateEditButton();
 }
 function cancelEdit(skipConfirm, then) {
-  if (!skipConfirm && editChanged().length) {
+  if (!skipConfirm && userChanges().length) {
     appConfirm('Discard your unsaved changes?').then(ok => { if (ok) { cancelEdit(true); if (typeof then === 'function') then(); } });
     return false;
   }
   const a = assets.find(x => String(x.id) === String(EDIT.id));
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
   EDIT.on = false; EDIT.mode = null; EDIT.id = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
+  Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
   closeEditReview();
   if (a && String(selectedId) === String(a.id)) { openDetail(a); switchDetailTab(tab); }
   updateEditButton();
@@ -3904,7 +4109,7 @@ function editLabel(f) {
   const a = assets.find(x => String(x.id) === String(EDIT.id)) || { attrs: {} };
   if (f === 'BuildingName') return 'Building name';
   if (/^__att\d$/.test(f)) return `Attachment ${f.slice(5)}`;
-  if (/^__del\d$/.test(f)) return `Remove attachment ${f.slice(5)}`;
+  if (/^__del\d+$/.test(f)) return 'Remove attachment';
   const extra = { OtherHazards: 'Other hazards (trigger a detailed evaluation)', Level1Comments: 'Screener comments', ReviewComments: 'Comments for engineer', EngineerNotes: 'Engineer comments', SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
   if (extra[f]) return extra[f];
   const ph = phaseCfg(); if (ph && ph.editable && ph.editable[f]) return ph.editable[f][0];
@@ -4066,9 +4271,9 @@ function historySummary(changes) {
   const parts = [];
   if (fields.length) parts.push(`${[...new Set(fields.map(f => editLabel(f)))].join(', ')} set`);
   if (changes.includes('Phase')) parts.push(`phase set to ${choiceLabel('Phase', EDIT.draft.Phase) || 'blank'}`);
-  const add = changes.filter(f => /^__att\d$/.test(f)).map(f => f.slice(5)), del = changes.filter(f => /^__del\d$/.test(f)).map(f => f.slice(5));
-  if (add.length) parts.push(`Attachment${add.length > 1 ? 's' : ''} ${add.join(', ')} appended`);
-  if (del.length) parts.push(`Attachment${del.length > 1 ? 's' : ''} ${del.join(', ')} removed`);
+  const add = changes.filter(f => /^__att\d+$/.test(f)).map(f => EDIT.draft[f]), del = changes.filter(f => /^__del\d+$/.test(f)).map(f => EDIT.orig[f]);
+  if (add.length) parts.push(`${add.join(', ')} attached`);
+  if (del.length) parts.push(`${del.join(', ')} removed`);
   const txt = parts.join('; '); return txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
@@ -4148,7 +4353,7 @@ DESKTOP_MQ.addEventListener('change', () => {
 function openDetail(a) {
   setTimeout(updateEditButton, 0);
   setTimeout(renderReports, 0);
-  setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); }, 0);
+  setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); refreshHeaderScore(); }, 0);
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
@@ -4156,8 +4361,9 @@ function openDetail(a) {
   positionDetailPanel();
   sheet.classList.add('open');
   if (!DESKTOP_MQ.matches) document.body.style.overflow = 'hidden';
-  // Load attachments
+  // Load attachments (photos from the record, reports from the related layer)
   loadAttachments(a.id);
+  loadReports(a);
 }
 function closeDetail() {
   if (EDIT.on && !cancelEdit(false, closeDetail)) return;
@@ -4266,7 +4472,7 @@ function buildDetailHTML(a) {
     ['Date of Screening', [fmtShort(a.dateRaw) || a.dateStr || 'Not recorded']],
     ['Building Details & Screening Information', [
       line('Year Built', fieldValue('YearBuilt')), line('Additions', fieldValue('Additions')), line('Additions Year Built', addlYear),
-      line('Square Feet', fieldValue('TotalFloorArea')), line('# of Stories', fieldValue('StoriesAboveGrade')),
+      line('Square Feet', fieldValue('TotalFloorArea')), line('# of Stories Above Grade', fieldValue('StoriesAboveGrade')), line('# of Stories Below Grade', fieldValue('StoriesBelowGrade')),
       line('Facility Type', a.facilityType), line('Is Shelter', fieldValue('IsShelter')), line('Construction Type', constructionType),
       line('FEMA Building Type', fieldValue('FEMABuildingType')), line('Seismicity', fieldValue('Seismicity')), line('Soil Type', fieldValue('SoilType'))]],
     ['Score Modifiers', [
@@ -4339,7 +4545,7 @@ function buildDetailHTML(a) {
         </div>
         <div class="ov-cards">
           <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
-            ['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Latitude/Longitude', latLongStr, '', 'location'], ['Stories', storiesStr, '', 'StoriesAboveGrade'],
+            ['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Latitude/Longitude', latLongStr, '', 'location'], ['Stories Above Grade', stAbove, '', 'StoriesAboveGrade'], ['Stories Below Grade', stBelow, '', 'StoriesBelowGrade'],
             ['Total Floor Area (sq. ft.)', sqft, '', 'TotalFloorArea'], ['Year Built Estimated?', fieldValue('YearBuiltEstimated'), '', 'YearBuiltEstimated'],
             ['Additions Year Built', addlYearStr, '', 'AdditionsYearBuilt'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy'], ['Geologic Hazards', geoHazStr, '', 'Liquefaction,Landslide,SurfaceRupture']])}${otherOccHtml}</div>
           <div class="ov-card"><div class="ov-card-title">Screening Record</div>${kvRows([
