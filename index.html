@@ -364,6 +364,15 @@
   .ov-pair:has(> .cb-live)::before { background: var(--cusec-gold); }
   .ov-pair > .ov-half > .ov-v { min-height: 29px; display: flex; align-items: center; }
   .ov-pair > .ov-half > .ov-v.cb-cell { display: block; }
+  .rp-acts { display: inline-flex; gap: 6px; }
+  .rpn-card { width: min(420px, 100%); }
+  .rpn-file { font-size: 12.5px; color: var(--text3); margin: -8px 0 12px; overflow-wrap: anywhere; }
+  .rpn-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .rpn-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; }
+  .rpn-opt:has(input:checked) { border-color: #0B2E6B; background: #eef3ff; }
+  .rpn-other { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .rpn-other[hidden] { display: none; }
+  .rpn-err { margin-bottom: 8px; }
   .rp-pend-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .rp-fn-k { font: 600 11px 'DM Sans', sans-serif; color: #4a5363; }
   .rp-fn.ed-bad { border-color: #c62828; }
@@ -924,7 +933,16 @@
   .sheet-ribbon {
     margin: 14px 60px 0 20px; border-radius: var(--radius-sm); padding: 13px 16px;
     background: #0B2E6B; color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.2px; /* panel header color */
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px;
   }
+  .sr-title { min-width: 0; }
+  .ph-pill { display: inline-flex; align-items: center; gap: 6px; font: 700 12.5px/1 'DM Sans', sans-serif; letter-spacing: 0.2px; padding: 6px 11px; border-radius: 999px; white-space: nowrap; }
+  .ph-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .75; }
+  .ph-pill-field    { background: #d5dbe4; color: #1f2a3a; }
+  .ph-pill-post     { background: #f2c94c; color: #3a2a00; }
+  .ph-pill-qaqc     { background: #a9c8ff; color: #0b2350; }
+  .ph-pill-engineer { background: #cdb9ff; color: #2b1660; }
+  .ph-pill-complete { background: #93dcab; color: #0b3a1f; }
   .sheet-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
   .sheet-header-text { min-width: 0; flex: 1; }
   .sheet-score { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -1384,7 +1402,7 @@ const CONFIG = {
         Occupancy: ['Occupancy Type', 'select'], OccupancyOthers: ['Shelter / Government / Historic', 'multi'],
         YearBuiltEstimated: ['Year Built Estimated?', 'yesno'], Additions: ['Additions', 'yesno'], AdditionsYearBuilt: ['Additions Year Built', 'int', 1600, new Date().getFullYear()],
         Latitude: ['Latitude', 'location'], Longitude: ['Longitude', 'location'],
-        Address: ['Address', 'text'], City: ['City', 'text'], ZIP: ['ZIP', 'text'],
+        Address: ['Address', 'text'], City: ['City', 'text'],
         StoriesAboveGrade: ['Stories above grade', 'int', 0, 150], StoriesBelowGrade: ['Stories below grade', 'int', 0, 20],
         TotalFloorArea: ['Total Floor Area (sq. ft.)', 'number', 0, 1e8], YearBuilt: ['Year Built', 'int', 1600, new Date().getFullYear()],
         FEMABuildingType: ['FEMA Building Type', 'select'], SoilType: ['Soil Type', 'select'],
@@ -1399,7 +1417,7 @@ const CONFIG = {
       },
       // calculated / read-only in that form: still shown in the app, never editable
       // Ss / S1 are filled by the ASCE 7-22 lookup and can't be typed over
-      viewOnly: ['State', 'County', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
+      viewOnly: ['State', 'County', 'ZIP', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
       // everything else the app can edit is hidden in that form → not part of this phase
       required: { SoilType: '', Seismicity: '' },
       // When editing starts, run the functions.js lookups and fill these in:
@@ -1407,6 +1425,8 @@ const CONFIG = {
       // Ss / S1 thresholds, Soil Type from USGS Vs30, Liquefaction from the
       // susceptibility map. They show as changes to review before saving.
       autoFill: true,
+      // every other item the app can edit is editable too (the edit-step lists), not only the ones above
+      editAll: true,
       relevant: {
         FEMABuildingType: "${SurveyType}='P-154 Rapid Visual Screening'", CodeYear: "${SurveyType}='P-154 Rapid Visual Screening'",
         PreCodeQ: "${SurveyType}='P-154 Rapid Visual Screening'", PostBenchmarkQ: "${SurveyType}='P-154 Rapid Visual Screening'",
@@ -3143,6 +3163,13 @@ const EDIT_PHASE = (() => {
   } catch {}
   return 'field';
 })();
+// Colored bubble in the panel's title bar showing which edit phase this session is in
+function sessionPhasePill() {
+  if (!EDIT_URL_ON || !phaseCfg()) return '';          // plain ?edit=1 (field collection): no bubble
+  const k = phaseKey();
+  const L = { field: 'Field Collection', post: 'Post Data Collection', qaqc: 'QA/QC', engineer: 'Engineer Review', complete: 'Complete' };
+  return `<span class="ph-pill ph-pill-${escHtml(k)}" title="You are in the ${escHtml(L[k] || k)} edit">${escHtml(L[k] || k)}</span>`;
+}
 // ?phase= value → editPhases key (post, qaqc, engineer, complete; 'field' or unknown = field collection rules)
 function phaseKey() {
   const v = String(window.EDIT_PHASE_OVERRIDE || EDIT_PHASE || '').toLowerCase(), n = _norm(v), P = CONFIG.editPhases || {};
@@ -3268,9 +3295,23 @@ function phaseMove(k) {
   renderComboReview(); updateEditBar();
 }
 // In a configured phase: 'edit' | 'view' | 'hidden' for a field (null = field-phase rules)
+// [label, type, min, max] when f can be edited in this phase, else null
+function phaseEditable(f) {
+  const ph = phaseCfg(); if (!ph) return null;
+  if ((ph.viewOnly || []).includes(f)) return null;
+  if (ph.editable && ph.editable[f]) return ph.editable[f];
+  if (ph.editAll) {
+    const a = (typeof currentRecord === 'function' && currentRecord()) || { attrs: {} };
+    for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) {
+      const hit = fields.find(x => x[0] === f);
+      if (hit && !['calc', 'lock'].includes(hit[2])) return [hit[1], hit[2], hit[3], hit[4]];
+    }
+  }
+  return null;
+}
 function phaseMode(f) {
   const ph = phaseCfg(); if (!ph) return null;
-  if (ph.editable && ph.editable[f]) return 'edit';
+  if (phaseEditable(f)) return 'edit';
   if ((ph.viewOnly || []).includes(f)) return 'view';
   return 'hidden';
 }   // the editable layer gets its own offline cache
@@ -3359,16 +3400,18 @@ function EDIT_TABS(a) {
   const contact = editField(a, 'ContactPerson', [/^facility_?contact$/i, /^contact_?person$/i]);
   return {
     overview: [
-      ['Site & Seismicity', [['Seismicity', 'Seismicity', 'lock'], ['SoilType', 'Soil Type', 'lock'], ['FEMABuildingType', 'FEMA Building Type', 'select'],
+      ['Site & Seismicity', [['Seismicity', 'Seismicity', 'select'], ['SoilType', 'Soil Type', 'select'], ['FEMABuildingType', 'FEMA Building Type', 'select'],
         ['SsSpectralAcc', 'Ss (g)', 'calc'], ['S1SpectralAcc', 'S1 (g)', 'calc']]],
       ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['Latitude', 'Latitude', 'location'], ['Longitude', 'Longitude', 'location'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
         ['TotalFloorArea', 'Total Floor Area (sq. ft.)', 'number', 0, 1e8], ['YearBuilt', 'Year Built', 'int', 1600, new Date().getFullYear()], ['YearBuiltEstimated', 'Year Built Estimated?', 'yesno'],
         ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
         ['Occupancy', 'Occupancy Type', 'select'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
         ['Liquefaction', 'Liquefaction', 'yesno_dnk'], ['Landslide', 'Landslide', 'yesno_dnk'], ['SurfaceRupture', 'Surface Rupture', 'yesno_dnk']]],
-      ['Screening Record', [['SurveyDate', 'Date of screening', 'lock'], ['SurveyType', 'Screening Type', 'lock'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
+      ['Screening Record', [['SurveyDate', 'Date of screening', 'date'], ['SurveyType', 'Screening Type', 'select'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
         ['Exterior', 'Exterior Review', 'select'], ['Interior', 'Interior Review', 'select'], ['DrawingsReviewed', 'Drawings Reviewed', 'yesno'],
-        [soilSrc, 'Soil Type Source', 'lock'], [geoSrc, 'Geologic Hazard Source', 'lock'], [contact, 'Facility Contact', 'lock']]],
+        [soilSrc, 'Soil Type Source', 'text'], [geoSrc, 'Geologic Hazard Source', 'text'], [contact, 'Facility Contact', 'text']]],
+      // header address: Address and City editable; State, ZIP and County view only
+      ['Address', [['Address', 'Address', 'text'], ['City', 'City', 'text'], ['State', 'State', 'calc'], ['ZIP', 'ZIP', 'calc'], ['County', 'County', 'calc']]],
     ],
     p154: [
       ['Screening', [['CodeYear', 'Code Year', 'text'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
@@ -3411,7 +3454,7 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
   if (phaseCfg()) {                      // edit phase decides what can be edited
     const m = phaseMode(f);
     if (m === 'view' || m === 'hidden') type = 'calc';              // outside the phase → view only
-    else { const e = phaseCfg().editable[f]; const want = type; label = label || e[0]; type = (want === 'checks' || want === 'radios') ? want : e[1]; min = e[2]; max = e[3]; }
+    else { const e = phaseEditable(f); const want = type; label = label || e[0]; type = (want === 'checks' || want === 'radios') ? want : e[1]; min = e[2]; max = e[3]; }
   }
   const id = 'ed_' + f.replace(/\W/g, '_');
   const v = editVal(f);
@@ -3542,7 +3585,7 @@ function editFieldSpec(a, f) {
   const ph = phaseCfg();
   if (ph) {
     const m = phaseMode(f);
-    if (m === 'edit') { const [label, type, mn, mx] = ph.editable[f]; return [f, label, type, mn, mx]; }
+    if (m === 'edit') { const [label, type, mn, mx] = phaseEditable(f); return [f, label, type, mn, mx]; }
     const base = (() => { for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) { const hit = fields.find(x => x[0] === f); if (hit) return hit; } return null; })();
     return [f, base ? base[1] : editLabel(f), m === 'view' ? 'calc' : 'phasehidden'];
   }
@@ -4250,13 +4293,11 @@ function renderReports() {
     let shownEmpty = false;
     for (let k = 1; k <= n; k++) {
       const pend = REPORT_PENDING[k];
-      if (pend) { num++; const nm = REPORT_NAMES[k] || '';
+      if (pend) { num++; const nm = (REPORT_NAMES[k] || '').trim();
         html += `<div class="rp-row rp-pend"><span class="rp-n">${num}</span><div class="rp-pend-main">
-          <label class="rp-fn-k" for="rp_fn_${k}">File name <span class="ed-req-star" title="Required">*</span></label>
-          <input id="rp_fn_${k}" class="ed-in rp-fn${nm ? '' : ' ed-bad'}" type="text" maxlength="255" required aria-required="true" placeholder="Name this attachment" value="${escHtml(nm)}" oninput="reportName(${k}, this)">
-          <div class="ed-err rp-fn-err"${nm ? ' hidden' : ''}>Required - give this attachment a file name</div>
+          <span class="rp-name">${nm ? escHtml(nm) : '<span class="rp-fn-err">Needs a file name</span>'}</span>
           <div class="rp-pend-file">${escHtml(pend.name)} · ${size(pend.size)} · uploads on save</div></div>
-          <button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`; }
+          <span class="rp-acts"><button class="ie-x" onclick="reportNamePrompt(${k})">Rename</button><button class="ie-x" onclick="reportUnpick(${k})">Remove</button></span></div>`; }
       else if (!shownEmpty) {
         shownEmpty = true;                          // only the next empty slot is offered
         html += `<div class="rp-drop-wrap"><label class="rp-drop" ondragover="event.preventDefault(); this.classList.add('over')" ondragleave="this.classList.remove('over')"
@@ -4279,8 +4320,39 @@ function reportPick(k, input) {
   const f = input.files && input.files[0]; if (!f) return;
   const err = (input.closest('.rp-drop-wrap') || input.closest('.rp-row')).querySelector('.ed-err');
   if (f.size > (CONFIG.reportMaxBytes || 3145728)) { err.hidden = false; err.textContent = `That file is ${(f.size / 1048576).toFixed(2)} MB - the limit is ${((CONFIG.reportMaxBytes || 3145728) / 1048576).toFixed(0)} MB.`; input.value = ''; return; }
-  REPORT_PENDING[k] = f; REPORT_NAMES[k] = ''; reportDraft(k); renderReports(); updateEditBar();
-  const box = document.getElementById('rp_fn_' + k); if (box) box.focus();
+  if (input && 'value' in input) input.value = '';
+  reportNamePrompt(k, f);
+}
+// Pop-up: name the attachment (saved to FileName): P-154 Report, Nonstructural, or Other (type a name)
+const REPORT_NAME_CHOICES = ['P-154 Report', 'Nonstructural', 'Other'];
+function reportNamePrompt(k, file) {
+  const f = file || REPORT_PENDING[k]; if (!f) return;
+  const cur = (REPORT_NAMES[k] || '').trim(), preset = REPORT_NAME_CHOICES.slice(0, -1).includes(cur) ? cur : (cur ? 'Other' : '');
+  const host = document.getElementById('detail-content') || document.body;
+  const box = document.createElement('div');
+  box.className = 'ac-wrap'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'rpn-title');
+  box.innerHTML = `<div class="ac-card rpn-card">
+      <div class="ac-msg" id="rpn-title">Name this attachment</div>
+      <div class="rpn-file">${escHtml(f.name)}</div>
+      <div class="rpn-opts" role="radiogroup" aria-label="File name">${REPORT_NAME_CHOICES.map(c => `<label class="rpn-opt"><input type="radio" name="rpn" value="${escHtml(c)}" ${c === preset ? 'checked' : ''}><span>${escHtml(c)}</span></label>`).join('')}</div>
+      <div class="rpn-other" ${preset === 'Other' ? '' : 'hidden'}><label class="rp-fn-k" for="rpn-text">File name <span class="ed-req-star" title="Required">*</span></label>
+        <input id="rpn-text" class="ed-in" type="text" maxlength="255" value="${preset === 'Other' ? escHtml(cur) : ''}" placeholder="Type a file name"></div>
+      <div class="ed-err rpn-err" hidden></div>
+      <div class="ac-actions"><button class="ed-cancel ac-no">Cancel</button><button class="ed-save ac-yes">${REPORT_PENDING[k] ? 'Save name' : 'Add attachment'}</button></div></div>`;
+  const other = box.querySelector('.rpn-other'), text = box.querySelector('#rpn-text'), err = box.querySelector('.rpn-err');
+  const choice = () => (box.querySelector('input[name="rpn"]:checked') || {}).value || '';
+  box.querySelectorAll('input[name="rpn"]').forEach(r => r.addEventListener('change', () => { other.hidden = choice() !== 'Other'; err.hidden = true; if (!other.hidden) text.focus(); }));
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey, true); };
+  const ok = () => {
+    const c = choice(), name = c === 'Other' ? text.value.trim() : c;
+    if (!c) { err.hidden = false; err.textContent = 'Choose P-154 Report, Nonstructural or Other.'; return; }
+    if (!name) { err.hidden = false; err.textContent = 'Type a file name for Other.'; text.focus(); return; }
+    REPORT_PENDING[k] = f; REPORT_NAMES[k] = name; reportDraft(k); close(); renderReports(); updateEditBar();
+  };
+  const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); } else if (e.key === 'Enter' && box.contains(e.target) && e.target.tagName !== 'BUTTON') { e.preventDefault(); ok(); } };
+  box.querySelector('.ac-no').onclick = close; box.querySelector('.ac-yes').onclick = ok;
+  document.addEventListener('keydown', onKey, true);
+  host.appendChild(box); (box.querySelector('input[name="rpn"]:checked') || box.querySelector('input[name="rpn"]')).focus();
 }
 // The draft entry for a new attachment: "Name - file.ext"; blank name = needs fixing before Save
 function reportDraft(k) {
@@ -5273,7 +5345,7 @@ function buildDetailHTML(a) {
 
   return `
     <!-- Title ribbon -->
-    <div class="sheet-ribbon">Rapid Visual Screening Summary</div>
+    <div class="sheet-ribbon"><span class="sr-title">Rapid Visual Screening Summary</span>${sessionPhasePill()}</div>
 
     <!-- Icon + name + address (Street View link) | Final RVS Score + reports -->
     <div class="sheet-header sheet-header-row">
