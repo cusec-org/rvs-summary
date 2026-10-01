@@ -408,12 +408,13 @@
   .ov-blank { display: inline-block; min-width: 18px; border-bottom: 1.5px solid #4a5363; text-align: center; font-weight: 800; color: #13233d; line-height: 1.1; height: 15px; }
   .ov-missing { background: #fbe3b9; color: #7a4b00; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .ov-photos { display: flex; flex-direction: column; gap: 8px; }
-  #overview-photos { display: flex; flex-direction: column; gap: 8px; }
-  #overview-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  #overview-photos, .ov-photo-slot { display: flex; flex-direction: column; gap: 8px; }
+  #overview-photos .attachment-tile, .ov-photo-slot .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
+  .cb-p154-grid { padding-bottom: 90px; }
+  .cb-p154-grid .cb-wrap { padding: 0; }
+  #p154-photos:empty { display: none; }
   .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
-  .ov-photos > .sketch-link, .ov-photos > .sk-up, .ov-photos > .sk-pulse { align-self: center; text-align: center; }
-  .sk-pulse { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #1e6fff; padding: 2px 6px; text-decoration: none; }
-  .sk-pulse:hover { text-decoration: underline; }
+  .ov-photos > .sketch-link, .ov-photos > .sk-up { align-self: center; text-align: center; }
   .ov-photos > .sk-up:has(.sk-pend) { align-self: stretch; text-align: left; }
   .sk-up { margin-top: 2px; display: flex; flex-direction: column; align-items: center; }
   .sk-up:has(.sk-pend) { align-items: stretch; }
@@ -946,13 +947,13 @@
   @container (max-width: 720px) {
     .ov-grid { grid-template-columns: 1fr; }
     .ov-cards { grid-template-columns: 1fr; }
-    #overview-photos { display: grid; grid-template-columns: 1fr 1fr; }
+    #overview-photos, .ov-photo-slot { display: grid; grid-template-columns: 1fr 1fr; }
   }
   @container (max-width: 480px) {
     .sheet-header-row { flex-wrap: wrap; }
     .sheet-score { flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: flex-start; gap: 4px 12px; }
     .sheet-score-pill { min-width: 0; margin: 0; font-size: 20px; }
-    #overview-photos { grid-template-columns: 1fr; }
+    #overview-photos, .ov-photo-slot { grid-template-columns: 1fr; }
     .detail-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .dtab { white-space: nowrap; flex-shrink: 0; }
   }
@@ -1428,7 +1429,7 @@ const CONFIG = {
         SurveyType: ['Screening Type', 'select'], BuildingName: ['Building name', 'text'],
         EssentialFacility: ['Facility Type', 'select'], CodeYear: ['Code Year', 'text'], PreCodeQ: ['Pre-Code', 'yesno'], PostBenchmarkQ: ['Post-Benchmark', 'yesno'],
         Occupancy: ['Occupancy Type', 'select'], OccupancyOthers: ['Shelter / Government / Historic', 'multi'],
-        YearBuiltEstimated: ['Year Built Estimated?', 'yesno'], Additions: ['Additions', 'yesno'], AdditionsYearBuilt: ['Additions Year Built', 'int', 1600, new Date().getFullYear()],
+        YearBuiltEstimated: ['Year Built Estimated?', 'yesno'], Additions: ['Additions', 'yesno'], AdditionsYearBuilt: ['Additions Year Built', 'text'],
         Latitude: ['Latitude', 'location'], Longitude: ['Longitude', 'location'],
         Address: ['Address', 'text'], City: ['City', 'text'], ZIP: ['ZIP', 'text'],
         StoriesAboveGrade: ['Stories above grade', 'int', 0, 150], StoriesBelowGrade: ['Stories below grade', 'int', 0, 20],
@@ -3481,10 +3482,10 @@ function lookupSketchMapId() {
   return SKETCH_LOOKUP;
 }
 // Pulsing blue marker (animated GIF) on the building in the sketch tool: pulses for about 10 seconds,
-// then goes clear. "Show pulse again" re-sends it to the open sketch tool tab.
+// then goes clear.
 const SKETCH_PULSE_GIF = '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';
 const SKETCH_WIN = 'rvs-sketch-tool';    // the sketch tool opens in (and is re-used from) this named tab
-let SKETCH_OPENED = {}, SKETCH_VARIANT = 0;
+let SKETCH_VARIANT = 0;
 function sketchToolUrl(a) {
   const T = CONFIG.sketchTool, id = SKETCH_MAP_ID || T.mapWidgetId || 'widget_1';
   if (!(typeof a.lat === 'number' && typeof a.lng === 'number')) return T.url;
@@ -3498,14 +3499,14 @@ let SKETCH_PENDING = null;   // File chosen in edit mode, uploaded on Save
 function sketchUploadHTML(a) {
   if (!sketchOn() || !(EDIT.on && String(EDIT.id) === String(a.id))) return '';
   const size = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
-  return `<div class="sk-up" id="sk-up">${SKETCH_PENDING
+  return `<div class="sk-up">${SKETCH_PENDING
     ? `<div class="sk-pend"><div class="sk-pend-t"><b>New sketch</b> · ${escHtml(SKETCH_PENDING.name)} · ${size(SKETCH_PENDING.size)}</div><div class="sk-pend-s">Replaces the current sketch when you save</div>
         <button type="button" class="ie-x" onclick="sketchUnpick()">Remove</button></div>`
     : `<label class="sk-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Sketch
         <input type="file" accept="image/*" class="rp-file" onchange="sketchPick(this)"></label>`}
     <div class="ed-err" hidden></div></div>`;
 }
-function sketchRefresh() { const el = document.getElementById('sk-up'), a = currentRecord(); if (el && a) el.outerHTML = sketchUploadHTML(a); }
+function sketchRefresh() { const a = currentRecord(); if (a) document.querySelectorAll('#sheet-body .sk-up').forEach(el => { el.outerHTML = sketchUploadHTML(a); }); }
 function sketchPick(input) {
   const f = input.files && input.files[0]; if (!f) return;
   const max = (CONFIG.sketchUpload && CONFIG.sketchUpload.maxBytes) || 10485760;
@@ -3535,19 +3536,14 @@ function sketchLinkHTML(a) {
   if (!sketchOn()) return '';
   lookupSketchMapId();
   return `<a class="view-all-link sketch-link" href="${escHtml(sketchToolUrl(a))}" target="${SKETCH_WIN}" onclick="return openSketchTool(event)" title="Opens the sketch tool zoomed to this building">Open Sketch Tool
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>${SKETCH_OPENED[a.id]
-    ? `<button type="button" class="view-all-link sk-pulse" onclick="sketchPulseAgain()" title="Shows the blue pulse on this building again in the sketch tool tab">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8"/></svg>Show pulse again</button>` : ''}`;
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
 }
 function openSketchTool(ev) {
   const a = currentRecord(); if (!a) return true;
   if (ev) ev.preventDefault();
   SKETCH_VARIANT++; window.open(sketchToolUrl(a), SKETCH_WIN);
-  if (!SKETCH_OPENED[a.id]) { SKETCH_OPENED[a.id] = true; document.querySelectorAll('#sheet-body .sketch-link').forEach(l => { if (!l.nextElementSibling || !l.nextElementSibling.classList.contains('sk-pulse')) l.insertAdjacentHTML('afterend', sketchLinkHTML(a).replace(/^[\s\S]*?<\/a>/, '')); }); }
   return false;
 }
-// Same tab, new marker: the sketch tool re-centers on the building and the pulse plays again
-function sketchPulseAgain() { const a = currentRecord(); if (!a) return; SKETCH_VARIANT++; window.open(sketchToolUrl(a), SKETCH_WIN); }
 function updateEditButton() {
   const b = document.getElementById('sheet-edit-btn'); if (!b) return;
   b.hidden = !canEditRecords();
@@ -3575,7 +3571,7 @@ function EDIT_TABS(a) {
         ['SsSpectralAcc', 'Ss (g)', 'calc'], ['S1SpectralAcc', 'S1 (g)', 'calc']]],
       ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['Latitude', 'Latitude', 'location'], ['Longitude', 'Longitude', 'location'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
         ['TotalFloorArea', 'Total Floor Area (sq. ft.)', 'number', 0, 1e8], ['YearBuilt', 'Year Built', 'int', 1600, new Date().getFullYear()], ['YearBuiltEstimated', 'Year Built Estimated?', 'yesno'],
-        ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
+        ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'text'],
         ['Occupancy', 'Occupancy Type', 'select'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
         ['Liquefaction', 'Liquefaction', 'yesno_dnk'], ['Landslide', 'Landslide', 'yesno_dnk'], ['SurfaceRupture', 'Surface Rupture', 'yesno_dnk']]],
       ['Screening Record', [['SurveyDate', 'Date of screening', 'lock'], ['SurveyType', 'Screening Type', 'select'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
@@ -4281,6 +4277,14 @@ function notesTabHTML(a) {
 
 // ── P-154 step while editing: comments on top, Building Characteristics (left) + live score (right) ──
 function comboP154HTML(a) {
+  return `<div class="ov-grid cb-p154-grid"><div class="ov-main">${comboP154Main(a)}</div>
+    <div class="ov-photos">
+      <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+      ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
+      <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+    </div></div>`;
+}
+function comboP154Main(a) {
   const at = a.attrs || {};
   const field = (spec) => editControl(a, spec);
   return `<div class="cb-wrap cb-p154">
@@ -5073,6 +5077,7 @@ function buildDetailHTML(a) {
   // Two items side by side in one row (each still edits on its own)
   const half = ([k, v, extra, f]) => `<div class="ov-row ov-half"${f ? ` data-ie="${escHtml(f)}"` : ''}><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(String(dash(v)))}${extra || ''}</div></div>`;
   const pairRow = (l, r) => `<div class="ov-pair">${half(l)}${half(r)}</div>`;
+  const codeYearStr = String(attrs.CodeYear ?? '').trim() ? String(choiceLabel('CodeYear', attrs.CodeYear)) : '';
   const drawingsStr = isYes(attrs.DrawingsReviewed) ? (fieldValue('DrawingsReviewed') || 'Yes') : '-';
   const ybEst = attrs.YearBuiltEstimated !== undefined ? fieldValue('YearBuiltEstimated') : '';
   const occOthersHtml = `<div class="ov-occ-others" data-ie="OccupancyOthers">${['Shelter', 'Government', 'Historic'].map(k =>
@@ -5095,12 +5100,12 @@ function buildDetailHTML(a) {
             ['Date of screening', screenDate || 'Not recorded', screenDate ? '' : ' <span class="ov-missing">Missing</span>', 'SurveyDate'],
             ['Screening Type', screeningTypeStr, '', 'SurveyType'],
             ['Nonstructural Review', fieldValue('NonstructuralReview'), '', 'NonstructuralReview'], ['Exterior Review', fieldValue('Exterior'), '', 'Exterior'],
-            ['Interior Review', fieldValue('Interior'), '', 'Interior'], ['Drawings Reviewed', fieldValue('DrawingsReviewed'), '', 'DrawingsReviewed'],
+            ['Interior Review', fieldValue('Interior'), '', 'Interior'], ['Drawings Reviewed', fieldValue('DrawingsReviewed'), '', 'DrawingsReviewed'], ['Code Year', codeYearStr, '', 'CodeYear'],
             ['Soil Type Source', soilSrc, '', 'SoilTypeSource'], ['Geologic Hazard Source', geoSrc, '', 'GeologicHazardsSource'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
         </div>
       </div>
       <div class="ov-photos">
-        <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
@@ -5119,7 +5124,7 @@ function buildDetailHTML(a) {
             ['Seismicity', fieldValue('Seismicity'), '', 'Seismicity,SsSpectralAcc,S1SpectralAcc']])}
             ${pairRow(['Soil Type', soilLbl, '', 'SoilType'], ['Geologic Hazards', geoHazStr, '', 'Liquefaction,Landslide,SurfaceRupture'])}
             ${pairRow(['Soil Type Source', soilSrc, '', 'SoilTypeSource'], ['Hazard Source', geoSrc, '', 'GeologicHazardsSource'])}
-            ${kvRows([['Drawings Reviewed?', drawingsStr, '', 'DrawingsReviewed'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
+            ${kvRows([['Drawings Reviewed?', drawingsStr, '', 'DrawingsReviewed'], ['Code Year', codeYearStr, '', 'CodeYear'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
           <div class="ov-card"><div class="ov-card-title">Facility Details</div>
             <div class="ov-row ov-loc" data-ie="${escHtml(FIELDS.lat)},${escHtml(FIELDS.lng)}"><div class="ov-k">Latitude/Longitude</div><div class="ov-v">${escHtml(dash(latLongStr))}</div></div>
             ${kvRows([['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy']])}
@@ -5131,7 +5136,7 @@ function buildDetailHTML(a) {
         </div>
       </div>
       <div class="ov-photos">
-        <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
@@ -5288,7 +5293,8 @@ function buildDetailHTML(a) {
         ${commentsBox}
       </div>
       <div class="ov-photos">
-        <div id="p154-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
+        <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
@@ -5651,14 +5657,14 @@ function toggleRelatedPhotos(btn) {
 
 async function loadAttachments(objectId) {
   const area = document.getElementById('attachment-area');
-  const ov = document.getElementById('overview-photos');
+  const slots = [...document.querySelectorAll('#sheet-body .ov-photo-slot')];
   if (!area) return;
   const result = await fetchAttachments(objectId);
   LAST_ATTACH = { id: objectId, infos: result.state === 'error' ? [] : result.infos }; renderReports();
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
-    const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = `<div class="ov-nophoto">No photos</div>`;
-    if (ov) ov.innerHTML = `<div class="ov-nophoto">No photos</div>`;
+    const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = '';
+    slots.forEach(el => { el.innerHTML = `<div class="ov-nophoto">No photos</div>`; });
     return;
   }
   // Building Photo and Sketch show first; everything else sits behind "Show all".
@@ -5694,15 +5700,14 @@ async function loadAttachments(objectId) {
     const used = new Set();
     const take = (pred, max) => imgs.filter(i => !used.has(i) && pred(i)).slice(0, max).map(i => (used.add(i), i));
     const groups = [];
-    const bp = take(i => kind(i) === 'Building Photo', 1);
-    bp.forEach(i => groups.push([i, 'Building Photo', 'Main photo of the building.']));
+    take(i => kind(i) === 'Building Photo', 1);                     // shown in the photo block above
     take(i => /exterior/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Exterior Photo ${n + 1}`, 'Exterior view used for the screening.']));
     take(i => /structur/.test(key(i)) && !/frame/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Structural Photo ${n + 1}`, 'Structural system or element observed.']));
     take(i => { const t = photoTopic(i, ra); return t && /Irregularity/.test(t.title); }, 4).forEach(i => { const t = photoTopic(i, ra); groups.push([i, t.title, t.desc]); });
     take(i => /frame/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Structural Frame Photo ${n + 1}`, 'Structural frame observed.']));
     take(i => /drawing/.test(key(i)), 2).forEach((i, n) => groups.push([i, `Building Drawings ${n + 1}`, 'Photo of building drawings reviewed.']));
     // First 3 photos show; the rest expand with the down-arrow button
-    p154El.innerHTML = photoColumn(groups, 'No P-154 photos');
+    p154El.innerHTML = groups.length ? photoColumn(groups, '') : '';
   }
   // Nonstructural tab photos: generator, gas meter, then Photo 6, 7, 16 (nothing else)
   const nsEl = document.getElementById('ns-photos');
@@ -5719,9 +5724,10 @@ async function loadAttachments(objectId) {
     nsEl.innerHTML = photoColumn(groups, 'No nonstructural photos');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
-  if (ov) {
-    const pick = featured.length ? featured : result.infos.filter(i => i.isImage).slice(0, 2);
-    ov.innerHTML = pick.length ? pick.map(tile).join('') : `<div class="ov-nophoto">No photos</div>`;
+  if (slots.length) {
+    const pick = (featured.length ? featured : result.infos.filter(i => i.isImage)).slice(0, 2);   // first 2 photos; the rest are on the Photos tab
+    const html = pick.length ? pick.map(tile).join('') : `<div class="ov-nophoto">No photos</div>`;
+    slots.forEach(el => { el.innerHTML = html; });
   }
 }
 
