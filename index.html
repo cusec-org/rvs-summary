@@ -411,6 +411,18 @@
   #overview-photos { display: flex; flex-direction: column; gap: 8px; }
   #overview-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
   .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
+  .ov-photos > .sketch-link, .ov-photos > .sk-up, .ov-photos > .sk-pulse { align-self: center; text-align: center; }
+  .sk-pulse { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #1e6fff; padding: 2px 6px; text-decoration: none; }
+  .sk-pulse:hover { text-decoration: underline; }
+  .ov-photos > .sk-up:has(.sk-pend) { align-self: stretch; text-align: left; }
+  .sk-up { margin-top: 2px; display: flex; flex-direction: column; align-items: center; }
+  .sk-up:has(.sk-pend) { align-items: stretch; }
+  .sk-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; font: 700 13px 'DM Sans', sans-serif; color: #0B2E6B; background: #fff; border: 1.5px solid #0B2E6B; border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  .sk-btn:hover { background: #eef3ff; }
+  .sk-btn:focus-within { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .sk-pend { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 10px; border-radius: 8px; background: #fde9a8; box-shadow: inset 3px 0 0 var(--cusec-gold); font-size: 12.5px; }
+  .sk-pend-t { overflow-wrap: anywhere; } .sk-pend-s { font-size: 11.5px; color: var(--text2); grid-column: 1; }
+  .sk-pend .ie-x { grid-column: 2; grid-row: 1 / 3; }
   .sketch-link { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
   .sketch-link:hover { text-decoration: underline; }
   .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
@@ -937,8 +949,7 @@
   }
   .sr-title { min-width: 0; }
   .ph-pill { display: inline-flex; align-items: center; gap: 6px; font: 700 12.5px/1 'DM Sans', sans-serif; letter-spacing: 0.2px; padding: 6px 11px; border-radius: 999px; white-space: nowrap; }
-  .ph-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .75; }
-  .ph-pill-field    { background: #d5dbe4; color: #1f2a3a; }
+  .ph-pill-all      { background: #ffffff; color: #0B2E6B; }
   .ph-pill-post     { background: #f2c94c; color: #3a2a00; }
   .ph-pill-qaqc     { background: #a9c8ff; color: #0b2350; }
   .ph-pill-engineer { background: #cdb9ff; color: #2b1660; }
@@ -1308,6 +1319,9 @@ const CONFIG = {
   // mapWidgetId is looked up from the app's own settings at sign-in; this is the fallback.
   sketchTool: { url: 'https://experience.arcgis.com/experience/ed078d41a859476da373bca710a4bc8e', itemId: 'ed078d41a859476da373bca710a4bc8e',
     mapWidgetId: 'widget_1', scale: 1000, phases: ['post', 'qaqc', 'engineer'] },
+  // "Upload Sketch" (next to Open Sketch Tool, while editing): the captured sketch is saved as
+  // the record's attachment for the survey's Sketch1 question on the editable layer, replacing the old one
+  sketchUpload: { itemId: '307585a0e7ed4c59aa94cb3c08c9ccfb', keyword: 'Sketch1', maxBytes: 10 * 1024 * 1024 },
   // AWS Lambda that does the USGS seismic lookups (see rvs-seismic-lambda/).
   // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
   // Calculations tab. Leave blank to use the values saved on each record.
@@ -1397,12 +1411,12 @@ const CONFIG = {
       title: 'Post-processing edit',
       // visible + editable in that form → [label, control type]
       editable: {
-        SurveyType: ['Screening Type', 'select'], SurveyDate: ['Date of screening', 'date'], BuildingName: ['Building name', 'text'],
+        SurveyType: ['Screening Type', 'select'], BuildingName: ['Building name', 'text'],
         EssentialFacility: ['Facility Type', 'select'], CodeYear: ['Code Year', 'text'], PreCodeQ: ['Pre-Code', 'yesno'], PostBenchmarkQ: ['Post-Benchmark', 'yesno'],
         Occupancy: ['Occupancy Type', 'select'], OccupancyOthers: ['Shelter / Government / Historic', 'multi'],
         YearBuiltEstimated: ['Year Built Estimated?', 'yesno'], Additions: ['Additions', 'yesno'], AdditionsYearBuilt: ['Additions Year Built', 'int', 1600, new Date().getFullYear()],
         Latitude: ['Latitude', 'location'], Longitude: ['Longitude', 'location'],
-        Address: ['Address', 'text'], City: ['City', 'text'],
+        Address: ['Address', 'text'], City: ['City', 'text'], ZIP: ['ZIP', 'text'],
         StoriesAboveGrade: ['Stories above grade', 'int', 0, 150], StoriesBelowGrade: ['Stories below grade', 'int', 0, 20],
         TotalFloorArea: ['Total Floor Area (sq. ft.)', 'number', 0, 1e8], YearBuilt: ['Year Built', 'int', 1600, new Date().getFullYear()],
         FEMABuildingType: ['FEMA Building Type', 'select'], SoilType: ['Soil Type', 'select'],
@@ -1417,7 +1431,7 @@ const CONFIG = {
       },
       // calculated / read-only in that form: still shown in the app, never editable
       // Ss / S1 are filled by the ASCE 7-22 lookup and can't be typed over
-      viewOnly: ['State', 'County', 'ZIP', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
+      viewOnly: ['SurveyDate', 'State', 'County', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
       // everything else the app can edit is hidden in that form → not part of this phase
       required: { SoilType: '', Seismicity: '' },
       // When editing starts, run the functions.js lookups and fill these in:
@@ -2384,7 +2398,7 @@ function syncRequired() {
     if (req && blank && !blank.disabled) { if (sel.value === '') { blank.textContent = 'Choose… (required)'; blank.disabled = true; } else blank.remove(); }
     if (!req && (!blank || blank.disabled)) {
       if (blank) blank.remove();
-      const o = document.createElement('option'); o.value = ''; o.textContent = '- Not answered -'; sel.insertBefore(o, sel.firstChild);
+      const o = document.createElement('option'); o.value = ''; o.textContent = '- None Selected -'; sel.insertBefore(o, sel.firstChild);
       if (!sel.value) sel.value = '';
     }
     const row = sel.closest('.cb-live, .ed-row'); const lbl = row && row.querySelector('.ov-k, .ed-k, .ov-stat-label');
@@ -2797,11 +2811,12 @@ function renderList() {
     const qk = queuePhaseIndex(), scope = EDIT_URL_ON ? getFiltered(true) : [], inPhase = k => scope.filter(a => recordPhaseIndex(a) === k).length;
     const hasNext = qk < PHASE_FLOW.length - 1;
     statsBar.classList.toggle('stats-edit', EDIT_URL_ON);
-    const QUEUE_LABEL = { post: 'Post Data Collection Queue', qaqc: 'QA/QC Queue', engineer: 'Engineer Queue', complete: 'Complete' };
+    // phased edits: screenings in that phase; plain ?edit=1: every screening in the list (all phases)
+    const queueN = phaseCfg() ? inPhase(qk) : total;
     if (EDIT_URL_ON) statsBar.innerHTML = `
       <div class="stats-tile sq-tile sq-queue">
-        <div class="stats-label sq-label"><span class="sq-cap">${escHtml(QUEUE_LABEL[PHASE_FLOW[qk].key] || PHASE_FLOW[qk].name + ' Queue')}</span></div>
-        <div class="stats-num">${inPhase(qk).toLocaleString()}</div>
+        <div class="stats-label sq-label"><span class="sq-cap">Queue</span></div>
+        <div class="stats-num">${queueN.toLocaleString()}</div>
       </div>`;
     else statsBar.innerHTML = `
       <div class="stats-tile">
@@ -3004,7 +3019,7 @@ function setOverlay(id, on) {
 function renderLayersPanel() {
   const panel = document.getElementById('layers-panel'); if (!panel) return;
   panel.innerHTML = `<div class="lp-title">Map layers</div>
-    <label class="lp-item"><input type="checkbox" ${SHOW_BLDGS ? 'checked' : ''} onchange="setBuildingSymbols(this.checked)"><div><div>Building symbols</div><div class="lp-status">Screened facilities</div></div></label>` + (CONFIG.overlays || []).map(ov => {
+    <label class="lp-item"><input type="checkbox" ${SHOW_BLDGS ? 'checked' : ''} onchange="setBuildingSymbols(this.checked)"><div><div>Facilities</div></div></label>` + (CONFIG.overlays || []).map(ov => {
     const st = OVERLAY_STATE[ov.id] || {};
     const status = st.status === 'loading' ? '<div class="lp-status">Loading…</div>'
                  : st.status === 'error' ? `<div class="lp-status err">Couldn't load this layer</div>` : '';
@@ -3165,9 +3180,9 @@ const EDIT_PHASE = (() => {
 })();
 // Colored bubble in the panel's title bar showing which edit phase this session is in
 function sessionPhasePill() {
-  if (!EDIT_URL_ON || !phaseCfg()) return '';          // plain ?edit=1 (field collection): no bubble
-  const k = phaseKey();
-  const L = { field: 'Field Collection', post: 'Post Data Collection', qaqc: 'QA/QC', engineer: 'Engineer Review', complete: 'Complete' };
+  if (!EDIT_URL_ON) return '';
+  const k = phaseCfg() ? phaseKey() : 'all';            // plain ?edit=1 = All Phases
+  const L = { all: 'All Phases', post: 'Post Data Collection', qaqc: 'QA/QC', engineer: 'Engineer Review', complete: 'Complete' };
   return `<span class="ph-pill ph-pill-${escHtml(k)}" title="You are in the ${escHtml(L[k] || k)} edit">${escHtml(L[k] || k)}</span>`;
 }
 // ?phase= value → editPhases key (post, qaqc, engineer, complete; 'field' or unknown = field collection rules)
@@ -3361,22 +3376,74 @@ function lookupSketchMapId() {
   }).catch(() => {}).then(() => document.querySelectorAll('#sheet-body .sketch-link').forEach(l => { const a = currentRecord(); if (a) l.href = sketchToolUrl(a); }));
   return SKETCH_LOOKUP;
 }
-// Pulsing gold marker (animated GIF) shown on the building in the sketch tool
-const SKETCH_PULSE_GIF = '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';
+// Pulsing blue marker (animated GIF) on the building in the sketch tool: pulses for about 10 seconds,
+// then goes clear. "Show pulse again" re-sends it to the open sketch tool tab.
+const SKETCH_PULSE_GIF = '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';
+const SKETCH_WIN = 'rvs-sketch-tool';    // the sketch tool opens in (and is re-used from) this named tab
+let SKETCH_OPENED = {}, SKETCH_VARIANT = 0;
 function sketchToolUrl(a) {
   const T = CONFIG.sketchTool, id = SKETCH_MAP_ID || T.mapWidgetId || 'widget_1';
   if (!(typeof a.lat === 'number' && typeof a.lng === 'number')) return T.url;
   const x = a.lng.toFixed(6), y = a.lat.toFixed(6);
-  const sym = encodeURIComponent(JSON.stringify({ type: 'esriPMS', imageData: SKETCH_PULSE_GIF, contentType: 'image/gif', width: 30, height: 30 }));
+  const px = 30 + (SKETCH_VARIANT % 2);   // a slightly different marker each time, so the map redraws it and the pulse restarts
+  const sym = encodeURIComponent(JSON.stringify({ type: 'esriPMS', imageData: SKETCH_PULSE_GIF, contentType: 'image/gif', width: px, height: px }));
   // marker:<x>,<y>;<wkid>;<title>;<label>;<symbol>
   return `${T.url}#${id}=center:${x}%2C${y}%2C4326,scale:${T.scale || 1000},marker:${x}%2C${y}%3B4326%3B%3B%3B${sym}`;
+}
+let SKETCH_PENDING = null;   // File chosen in edit mode, uploaded on Save
+function sketchUploadHTML(a) {
+  if (!sketchOn() || !(EDIT.on && String(EDIT.id) === String(a.id))) return '';
+  const size = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+  return `<div class="sk-up" id="sk-up">${SKETCH_PENDING
+    ? `<div class="sk-pend"><div class="sk-pend-t"><b>New sketch</b> · ${escHtml(SKETCH_PENDING.name)} · ${size(SKETCH_PENDING.size)}</div><div class="sk-pend-s">Replaces the current sketch when you save</div>
+        <button type="button" class="ie-x" onclick="sketchUnpick()">Remove</button></div>`
+    : `<label class="sk-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Sketch
+        <input type="file" accept="image/*" class="rp-file" onchange="sketchPick(this)"></label>`}
+    <div class="ed-err" hidden></div></div>`;
+}
+function sketchRefresh() { const el = document.getElementById('sk-up'), a = currentRecord(); if (el && a) el.outerHTML = sketchUploadHTML(a); }
+function sketchPick(input) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const max = (CONFIG.sketchUpload && CONFIG.sketchUpload.maxBytes) || 10485760;
+  const err = input.closest('.sk-up').querySelector('.ed-err');
+  if (!/^image\//.test(f.type || '')) { err.hidden = false; err.textContent = 'Choose an image file (for example .png or .jpg).'; input.value = ''; return; }
+  if (f.size > max) { err.hidden = false; err.textContent = `That file is ${(f.size / 1048576).toFixed(1)} MB - the limit is ${(max / 1048576).toFixed(0)} MB.`; input.value = ''; return; }
+  SKETCH_PENDING = f;
+  const cur = (LAST_ATTACH.infos || []).find(i => sketchKw(i)); EDIT.orig.__sketch = cur ? cur.name : '';
+  EDIT.draft.__sketch = `${f.name} (new upload)`; sketchRefresh(); updateEditBar();
+}
+function sketchUnpick() { SKETCH_PENDING = null; delete EDIT.draft.__sketch; sketchRefresh(); updateEditBar(); }
+const sketchKw = i => new RegExp('^' + ((CONFIG.sketchUpload && CONFIG.sketchUpload.keyword) || 'Sketch1') + '$', 'i').test(String(i.keywords || ''));
+// Upload the new sketch to the editable layer, then remove the sketch it replaces
+async function saveSketch(a) {
+  const U = CONFIG.sketchUpload || {}, file = SKETCH_PENDING; if (!file) return;
+  if (U.itemId && activeItemId() !== U.itemId) throw new Error('the sketch can only be uploaded from the editable layer (?edit=1)');
+  const old = String(LAST_ATTACH.id) === String(a.id) ? (LAST_ATTACH.infos || []).filter(sketchKw) : [];
+  const fd = new FormData(); fd.append('attachment', file, file.name); fd.append('keywords', U.keyword || 'Sketch1'); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
+  const j = await (await fetch(`${CONFIG.serviceUrl}/${a.id}/addAttachment`, { method: 'POST', body: fd })).json();
+  if (j.error || !(j.addAttachmentResult && j.addAttachmentResult.success)) throw new Error((j.error && j.error.message) || 'the sketch was not uploaded');
+  if (old.length) {
+    const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, attachmentIds: old.map(i => i.id).join(',') });
+    try { await (await fetch(`${CONFIG.serviceUrl}/${a.id}/deleteAttachments`, { method: 'POST', body })).json(); } catch (e) { console.warn('[RVS] old sketch was not removed', e); }
+  }
 }
 function sketchLinkHTML(a) {
   if (!sketchOn()) return '';
   lookupSketchMapId();
-  return `<a class="view-all-link sketch-link" href="${escHtml(sketchToolUrl(a))}" target="_blank" rel="noopener" title="Opens the sketch tool zoomed to this building">Open Sketch Tool
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+  return `<a class="view-all-link sketch-link" href="${escHtml(sketchToolUrl(a))}" target="${SKETCH_WIN}" onclick="return openSketchTool(event)" title="Opens the sketch tool zoomed to this building">Open Sketch Tool
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>${SKETCH_OPENED[a.id]
+    ? `<button type="button" class="view-all-link sk-pulse" onclick="sketchPulseAgain()" title="Shows the blue pulse on this building again in the sketch tool tab">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8"/></svg>Show pulse again</button>` : ''}`;
 }
+function openSketchTool(ev) {
+  const a = currentRecord(); if (!a) return true;
+  if (ev) ev.preventDefault();
+  SKETCH_VARIANT++; window.open(sketchToolUrl(a), SKETCH_WIN);
+  if (!SKETCH_OPENED[a.id]) { SKETCH_OPENED[a.id] = true; document.querySelectorAll('#sheet-body .sketch-link').forEach(l => { if (!l.nextElementSibling || !l.nextElementSibling.classList.contains('sk-pulse')) l.insertAdjacentHTML('afterend', sketchLinkHTML(a).replace(/^[\s\S]*?<\/a>/, '')); }); }
+  return false;
+}
+// Same tab, new marker: the sketch tool re-centers on the building and the pulse plays again
+function sketchPulseAgain() { const a = currentRecord(); if (!a) return; SKETCH_VARIANT++; window.open(sketchToolUrl(a), SKETCH_WIN); }
 function updateEditButton() {
   const b = document.getElementById('sheet-edit-btn'); if (!b) return;
   b.hidden = !canEditRecords();
@@ -3407,11 +3474,11 @@ function EDIT_TABS(a) {
         ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
         ['Occupancy', 'Occupancy Type', 'select'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
         ['Liquefaction', 'Liquefaction', 'yesno_dnk'], ['Landslide', 'Landslide', 'yesno_dnk'], ['SurfaceRupture', 'Surface Rupture', 'yesno_dnk']]],
-      ['Screening Record', [['SurveyDate', 'Date of screening', 'date'], ['SurveyType', 'Screening Type', 'select'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
+      ['Screening Record', [['SurveyDate', 'Date of screening', 'lock'], ['SurveyType', 'Screening Type', 'select'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
         ['Exterior', 'Exterior Review', 'select'], ['Interior', 'Interior Review', 'select'], ['DrawingsReviewed', 'Drawings Reviewed', 'yesno'],
         [soilSrc, 'Soil Type Source', 'text'], [geoSrc, 'Geologic Hazard Source', 'text'], [contact, 'Facility Contact', 'text']]],
-      // header address: Address and City editable; State, ZIP and County view only
-      ['Address', [['Address', 'Address', 'text'], ['City', 'City', 'text'], ['State', 'State', 'calc'], ['ZIP', 'ZIP', 'calc'], ['County', 'County', 'calc']]],
+      // header address: Address, City and ZIP editable; State and County view only
+      ['Address', [['Address', 'Address', 'text'], ['City', 'City', 'text'], ['State', 'State', 'calc'], ['ZIP', 'ZIP', 'text'], ['County', 'County', 'calc']]],
     ],
     p154: [
       ['Screening', [['CodeYear', 'Code Year', 'text'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
@@ -3480,7 +3547,7 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
     const summary = [...on].map(c => ch[c] || choiceLabel(f, c)).join(', ');
     ctl = `<div class="ed-ms" data-f="${escHtml(f)}">
       <button type="button" id="${id}" class="ed-in ed-ms-btn" aria-haspopup="listbox" aria-expanded="false" onclick="toggleMultiSelect(this)">
-        <span class="ed-ms-val${summary ? '' : ' ed-ms-empty'}">${escHtml(summary || (isRequired(f) ? 'Choose at least one (required)' : '- Not answered -'))}</span>
+        <span class="ed-ms-val${summary ? '' : ' ed-ms-empty'}">${escHtml(summary || (isRequired(f) ? 'Choose at least one (required)' : '- None Selected -'))}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="ed-ms-list" role="listbox" aria-multiselectable="true" aria-label="${escHtml(label)}" hidden>${Object.entries(ch).map(([c, l]) =>
@@ -3490,7 +3557,7 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
     const opts = Object.entries(ch);
     const known = opts.some(([c]) => c === _raw(v));
     ctl = `<select id="${id}" class="ed-in" onchange="editSet('${f}', this.value)">
-      ${isRequired(f) ? (_raw(v) === '' ? '<option value="" selected disabled>Choose… (required)</option>' : '') : '<option value="">- Not answered -</option>'}
+      ${isRequired(f) ? (_raw(v) === '' ? '<option value="" selected disabled>Choose… (required)</option>' : '') : '<option value="">- None Selected -</option>'}
       ${opts.map(([c, l]) => `<option value="${escHtml(c)}" ${c === _raw(v) ? 'selected' : ''}>${escHtml(l)}</option>`).join('')}
       ${!known && _raw(v) ? `<option value="${escHtml(_raw(v))}" selected>${escHtml(_raw(v))} (current, not a survey choice)</option>` : ''}
     </select>`;
@@ -3555,7 +3622,7 @@ function editMulti(f, code, checked, el) {
   const box = el && el.closest('.ed-ms');
   if (box) {
     const labels = [...box.querySelectorAll('.ed-ms-opt')].filter(o => o.querySelector('input').checked).map(o => o.textContent.trim());
-    const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || (isRequired(f) ? 'Choose at least one (required)' : '- Not answered -'); val.classList.toggle('ed-ms-empty', !labels.length);
+    const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || (isRequired(f) ? 'Choose at least one (required)' : '- None Selected -'); val.classList.toggle('ed-ms-empty', !labels.length);
   }
 }
 function toggleMultiSelect(btn) {
@@ -4009,10 +4076,12 @@ async function comboSave(btn) {
     if (moved) { a.lat = nLat; a.lng = nLng; }
     // attachments: removals, then new files
     if (changes.some(f => /^__(att|del)\d+$/.test(f))) await saveReports(a, changes);
-    Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
+    if (changes.includes('__sketch')) { await saveSketch(a); SKETCH_PENDING = null; }
+    Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
     applySavedEdits(a, attrs); updateEditButton();
     if (changes.some(f => f.startsWith('__'))) loadReports(a);
+    if (changes.includes('__sketch')) loadAttachments(a.id);
     showToast(`Saved ${changes.length} change${changes.length > 1 ? 's' : ''}`);
   } catch (e) { btn.disabled = false; btn.textContent = 'Save changes'; const m = document.querySelector('#cb-review .ed-rv-msg'); if (m) m.textContent = `Couldn't save: ${e.message || e}`; }
 }
@@ -4411,7 +4480,7 @@ async function saveReports(a, changes) {
 function startComboEdit() {
   const a = currentRecord(); if (!a || !canEditRecords()) return;
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
-  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
+  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
   if (typeof a.lat === 'number' && !(FIELDS.lat in EDIT.orig)) EDIT.orig[FIELDS.lat] = a.lat;
   if (typeof a.lng === 'number' && !(FIELDS.lng in EDIT.orig)) EDIT.orig[FIELDS.lng] = a.lng;
@@ -4457,7 +4526,7 @@ function cancelEdit(skipConfirm, then) {
   const a = assets.find(x => String(x.id) === String(EDIT.id));
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
   EDIT.on = false; EDIT.mode = null; EDIT.id = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
-  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
+  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
   closeEditReview();
   if (a && String(selectedId) === String(a.id)) { openDetail(a); switchDetailTab(tab); }
   updateEditButton();
@@ -4468,6 +4537,7 @@ function editLabel(f) {
   if (f === 'BuildingName') return 'Building name';
   if (/^__att\d$/.test(f)) return `Attachment ${f.slice(5)}`;
   if (/^__del\d+$/.test(f)) return 'Remove attachment';
+  if (f === '__sketch') return 'Sketch (Sketch1)';
   const extra = { OtherHazards: 'Other hazards (trigger a detailed evaluation)', Level1Comments: 'Screener comments', ReviewComments: 'Comments for engineer', EngineerNotes: 'Engineer comments', SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
   if (extra[f]) return extra[f];
   const ph = phaseCfg(); if (ph && ph.editable && ph.editable[f]) return ph.editable[f][0];
@@ -4632,6 +4702,7 @@ function historySummary(changes) {
   const add = changes.filter(f => /^__att\d+$/.test(f)).map(f => EDIT.draft[f]), del = changes.filter(f => /^__del\d+$/.test(f)).map(f => EDIT.orig[f]);
   if (add.length) parts.push(`${add.join(', ')} attached`);
   if (del.length) parts.push(`${del.join(', ')} removed`);
+  if (changes.includes('__sketch')) parts.push('new sketch uploaded');
   const txt = parts.join('; '); return txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
@@ -4738,7 +4809,7 @@ function closeDetail() {
 function buildDetailHTML(a) {
   const editing = EDIT.on && String(EDIT.id) === String(a.id);
   const combo = editing && EDIT.mode === 'combo';
-  const comboHint = (phaseCfg() && phaseCfg().autoFill ? `<div class="cb-auto" id="cb-auto" role="status">${escHtml(EDIT.autoStatus || '')}</div>` : '') + (phaseCfg() ? `<div class="ph-legend"><b>${escHtml(phaseCfg().title)}</b><span class="ph-chip ph-c-edit">Editable</span><span class="ph-chip ph-c-view">View only</span></div>` : '') + `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
+  const comboHint = `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
   const sc = a.level1Score;
   const scColor = scoreColor(sc, a.surveyType);
@@ -4923,7 +4994,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
-        ${sketchLinkHTML(a)}
+        ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
@@ -4942,10 +5013,10 @@ function buildDetailHTML(a) {
             ${pairRow(['Soil Type', soilLbl, '', 'SoilType'], ['Geologic Hazards', geoHazStr, '', 'Liquefaction,Landslide,SurfaceRupture'])}
             ${pairRow(['Soil Type Source', soilSrc, '', 'SoilTypeSource'], ['Hazard Source', geoSrc, '', 'GeologicHazardsSource'])}
             ${kvRows([['Drawings Reviewed?', drawingsStr, '', 'DrawingsReviewed'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
-          <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
-            ['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy']])}
-            ${occOthersHtml}
+          <div class="ov-card"><div class="ov-card-title">Facility Details</div>
             <div class="ov-row ov-loc" data-ie="${escHtml(FIELDS.lat)},${escHtml(FIELDS.lng)}"><div class="ov-k">Latitude/Longitude</div><div class="ov-v">${escHtml(dash(latLongStr))}</div></div>
+            ${kvRows([['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy']])}
+            ${occOthersHtml}
             ${pairRow(['Stories Above', stAbove, '', 'StoriesAboveGrade'], ['Below', stBelow, '', 'StoriesBelowGrade'])}
             ${kvRows([['Total Floor Area (sq. ft.)', sqft, '', 'TotalFloorArea']])}
             ${pairRow(['Year Built', yb, '', 'YearBuilt'], ['Est.?', ybEst, '', 'YearBuiltEstimated'])}
@@ -4954,7 +5025,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
-        ${sketchLinkHTML(a)}
+        ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
