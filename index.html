@@ -451,10 +451,23 @@
   .ed-rv-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
   /* D · combo (click highlighted items in the normal tabs, like B without pencils) */
   .cb-hint-top { margin: 14px 20px 0; }
+  .cb-banner { display: flex; align-items: center; gap: 10px; margin: 14px 20px 0; padding: 11px 14px; border-radius: 10px;
+               background: #0B2E6B; color: #fff; font-size: 13.5px; line-height: 1.4; box-shadow: 0 2px 8px rgba(11,46,107,0.18); }
+  .cb-banner svg { flex-shrink: 0; color: #f5c84c; }
+  .cb-banner b { font-weight: 800; }
   .cb-target { cursor: pointer; position: relative; transition: background 0.12s, box-shadow 0.12s; }
   .ov-row.cb-target, .p2-row.cb-target, .ns-br-row.cb-target, .p2-irr-row.cb-target, .p2-cm.cb-target, .p2-dse.cb-target {
     background: #fff6d6; box-shadow: inset 3px 0 0 var(--cusec-gold); }
-  .ov-row.cb-target { margin: 0 -10px; padding-left: 10px; padding-right: 10px; }
+  .ov-row.cb-target { margin: 0 -12px; padding: 9px 12px; }
+  .p2-row.cb-live, .p2-irr-row.cb-live, .p2-cm.cb-live { padding: 9px 12px; margin: 2px -12px; border-radius: 6px; }
+  .p2-dse.cb-live { padding: 6px 10px !important; margin: 4px 0; }
+  .ns-br-row.cb-live > .ns-br-k { padding-left: 14px; }
+  .cb-group.cb-live { padding: 10px 12px; margin: 4px -6px; }
+  .ov-occ-others.cb-live { display: block; padding: 0; margin: 0 -12px; border-top: 1px solid #e6e9ef; border-radius: 0; background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; }
+  .ov-occ-others.cb-live.cb-changed { background: #fde9a8 !important; }
+  .cb-occ-row { border-bottom: none; padding: 9px 12px; }
+  .ov-card.cb-live.ov-stat { padding: 14px 14px 12px; }
+  .ov-card.cb-live > .cb-cell { padding-top: 4px; }
   .ov-card.cb-target, .ov-occ-others.cb-target, .cb-group.cb-target { background: #fffbea; box-shadow: 0 0 0 2px #f0d49a inset; border-radius: 8px; }
   .cb-group { padding: 2px 6px; margin: 0 -6px; }
   .sheet-name.cb-target { background: #fff6d6; border-radius: 6px; padding: 0 6px; margin-left: -6px; box-shadow: inset 3px 0 0 var(--cusec-gold); }
@@ -3025,6 +3038,21 @@ function enhanceCombo() {
     el.classList.add('cb-target', 'cb-live');
     const one = specs.length === 1;
     const ctl = one ? cbStrip(editControl(a, specs[0])) : `<div class="cb-stack">${specs.map(sp => editControl(a, sp)).join('')}</div>`;
+    const geo = el.dataset.ie === 'Liquefaction,Landslide,SurfaceRupture';
+    if (geo) {
+      // three Yes/No answers shown as one pull-down: checked = Yes, unchecked = No
+      const items = [['Liquefaction', 'Liquefaction'], ['Landslide', 'Landslide'], ['SurfaceRupture', 'Surface Rupture']];
+      const on = items.filter(([f]) => isYes(editVal(f))).map(([, l]) => l);
+      const v = el.querySelector(':scope > .ov-v');
+      v.classList.add('cb-cell');
+      v.innerHTML = `<div class="ed-ms" data-f="__geo">
+        <button type="button" class="ed-in ed-ms-btn" aria-haspopup="listbox" aria-expanded="false" onclick="toggleMultiSelect(this)">
+          <span class="ed-ms-val${on.length ? '' : ' ed-ms-empty'}">${escHtml(on.join(', ') || 'None')}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ed-ms-list" role="listbox" aria-multiselectable="true" aria-label="Geologic hazards" hidden>${items.map(([f, l]) =>
+          `<label class="ed-ms-opt"><input type="checkbox" ${isYes(editVal(f)) ? 'checked' : ''} onchange="geoToggle('${f}', this.checked, this)">${l}</label>`).join('')}</div></div>`;
+      cbMarkChanged(el); return;
+    }
     if (el.id === 'sheet-building-name') {
       el.innerHTML = `<input id="ed_BuildingName" class="ed-in ed-name" aria-label="Building name" maxlength="255" value="${escHtml(_raw(editVal('BuildingName')))}" oninput="editSet('BuildingName', this.value)">`;
     } else if (el.classList.contains('ov-row') || el.classList.contains('p2-irr-row') || el.classList.contains('p2-cm')) {
@@ -3048,7 +3076,9 @@ function enhanceCombo() {
       el.querySelectorAll(':scope > :not(.ov-stat-label)').forEach(c => c.remove()); const d = document.createElement('div'); d.className = 'cb-cell'; d.innerHTML = ctl; el.appendChild(d);
     } else if (el.classList.contains('ov-card')) {                       // comments card
       el.querySelectorAll(':scope > :not(.ov-card-title)').forEach(c => c.remove()); const d = document.createElement('div'); d.className = 'cb-cell'; d.innerHTML = ctl; el.appendChild(d);
-    } else {                                                             // checklists, occupancy line
+    } else if (el.classList.contains('ov-occ-others')) {                // Shelter / Historic / Government
+      el.innerHTML = `<div class="ov-row cb-occ-row"><div class="ov-k">Shelter / Historic / Government</div><div class="ov-v cb-cell">${ctl}</div></div>`;
+    } else {                                                             // checklists
       el.innerHTML = `<div class="cb-cell">${ctl}</div>`;
     }
     cbMarkChanged(el);
@@ -3060,6 +3090,17 @@ function braceCodeFor(ch, key) {
   const want = { none: /^none$|^no$/, some: /^some$|^partial/, all: /^all$|^yes$|^full/, na: /^na$|^notapplicable$/, unknown: /^unknown$|^dnk$|^donotknow$|^dontknow$/ }[key];
   for (const [code, label] of Object.entries(ch)) if (want.test(norm(code)) || want.test(norm(label))) return code;
   return null;
+}
+function ynCode(f, yes) {   // the survey's own Yes / No code for this question
+  const d = DOMAIN_LABELS[f] || {};
+  const hit = Object.entries(d).find(([, l]) => (yes ? /^yes$/i : /^no$/i).test(String(l).trim()));
+  return hit ? hit[0] : (yes ? 'yes' : 'no');
+}
+function geoToggle(f, checked, el) {
+  editSet(f, ynCode(f, checked));
+  const box = el.closest('.ed-ms');
+  const labels = [...box.querySelectorAll('.ed-ms-opt')].filter(o => o.querySelector('input').checked).map(o => o.textContent.trim());
+  const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || 'None'; val.classList.toggle('ed-ms-empty', !labels.length);
 }
 function cbMarkChanged(el) {
   const fs = (el.dataset.ie || '').split(',');
@@ -3384,7 +3425,7 @@ function closeDetail() {
 function buildDetailHTML(a) {
   const editing = EDIT.on && String(EDIT.id) === String(a.id);
   const combo = editing && EDIT.mode === 'combo';
-  const comboHint = `<div class="cb-hint cb-hint-top"><span class="cb-swatch"></span>Change any highlighted box, then use Review &amp; Save. Items without a box are locked or calculated.</div>`;
+  const comboHint = `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
   const sc = a.level1Score;
   const scColor = scoreColor(sc, a.surveyType);
@@ -3551,7 +3592,7 @@ function buildDetailHTML(a) {
           <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
             ['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Latitude/Longitude', latLongStr], ['Stories', storiesStr, '', 'StoriesAboveGrade'],
             ['Total Floor Area (sq. ft.)', sqft, '', 'TotalFloorArea'], ['Year Built Estimated?', fieldValue('YearBuiltEstimated'), '', 'YearBuiltEstimated'],
-            ['Additions Year Built', addlYearStr, '', 'AdditionsYearBuilt'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy'], ['Geologic Hazards', geoHazStr]])}${otherOccHtml}</div>
+            ['Additions Year Built', addlYearStr, '', 'AdditionsYearBuilt'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy'], ['Geologic Hazards', geoHazStr, '', 'Liquefaction,Landslide,SurfaceRupture']])}${otherOccHtml}</div>
           <div class="ov-card"><div class="ov-card-title">Screening Record</div>${kvRows([
             ['Date of screening', screenDate || 'Not recorded', screenDate ? '' : ' <span class="ov-missing">Missing</span>'],
             ['Screening Type', screeningTypeStr],
