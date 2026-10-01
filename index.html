@@ -1846,55 +1846,91 @@ function seismoHTML(title, sub) {
 }
 function seismoStart() { if (!SEISMO.raf) SEISMO.raf = requestAnimationFrame(seismoFrame); }
 function seismoFrame() {
+  // Drum (helicorder) seismograph: paper wraps a turning drum and the record reads like lines in a
+  // book. Every line scrolls with the drum; the pen writes the middle line. Lines alternate
+  // black / red / blue / green, the ground is never quite still, and a quake's big swings spill
+  // over the neighbouring lines (drawn red where they'd go off-scale).
   const cvs = [...document.querySelectorAll('canvas.seismo-cv')].filter(c => c.isConnected && c.offsetParent !== null);
   if (!document.querySelector('canvas.seismo-cv')) { SEISMO.raf = 0; return; }
   const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const R = Math.random, rnd = (a, b) => a + R() * (b - a), COLORS = ['#1b1b1b', '#c0262d', '#1f4fbf', '#1e7b3a'];
   cvs.forEach(cv => {
     const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
     if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const GAP = 14, ROWS = Math.ceil(h / GAP) + 1, ACT = Math.floor(ROWS / 2);
     let st = SEISMO.seq.get(cv);
-    if (!st) { st = { y: [], t: 0, n: 0, sway: Math.random() * 6, ev: null, next: 8 + Math.random() * 25, shift: 0 }; SEISMO.seq.set(cv, st); }
-    const penX = w, mid = h / 2, steps = still ? 0 : 1;   // one new sample per frame (half the earlier speed)
-    // Like a real seismogram: low background noise, then quakes of random size and timing.
-    // Each quake: a small fast P wave, a quiet gap, a bigger slower S wave, and a long decaying coda.
-    const R = Math.random, rnd = (a, b) => a + R() * (b - a);
-    const sample = () => {
+    const quiet = row => { row.n = row.n * 0.35 + (R() - 0.5) * 1.5; return row.n + (R() < 0.004 ? (R() - 0.5) * 6 : 0); };   // background: fine jitter, rare tiny blips
+    // The line being written replays the 17 Jan 1994 Northridge (Mw 6.7) record, as seen close to the
+    // fault: a short P-to-S gap, then the main shock - a huge one-sided velocity pulse with violent
+    // high-frequency shaking riding on it, driving the pen off-scale for several seconds - then
+    // long-period basin surface waves, a peppering of aftershocks, and the strong (M6) aftershock
+    // that came about a minute later. Time is sped up (~120 samples a second) so it plays out
+    // while the pop-up is open, then the sequence starts over.
+    const live = () => {
       st.t++;
-      st.n = st.n * 0.82 + (R() - 0.5) * 0.09;                         // microseism noise (smoothed)
-      let v = st.n + 0.012 * Math.sin(st.t * 0.07 + st.sway);
-      if (!st.ev && st.t >= st.next) {
-        const mag = Math.pow(R(), 1.3) * 0.8 + 0.2;                     // mostly moderate, now and then big
-        const p = rnd(14, 34);
-        st.ev = { t0: st.t, mag, p, sDur: rnd(25, 60) * (0.6 + mag), fP: rnd(1.2, 1.8), fS: rnd(0.45, 0.75), ph: [R() * 6, R() * 6, R() * 6] };
-      }
-      const e = st.ev;
-      if (e) {
-        const dt = st.t - e.t0;
-        const envP = e.mag * 0.55 * (1 - Math.exp(-dt / 2.5)) * Math.exp(-dt / (e.p * 0.9));
-        v += envP * (Math.sin(e.fP * dt + e.ph[0]) * 0.7 + (R() - 0.5) * 0.8);
-        if (dt >= e.p) {
-          const ds = dt - e.p, envS = e.mag * 1.6 * (1 - Math.exp(-ds / 3)) * Math.exp(-ds / e.sDur);
-          v += envS * (Math.sin(e.fS * ds + e.ph[1]) * 0.6 + Math.sin(e.fS * 1.9 * ds + e.ph[2]) * 0.3 + (R() - 0.5) * 0.55);
-          if (ds > e.sDur * 3) { st.ev = null; st.next = st.t + rnd(10, 70); }   // short quiet spell, then the next quake
+      let v = quiet(st.rows[ACT]);
+      const q = st.nr;
+      const d = st.t - q.t0;                                           // samples since the P arrival
+      const hf = (amp, per) => amp * (Math.sin(d * 2 * Math.PI / per + q.ph) * 0.45 + Math.sin(d * 2 * Math.PI / (per * 0.53) + q.ph2) * 0.25 + (R() - 0.5) * 0.9);
+      if (d >= 0 && d < 12) v += 5 * (1 - Math.exp(-d / 1.5)) * (Math.sin(d * 2.4) * 0.6 + (R() - 0.5));      // P: sharp, small, brief (near the fault)
+      const s = d - 12;                                                // S / main shock
+      if (s >= 0) {
+        const rise = 1 - Math.exp(-s / 3);
+        const strong = rise * (s < 150 ? 1 : Math.exp(-(s - 150) / 70));            // ~8-10 s of violent shaking
+        v += hf(46 * strong, 3 + R() * 1.4);
+        const u = Math.PI * (s - 34) / 26;                                           // the Rinaldi-style velocity pulse
+        v += -95 * (1 - 2 * u * u) * Math.exp(-u * u);
+        const u2 = Math.PI * (s - 95) / 34;                                          // a second, broader pulse
+        v += 48 * (1 - 2 * u2 * u2) * Math.exp(-u2 * u2);
+        if (s > 70) {                                                                // basin surface waves: long, rolling
+          const ds = s - 70, env = 34 * Math.min(1, ds / 40) * Math.exp(-ds / 260);
+          v += env * Math.sin(ds * 2 * Math.PI / (20 * (1 + ds / 600)) + q.ph);
         }
+        if (s > 260 && R() < 0.022) q.af.push({ t: st.t, a: rnd(4, 14), per: rnd(2, 3.5), dur: rnd(12, 30) });   // small aftershocks
+        if (s === 620) q.af.push({ t: st.t, a: 40, per: 3.2, dur: 70, big: true });                               // the M6 aftershock (~1 min later)
+        if (s > 1150) st.nr = { t0: st.t + Math.round(rnd(40, 90)), ph: R() * 6, ph2: R() * 6, af: [] };          // start over
       }
-      v = Math.max(-1, Math.min(1, v));
-      return mid - v * h * 0.43;
+      q.af = q.af.filter(f => {
+        const k = st.t - f.t; if (k > f.dur * 4) return false;
+        const env = (1 - Math.exp(-k / 2)) * Math.exp(-k / f.dur);
+        v += f.a * env * (Math.sin(k * 2 * Math.PI / f.per) * 0.6 + (R() - 0.5) * 0.9) + (f.big && k > 20 ? 16 * Math.exp(-(k - 20) / 90) * Math.sin((k - 20) * 2 * Math.PI / 16) : 0);
+        return true;
+      });
+      return v;
     };
-    if (!st.y.length) { for (let i = 0; i < penX; i += 2) st.y.push(sample()); }
-    for (let k = 0; k < steps; k++) { st.y.push(sample()); if (st.y.length > penX / 2 + 2) st.y.shift(); st.shift = (st.shift + 2) % 16; }
+    if (!st) {
+      st = { t: 0, nr: { t0: Math.round(rnd(30, 50)), ph: R() * 6, ph2: R() * 6, af: [] }, shift: 0, rows: [] };
+      for (let r = 0; r < ROWS; r++) st.rows.push({ n: 0, y: [] });
+      SEISMO.seq.set(cv, st);
+      st.rows.forEach(row => { for (let x = 0; x < w; x++) row.y.push(quiet(row)); });
+      // one older line keeps the tail of an earlier quake
+      const old = st.rows[(ACT + 2) % ROWS], at = Math.floor(rnd(w * 0.2, w * 0.6));
+      for (let x = at; x < w; x++) { const d = x - at; old.y[x] += 16 * Math.exp(-d / 30) * Math.sin(d * 1.4) * (0.7 + R() * 0.5); }
+    }
+    const steps = still ? 0 : 2;                                        // 2 px of paper per frame
+    for (let k = 0; k < steps; k++) {
+      st.rows.forEach((row, r) => { row.y.shift(); row.y.push(r === ACT ? live() : quiet(row)); });
+      st.shift = (st.shift + 1) % 20;
+    }
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
-    g.save(); g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); g.clip();   // round dial
-    // paper with a scrolling grid
-    g.fillStyle = '#fbfaf5'; g.fillRect(0, 0, w, h);
-    g.strokeStyle = 'rgba(11,46,107,0.08)'; g.lineWidth = 1; g.beginPath();
-    for (let x = penX - st.shift; x > 0; x -= 16) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, h); }
-    for (let y = mid % 12; y < h; y += 12) { g.moveTo(0, y + 0.5); g.lineTo(w, y + 0.5); }
+    g.save(); g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); g.clip();   // round view of the drum
+    g.fillStyle = '#fdfcf8'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(0,0,0,0.07)'; g.lineWidth = 1; g.beginPath();   // minute marks, moving with the paper
+    for (let x = w - st.shift; x > 0; x -= 20) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, h); }
     g.stroke();
-    g.strokeStyle = 'rgba(11,46,107,0.18)'; g.beginPath(); g.moveTo(0, mid + 0.5); g.lineTo(w, mid + 0.5); g.stroke();
-    // the trace, ending at the pen
-    g.strokeStyle = '#b3261e'; g.lineWidth = 1.4; g.lineJoin = 'miter'; g.beginPath();
-    const n = st.y.length; st.y.forEach((y, i) => { const x = penX - (n - 1 - i) * 2; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+    const top = h / 2 - ACT * GAP;
+    st.rows.forEach((row, r) => {
+      const base = top + r * GAP, col = COLORS[(r - ACT + COLORS.length * 10) % COLORS.length];   // the line being written is black
+      g.lineWidth = r === ACT ? 1.1 : 0.9; g.globalAlpha = r === ACT ? 1 : 0.85;
+      let cur = null;
+      for (let x = 1; x < row.y.length; x++) {
+        const off = Math.abs(row.y[x]) > GAP * 1.6, c = off ? '#d0021b' : col;
+        if (c !== cur) { if (cur) g.stroke(); g.strokeStyle = c; g.beginPath(); g.moveTo(x - 1, base + row.y[x - 1]); cur = c; }
+        g.lineTo(x, base + row.y[x]);
+      }
+      if (cur) g.stroke();
+    });
+    g.globalAlpha = 1;
     g.restore();
     g.strokeStyle = '#d9cfb0'; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); g.stroke();
   });
@@ -4279,7 +4315,7 @@ function notesTabHTML(a) {
 function comboP154HTML(a) {
   return `<div class="ov-grid cb-p154-grid"><div class="ov-main">${comboP154Main(a)}</div>
     <div class="ov-photos">
-      <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+      <div class="ov-photo-slot" data-first="3"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
       ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
       <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
     </div></div>`;
@@ -5727,7 +5763,9 @@ async function loadAttachments(objectId) {
   if (slots.length) {
     const pick = (featured.length ? featured : result.infos.filter(i => i.isImage)).slice(0, 2);   // first 2 photos; the rest are on the Photos tab
     const html = pick.length ? pick.map(tile).join('') : `<div class="ov-nophoto">No photos</div>`;
-    slots.forEach(el => { el.innerHTML = html; });
+    // P-154 edit step: the first photos as they're stored on the record (data-first="3")
+    const firstN = n => { const imgs = result.infos.filter(i => i.isImage).slice(0, n); return imgs.length ? imgs.map(tile).join('') : `<div class="ov-nophoto">No photos</div>`; };
+    slots.forEach(el => { el.innerHTML = el.dataset.first ? firstN(Number(el.dataset.first)) : html; });
   }
 }
 
