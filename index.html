@@ -1117,7 +1117,10 @@ const CONFIG = {
   // dropdowns don't offer "Not answered"; required text/number boxes can't be
   // left empty. Fields the layer itself marks as not-nullable are added
   // automatically at sign-in.
-  requiredFields: [],
+  // From the XLSForm (L1L2.xlsx) "required" column:
+  requiredFields: ['SurveyType', 'PerformLevel2', 'DnsReason', 'DnsOther', 'BuildingName', 'BuildingPhoto', 'Exterior',
+    'OnsiteGenerator', 'Anchored', 'Isolators', 'NaturalGas', 'GasShutoff', 'Interior', 'DrawingsReviewed',
+    'FEMABuildingType', 'NonstructuralReview', 'FlexibleGasLines', 'EngineerReview', 'ReviewComments'],
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
   // switched on. styleField colors polygons low→high; labelField/rangeField
@@ -1982,7 +1985,7 @@ function _pickDateFields(info) {
   console.info('[RVS] screening-date fields (priority order):', screenFields, '| created:', creationField, '| edited:', editField);
   return { screenFields, creationField, editField };
 }
-let LAYER_REQUIRED = [];
+let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {};
 function isRequired(f) { return (CONFIG.requiredFields || []).some(r => r.toLowerCase() === String(f).toLowerCase()) || LAYER_REQUIRED.includes(f); }
 async function loadDomainLabels() {
   try {
@@ -1995,6 +1998,7 @@ async function loadDomainLabels() {
     };
     (info.fields || []).forEach(f => add(f.name, f.domain));
     // fields the layer won't accept blank (skip system-managed ones)
+    LAYER_FIELD_TYPES = Object.fromEntries((info.fields || []).map(f => [f.name, f.type]));
     LAYER_REQUIRED = (info.fields || []).filter(f => f.nullable === false && f.editable !== false
       && !/^(objectid|oid|fid|globalid|shape.*|creationdate|creator|editdate|editor)$/i.test(f.name) && f.type !== 'esriFieldTypeOID' && f.type !== 'esriFieldTypeGlobalID').map(f => f.name);
     LAYER_DATES = Object.assign(_pickDateFields(info), { screenFields: SCREEN_DATE_FIELDS });
@@ -2707,7 +2711,7 @@ const BRACE_CHOICES = { none: 'None', some: 'Some', all: 'All', na: 'N/A', unkno
 // survey's calculations, shown locked.
 function editField(a, name, patterns) { const k = Object.keys(a.attrs || {}).find(n => patterns.some(re => re.test(n))); return k || name; }
 function EDIT_TABS(a) {
-  const gen = editField(a, 'GeneratorAnchored', [/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i, /^(is_?)?anchored$/i]);
+  const gen = editField(a, 'Anchored', [/^anchored$/i, /generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i]);
   const soilSrc = editField(a, 'SoilTypeSource', [/^soil_?type_?source$/i, /soil.*source/i]);
   const geoSrc = editField(a, 'GeologicHazardSource', [/^geolog(ic|ical)?_?hazards?_?source$/i, /geolog.*source/i]);
   const contact = editField(a, 'ContactPerson', [/^facility_?contact$/i, /^contact_?person$/i]);
@@ -2718,7 +2722,7 @@ function EDIT_TABS(a) {
       ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
         ['TotalFloorArea', 'Total Floor Area (sq. ft.)', 'number', 0, 1e8], ['YearBuilt', 'Year Built', 'int', 1600, new Date().getFullYear()], ['YearBuiltEstimated', 'Year Built Estimated?', 'yesno'],
         ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
-        ['Occupancy', 'Occupancy Type', 'multi'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
+        ['Occupancy', 'Occupancy Type', 'select'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
         ['Liquefaction', 'Liquefaction', 'yesno_dnk'], ['Landslide', 'Landslide', 'yesno_dnk'], ['SurfaceRupture', 'Surface Rupture', 'yesno_dnk']]],
       ['Screening Record', [['SurveyDate', 'Date of screening', 'lock'], ['SurveyType', 'Screening Type', 'lock'], ['NonstructuralReview', 'Nonstructural Review', 'yesno'],
         ['Exterior', 'Exterior Review', 'select'], ['Interior', 'Interior Review', 'select'], ['DrawingsReviewed', 'Drawings Reviewed', 'yesno'],
@@ -2726,15 +2730,16 @@ function EDIT_TABS(a) {
     ],
     p154: [
       ['Screening', [['CodeYear', 'Code Year', 'lock'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
-        ['IsDetailedRequired', 'Detailed Eval. Required (Structural)', 'select', null, null, 'DetailedEvalRequired'], ['DetailedEvalRecommended', 'Detailed Eval. Required (Nonstructural)', 'select'],
+        ['DetailedEvalRequired', 'Detailed Eval. Required (Structural)', 'multi'], ['DetailedEvalRecommended', 'Detailed Eval. Required (Nonstructural)', 'select'],
         ['BasicScore', 'Basic Score', 'calc'], ['Level1Score', 'Final Level 1 Score', 'calc']]],
-      ['Irregularities', [['VertIrregularities', 'Vertical irregularity', 'yesno'], ['VertIrregularitiesType', 'Vertical severity', 'select', null, null, null, { severe: 'Severe', moderate: 'Moderate' }],
-        ['VertIrregularitiesPresent', 'Vertical types', 'multi'], ['PlanIrregularities', 'Plan irregularity', 'yesno'], ['PlanIrregularitiesPresent', 'Plan types', 'multi']]],
-      ['Hazards & Comments', [['OtherHazards', 'Adjacency / other hazards', 'multi'], ['ExtFallingHazards', 'Exterior falling hazards', 'multi'],
+      // VertIrregularities / VertIrregularitiesType / PlanIrregularities are hidden survey calculations → locked
+      ['Irregularities', [['VertIrregularitiesPresent', 'Vertical types', 'multi'], ['VertIrregularities', 'Vertical severity', 'calc'],
+        ['PlanIrregularitiesPresent', 'Plan types', 'multi'], ['PlanIrregularities', 'Plan irregularity', 'calc']]],
+      ['Hazards & Comments', [['Adjacency', 'Other observed hazards (adjacency)', 'multi'], ['ExtFallingHazards', 'Exterior falling hazards', 'multi'],
         ['FallingHazardsOther', 'Other falling hazard (describe)', 'text'], ['Level1Comments', 'Screener comments (Level 1)', 'textarea']]],
     ],
     nonstruct: [
-      ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['NaturalGas', 'Natural gas service', 'yesno'],
+      ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['Isolators', 'Seismic / vibration isolators', 'yesno'], ['NaturalGas', 'Natural gas service', 'yesno'],
         ['GasShutoff', 'Auto gas shut-off', 'yesno'], ['FlexibleGasLines', 'Flexible gas lines', 'yesno'], ['EgressRoutes', 'Egress routes clear', 'yesno']]],
       ['Bracing / Restraint', [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies', 'brace'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents', 'brace'],
         ['WaterHeaters', 'Water Heaters', 'brace'], ['FireSuppression', 'Fire Suppression', 'brace'], ['DropCeilings', 'Drop Ceilings', 'brace'], ['LayInLightFixtures', 'Lay-In Light Fixtures', 'brace'],
@@ -3326,6 +3331,14 @@ function closeEditReview() { const b = document.getElementById('ed-review'); if 
 // Sends the changed fields to the layer (applyEdits). ArcGIS decides whether
 // this user is allowed to save.
 async function saveEditsToLayer(a, attrs) {
+  // match each value to the layer's field type (e.g. Year Built / Floor Area are text fields in this survey)
+  attrs = Object.fromEntries(Object.entries(attrs).map(([f, v]) => {
+    const t = LAYER_FIELD_TYPES[f];
+    if (v === null || v === undefined || v === '') return [f, null];
+    if (t === 'esriFieldTypeString') return [f, String(v)];
+    if (/Integer|SmallInteger|Double|Single/.test(t || '') && isFinite(Number(v))) return [f, Number(v)];
+    return [f, v];
+  }));
   const oidField = Object.keys(a.attrs || {}).find(n => /^(objectid|oid|fid)$/i.test(n)) || FIELDS.objectId;
   const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, rollbackOnFailure: 'true',
     updates: JSON.stringify([{ attributes: Object.assign({ [oidField]: a.id }, attrs) }]) });
@@ -3679,13 +3692,12 @@ function buildDetailHTML(a) {
   // Detailed evaluation answers, worded per the P-154 tab spec
   const dseStruct = (() => {
     if (isNS) return 'N/A';
-    const raw = String(attrs.IsDetailedRequired ?? attrs.DetailedEvalRequired ?? a.detailedReq ?? '').trim().toLowerCase();
+    // DetailedEvalRequired is the survey question (select_multiple); IsDetailedRequired is its hidden calc
+    const raw = String(attrs.DetailedEvalRequired ?? attrs.IsDetailedRequired ?? a.detailedReq ?? '').trim().toLowerCase();
     if (!raw) return 'Not recorded';
-    if (/unknown/.test(raw)) return 'Yes, unknown building type';
-    if (/other/.test(raw)) return 'Yes, other hazards present';
-    if (/low|score|cut/.test(raw) || /^y(es)?$/.test(raw)) return 'Yes, score below cut-off';
-    if (/^n/.test(raw)) return 'No';
-    return choiceLabel('DetailedEvalRequired', raw);
+    const one = t => /unknown/.test(t) ? 'Yes, unknown building type' : /other/.test(t) ? 'Yes, other hazards present'
+      : (/low|score|cut/.test(t) || /^y(es)?$/.test(t)) ? 'Yes, score below cut-off' : /^n/.test(t) ? 'No' : choiceLabel('DetailedEvalRequired', t);
+    return [...new Set(raw.split(/[,\s]+/).filter(Boolean).map(one))].join('; ');
   })();
   const dseNS = (() => {
     const raw = String(attrs.DetailedEvalRecommended || '').trim().toLowerCase();
@@ -3705,7 +3717,7 @@ function buildDetailHTML(a) {
       ${statCard('FEMA Building Type', femaLbl, constructionType, '', 'FEMABuildingType')}
       ${statCard('Code Year', codeYearTxt, codeEra)}
       <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
-        <div class="p2-dse" data-ie="IsDetailedRequired"><span class="p2-dse-k">Structural:</span> ${escHtml(dseStruct)}</div>
+        <div class="p2-dse" data-ie="DetailedEvalRequired"><span class="p2-dse-k">Structural:</span> ${escHtml(dseStruct)}</div>
         <div class="p2-dse" data-ie="DetailedEvalRecommended"><span class="p2-dse-k">Nonstructural:</span> ${escHtml(dseNS)}</div></div>
     </div>`;
 
@@ -3766,10 +3778,10 @@ function buildDetailHTML(a) {
   const chk = (label, on) => `<div class="nb-check${on ? ' on' : ''}"><span class="nb-blank">${on ? 'X' : ''}</span><span>${escHtml(label)}</span></div>`;
   const fallOtherTxt = attrs.FallingHazardsOther ? String(attrs.FallingHazardsOther).trim() : '';
   const irregCard = `<div class="ov-card p2-card"><div class="ov-card-title">Irregularities</div>
-      <div class="p2-irr-row" data-ie="VertIrregularities,VertIrregularitiesType,VertIrregularitiesPresent"><div class="p2-k p2-irr-k">Vertical</div><div>${vIrr.items.length ? escHtml(vIrr.items.join(', ')) : 'N/A'}</div></div>
-      <div class="p2-irr-row" data-ie="PlanIrregularities,PlanIrregularitiesPresent"><div class="p2-k p2-irr-k">Plan</div><div>${pIrr.items.length ? escHtml(pIrr.items.join(', ')) : 'N/A'}</div></div>
+      <div class="p2-irr-row" data-ie="VertIrregularitiesPresent"><div class="p2-k p2-irr-k">Vertical</div><div>${vIrr.items.length ? escHtml(vIrr.items.join(', ')) : 'N/A'}</div></div>
+      <div class="p2-irr-row" data-ie="PlanIrregularitiesPresent"><div class="p2-k p2-irr-k">Plan</div><div>${pIrr.items.length ? escHtml(pIrr.items.join(', ')) : 'N/A'}</div></div>
       <div class="ov-card-title p2-sub">Adjacency Hazards</div>
-      <div class="cb-group" data-ie="OtherHazards">
+      <div class="cb-group" data-ie="Adjacency">
       ${chk('Pounding', oh.has('pounding_potential') || adj.has('pounding'))}
       ${chk('Falling Hazards from Adjacent Buildings', oh.has('falling_hazards') || adj.has('falling_hazards_taller'))}
       </div>
@@ -3850,7 +3862,7 @@ function buildDetailHTML(a) {
       <div class="ov-card ov-stat" data-ie="Exterior,Interior"><div class="ov-stat-label">Extent of Review</div>
         <div class="p2-dse"><span class="p2-dse-k">Exterior:</span> ${escHtml(fieldValue('Exterior') || '-')}</div>
         <div class="p2-dse"><span class="p2-dse-k">Interior:</span> ${escHtml(fieldValue('Interior') || '-')}</div></div>
-      ${htmlCard('Emergency Generator', genBig, genSub, `OnsiteGenerator,${editField(a, 'GeneratorAnchored', [/generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i, /^(is_?)?anchored$/i])}`)}
+      ${htmlCard('Emergency Generator', genBig, genSub, `OnsiteGenerator,${editField(a, 'Anchored', [/^anchored$/i, /generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i])},Isolators`)}
       ${htmlCard('Auto Gas Shut-off', gasBig, gasSub, 'NaturalGas,GasShutoff,FlexibleGasLines')}
       ${htmlCard('Egress Routes Clear', (v => v === '-' ? 'N/A' : v)(ynTxt(attrs.EgressRoutes, 'EgressRoutes')), '', 'EgressRoutes')}
     </div>`;
