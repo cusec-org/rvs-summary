@@ -430,6 +430,8 @@
   .ed-locked { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #4a5363; padding-top: 6px; }
   .ed-locked svg { flex-shrink: 0; }
   .ed-err { font-size: 11.5px; color: #b3261e; margin-top: 3px; }
+  .ed-req-star { color: #b3261e; font-weight: 800; }
+  .ed-in.ed-bad { border-color: #b3261e !important; background: #fff5f4 !important; }
   .ed-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: #fff; border-top: 1px solid var(--border); box-shadow: 0 -4px 14px rgba(0,0,0,0.08); }
   .ed-count { flex: 1; font-size: 13px; font-weight: 700; color: #13233d; }
   .ed-cancel, .ed-save { font: 700 13px 'DM Sans', sans-serif; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
@@ -483,8 +485,9 @@
   .cb-cell { display: block; width: 100%; font-weight: 400; }
   .ov-row.cb-live { align-items: center; }
   .p2-dse.cb-live { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 3px 4px; border-radius: 6px; }
-  .p2-row.cb-live .p2-k { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .cb-inline { width: auto; min-width: 120px; flex: 1; }
+  .p2-row.cb-live .p2-k { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cb-inline { width: auto; flex: 0 0 auto; margin-left: auto; }   /* box sits on the right, just left of the score */
+  .cb-inline .ed-in { width: 132px; padding: 4px 8px; font-size: 12.5px; } /* compact Yes/No boxes (Pre-Code, Post-Benchmark) */
   .ns-br-row.cb-live .cb-span { grid-column: 2 / -1; padding: 4px 10px; }
   .cb-radio-cell { display: flex; align-items: center; justify-content: center; }
   .cb-radio { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
@@ -1110,6 +1113,11 @@ const CONFIG = {
   // 'B' = quick edit (a small pencil on each field, saves one field at a time),
   // 'C' = guided wizard (step through the record, review, save)
   editStyle: 'D',
+  // Questions the survey marks required (XLSForm "required" column). Required
+  // dropdowns don't offer "Not answered"; required text/number boxes can't be
+  // left empty. Fields the layer itself marks as not-nullable are added
+  // automatically at sign-in.
+  requiredFields: [],
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
   // switched on. styleField colors polygons low→high; labelField/rangeField
@@ -1974,6 +1982,8 @@ function _pickDateFields(info) {
   console.info('[RVS] screening-date fields (priority order):', screenFields, '| created:', creationField, '| edited:', editField);
   return { screenFields, creationField, editField };
 }
+let LAYER_REQUIRED = [];
+function isRequired(f) { return (CONFIG.requiredFields || []).some(r => r.toLowerCase() === String(f).toLowerCase()) || LAYER_REQUIRED.includes(f); }
 async function loadDomainLabels() {
   try {
     const info = await arcgisFetch(`${CONFIG.serviceUrl}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
@@ -1984,6 +1994,9 @@ async function loadDomainLabels() {
       domain.codedValues.forEach(cv => { out[fname][String(cv.code)] = cv.name; });
     };
     (info.fields || []).forEach(f => add(f.name, f.domain));
+    // fields the layer won't accept blank (skip system-managed ones)
+    LAYER_REQUIRED = (info.fields || []).filter(f => f.nullable === false && f.editable !== false
+      && !/^(objectid|oid|fid|globalid|shape.*|creationdate|creator|editdate|editor)$/i.test(f.name) && f.type !== 'esriFieldTypeOID' && f.type !== 'esriFieldTypeGlobalID').map(f => f.name);
     LAYER_DATES = Object.assign(_pickDateFields(info), { screenFields: SCREEN_DATE_FIELDS });
     try { localStorage.setItem('rvs_datefields_v3', JSON.stringify(LAYER_DATES)); } catch {}
     (info.types || []).forEach(t => Object.entries(t.domains || {}).forEach(([fname, dom]) => add(fname, dom)));
@@ -2767,7 +2780,7 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
     const summary = [...on].map(c => ch[c] || choiceLabel(f, c)).join(', ');
     ctl = `<div class="ed-ms" data-f="${escHtml(f)}">
       <button type="button" id="${id}" class="ed-in ed-ms-btn" aria-haspopup="listbox" aria-expanded="false" onclick="toggleMultiSelect(this)">
-        <span class="ed-ms-val${summary ? '' : ' ed-ms-empty'}">${escHtml(summary || '- Not answered -')}</span>
+        <span class="ed-ms-val${summary ? '' : ' ed-ms-empty'}">${escHtml(summary || (isRequired(f) ? 'Choose at least one (required)' : '- Not answered -'))}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="ed-ms-list" role="listbox" aria-multiselectable="true" aria-label="${escHtml(label)}" hidden>${Object.entries(ch).map(([c, l]) =>
@@ -2777,7 +2790,7 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
     const opts = Object.entries(ch);
     const known = opts.some(([c]) => c === _raw(v));
     ctl = `<select id="${id}" class="ed-in" onchange="editSet('${f}', this.value)">
-      <option value="">- Not answered -</option>
+      ${isRequired(f) ? (_raw(v) === '' ? '<option value="" selected disabled>Choose… (required)</option>' : '') : '<option value="">- Not answered -</option>'}
       ${opts.map(([c, l]) => `<option value="${escHtml(c)}" ${c === _raw(v) ? 'selected' : ''}>${escHtml(l)}</option>`).join('')}
       ${!known && _raw(v) ? `<option value="${escHtml(_raw(v))}" selected>${escHtml(_raw(v))} (current, not a survey choice)</option>` : ''}
     </select>`;
@@ -2793,7 +2806,8 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
   } else {
     ctl = `<input id="${id}" class="ed-in" type="text" maxlength="255" value="${escHtml(_raw(v))}" oninput="editSet('${f}', this.value)">`;
   }
-  return `<div class="ed-row${changed ? ' ed-changed' : ''}" data-f="${escHtml(f)}"><label class="ed-k" for="${id}">${escHtml(label)}</label><div class="ed-v">${ctl}<div class="ed-err" hidden></div></div></div>`;
+  if (isRequired(f) && !['calc', 'lock'].includes(type)) ctl = ctl.replace(/<(input|textarea|select)\b/, '<$1 required aria-required="true"');
+  return `<div class="ed-row${changed ? ' ed-changed' : ''}${isRequired(f) && !['calc', 'lock'].includes(type) ? ' ed-req' : ''}" data-f="${escHtml(f)}"><label class="ed-k" for="${id}">${escHtml(label)}${isRequired(f) && !['calc', 'lock'].includes(type) ? ' <span class="ed-req-star" title="Required">*</span>' : ''}</label><div class="ed-v">${ctl}<div class="ed-err" hidden></div></div></div>`;
 }
 function editTabHTML(a, tab) {
   const groups = EDIT_TABS(a)[tab] || [];
@@ -2801,6 +2815,20 @@ function editTabHTML(a, tab) {
     <div class="ed-grid">${groups.map(([title, fields]) => `<div class="ov-card p2-card ed-card"><div class="ov-card-title">${escHtml(title)}</div>${fields.map(fd => editControl(a, fd)).join('')}</div>`).join('')}</div></div>`;
 }
 function editSet(f, value, el) {
+  if (isRequired(f) && String(value ?? '').trim() === '') {
+    EDIT.invalid = Object.assign(EDIT.invalid || {}, { [f]: true });
+    const box = el || document.getElementById('ed_' + f.replace(/\W/g, '_'));
+    const err = box && box.parentNode.querySelector('.ed-err');
+    if (err) { err.hidden = false; err.textContent = 'Required - this can\'t be left empty'; }
+    if (box) box.classList.add('ed-bad');
+    updateEditBar(); return;
+  }
+  if (isRequired(f)) {
+    const box = el || document.getElementById('ed_' + f.replace(/\W/g, '_'));
+    const err = box && box.parentNode.querySelector('.ed-err');
+    if (err && /Required/.test(err.textContent)) { err.hidden = true; err.textContent = ''; }
+    if (box) box.classList.remove('ed-bad');
+  }
   if (el && el.type === 'number' && value !== '') {
     const n = Number(value), mn = el.min !== '' ? Number(el.min) : -Infinity, mx = el.max !== '' ? Number(el.max) : Infinity;
     const bad = !isFinite(n) || n < mn || n > mx || (el.step === '1' && !Number.isInteger(n));
@@ -2819,12 +2847,13 @@ function editMulti(f, code, checked, el) {
   const orig = _raw(EDIT.orig[f]);
   const sep = orig.includes(',') || !orig.trim() ? ',' : ' ';          // keep the record's own separator (Survey123 uses commas)
   const set = multiCodes(editVal(f)); checked ? set.add(code) : set.delete(code);
+  if (isRequired(f) && !set.size && el) { const err = el.closest('.ed-ms').parentNode.querySelector('.ed-err'); if (err) { err.hidden = false; err.textContent = 'Required - pick at least one'; } }
   editSet(f, [...set].join(sep));
   // refresh the dropdown's summary text
   const box = el && el.closest('.ed-ms');
   if (box) {
     const labels = [...box.querySelectorAll('.ed-ms-opt')].filter(o => o.querySelector('input').checked).map(o => o.textContent.trim());
-    const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || '- Not answered -'; val.classList.toggle('ed-ms-empty', !labels.length);
+    const val = box.querySelector('.ed-ms-val'); val.textContent = labels.join(', ') || (isRequired(f) ? 'Choose at least one (required)' : '- Not answered -'); val.classList.toggle('ed-ms-empty', !labels.length);
   }
 }
 function toggleMultiSelect(btn) {
@@ -2833,7 +2862,13 @@ function toggleMultiSelect(btn) {
   list.hidden = !open; btn.setAttribute('aria-expanded', open);
 }
 document.addEventListener('click', e => { if (!e.target.closest('.ed-ms')) document.querySelectorAll('.ed-ms-list').forEach(l => { l.hidden = true; }); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.ed-ms-list:not([hidden])').forEach(l => { l.hidden = true; }); }, true);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelectorAll('.ed-ms-list:not([hidden])');
+  if (!open.length) return;
+  open.forEach(l => { l.hidden = true; const b = l.parentNode.querySelector('.ed-ms-btn'); if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); } });
+  e.stopImmediatePropagation(); e.preventDefault();   // Esc just closes the dropdown, not the whole panel
+}, true);
 function updateEditBar() {
   if (EDIT.wizard) { const c = document.querySelector('#ed-wizard .ed-count'); if (c) { const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length; c.textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} change${n > 1 ? 's' : ''}` : 'No changes yet'; } return; }
   const bar = document.getElementById('ed-bar'); if (!bar) return;
@@ -3080,6 +3115,10 @@ function enhanceCombo() {
       el.innerHTML = `<div class="ov-row cb-occ-row"><div class="ov-k">Shelter / Historic / Government</div><div class="ov-v cb-cell">${ctl}</div></div>`;
     } else {                                                             // checklists
       el.innerHTML = `<div class="cb-cell">${ctl}</div>`;
+    }
+    if (one && isRequired(specs[0][0])) {
+      const lbl = el.querySelector(':scope > .ov-k, :scope > .ov-stat-label, :scope .p2-k, :scope > .ns-br-k, :scope > .p2-cm-k');
+      if (lbl && !lbl.querySelector('.ed-req-star')) lbl.insertAdjacentHTML('beforeend', ' <span class="ed-req-star" title="Required">*</span>');
     }
     cbMarkChanged(el);
   });
