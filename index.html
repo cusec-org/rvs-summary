@@ -763,7 +763,6 @@
   .seismo-hide { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(11,46,107,.25); font: 700 16px/1 'DM Sans', sans-serif; color: #4a5363; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .seismo-hide:hover { color: #0B2E6B; }
   .seismo-pop.done .seismo-cv { opacity: .55; transition: opacity .3s; }
-  .calc-seismo { display: flex; justify-content: center; padding: 14px 0 6px; margin-bottom: 8px; }
   @keyframes seismoIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .seismo-pop { animation: none; } }
   .ac-wrap { position: absolute; inset: 0; z-index: 40; background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -1888,14 +1887,14 @@ function seismoPopShow() {
   let box = document.getElementById('seismo-pop');
   if (!box) { box = document.createElement('div'); box.id = 'seismo-pop'; host.appendChild(box); }
   box.className = 'seismo-pop';
-  box.innerHTML = `<div class="seismo-card">${seismoHTML('Taking a reading', '')}
+  box.innerHTML = `<div class="seismo-card">${seismoHTML('Fetching Data', '')}
     <button type="button" class="seismo-hide" onclick="seismoPopHide()" aria-label="Hide" title="Hide">×</button></div>`;
   seismoStart();
 }
 function seismoPopDone(msg, ok) {
   const box = document.getElementById('seismo-pop'); if (!box) return;
   const t = box.querySelector('.seismo-t'), s = box.querySelector('.seismo-s');
-  if (t) t.innerHTML = ok ? '<span class="seismo-ok" aria-hidden="true">✓</span> Reading complete' : 'Some lookups didn\'t finish';
+  if (t) t.innerHTML = ok ? '<span class="seismo-ok" aria-hidden="true">✓</span> Data fetched' : 'Some lookups didn\'t finish';
   if (!ok && msg && t) t.insertAdjacentHTML('afterend', `<div class="seismo-s">${escHtml(msg)}</div>`);
   box.classList.add('done'); setTimeout(seismoPopHide, ok ? 1100 : 4000);
 }
@@ -1942,7 +1941,16 @@ function refreshCalcPanel(a) {
   const tmp = document.createElement('div'); tmp.innerHTML = buildDetailHTML(a);
   const fresh = tmp.querySelector('.dtab-panel[data-panel="calc"]'); if (fresh) panel.innerHTML = fresh.innerHTML;
 }
-function retryCalc() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) loadCalcLive(a, true); }
+function retryCalc() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) calcWithPopup(a, true); }
+// Calculations tab: run the lookups with the "Fetching Data" pop-up over the panel (only when something actually runs)
+async function calcWithPopup(a, force) {
+  loadCalcLive(a, force);
+  if ((CALC_STATE[calcKey(a)] || {}).status !== 'loading' || document.getElementById('seismo-pop')) return;
+  seismoPopShow();
+  const st = await waitForCalc(a);
+  const bad = [!(st.ss722 && st.ss722.val !== undefined) && 'ASCE 7-22', !(st.ss41 && st.ss41.val !== undefined) && 'ASCE 41-17', !(st.soil && st.soil.ok) && 'soil type', !(st.liq && st.liq.ok) && 'liquefaction'].filter(Boolean);
+  seismoPopDone(bad.length ? `Couldn't run: ${bad.join(', ')}.` : '', !bad.length);
+}
 
 // Column values: the record's SAVED values first (41-17 = SsSpectralAcc /
 // S1SpectralAcc from the form; 7-22 = Ss_ASCE7_22 / S1_ASCE7_22, filled by the
@@ -1979,7 +1987,7 @@ function switchDetailTab(tab) {
   document.querySelectorAll('#sheet-body .dtab').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
   document.querySelectorAll('#sheet-body .dtab-panel').forEach(p => { p.hidden = p.dataset.panel !== tab; });
   const panels = document.querySelector('#sheet-body .detail-panels'); if (panels) panels.scrollTop = 0;
-  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a && calcNeedsLive(a)) loadCalcLive(a); }
+  if (tab === 'calc') { const a = assets.find(x => String(x.id) === String(selectedId)); if (a && calcNeedsLive(a)) calcWithPopup(a); }
 }
 function detailLabel(field) {
   return DETAIL_LABELS[field] || field.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
@@ -5475,9 +5483,7 @@ function buildDetailHTML(a) {
       <div class="calc-rb-item"><span class="calc-rb-k">Seismicity Region</span><span class="calc-rb-v">${escHtml(fieldValue('Seismicity') || '-')}</span></div>
       <div class="calc-rb-item"><span class="calc-rb-k">Source</span><span class="calc-rb-v">${escHtml(dbSource)}</span></div>
     </div>`;
-  const calcRunning = calcKey(a) && CALC_STATE[calcKey(a)] && CALC_STATE[calcKey(a)].status === 'loading';
-  if (calcRunning) setTimeout(seismoStart, 0);
-  const calcHTML = `<div class="calc-wrap">${calcRunning ? `<div class="calc-seismo">${seismoHTML('Taking a reading', '')}</div>` : ''}
+  const calcHTML = `<div class="calc-wrap">
       ${dbRibbon}
       <div class="ov-cards calc-cols">
         ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, '')}
