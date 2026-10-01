@@ -1852,15 +1852,33 @@ function seismoFrame() {
     const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
     if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
     let st = SEISMO.seq.get(cv);
-    if (!st) { st = { y: [], t: 0, env: 0, next: 30, shift: 0 }; SEISMO.seq.set(cv, st); }
-    const penX = w, mid = h / 2, steps = still ? 0 : 2;
-    const sample = () => {                                 // quiet background with sudden, decaying bursts
+    if (!st) { st = { y: [], t: 0, n: 0, sway: Math.random() * 6, ev: null, next: 8 + Math.random() * 25, shift: 0 }; SEISMO.seq.set(cv, st); }
+    const penX = w, mid = h / 2, steps = still ? 0 : 1;   // one new sample per frame (half the earlier speed)
+    // Like a real seismogram: low background noise, then quakes of random size and timing.
+    // Each quake: a small fast P wave, a quiet gap, a bigger slower S wave, and a long decaying coda.
+    const R = Math.random, rnd = (a, b) => a + R() * (b - a);
+    const sample = () => {
       st.t++;
-      if (st.t >= st.next) { st.env = 0.55 + Math.random() * 0.45; st.next = st.t + 40 + Math.random() * 90; }
-      st.env *= 0.955;
-      const amp = (0.05 + st.env) * (h * 0.44);
-      const sign = st.t % 2 ? 1 : -1;                      // alternate up / down → sharp, needle-like spikes
-      return mid + sign * amp * (0.35 + Math.random() * 0.65);
+      st.n = st.n * 0.82 + (R() - 0.5) * 0.09;                         // microseism noise (smoothed)
+      let v = st.n + 0.012 * Math.sin(st.t * 0.07 + st.sway);
+      if (!st.ev && st.t >= st.next) {
+        const mag = Math.pow(R(), 1.3) * 0.8 + 0.2;                     // mostly moderate, now and then big
+        const p = rnd(14, 34);
+        st.ev = { t0: st.t, mag, p, sDur: rnd(25, 60) * (0.6 + mag), fP: rnd(1.2, 1.8), fS: rnd(0.45, 0.75), ph: [R() * 6, R() * 6, R() * 6] };
+      }
+      const e = st.ev;
+      if (e) {
+        const dt = st.t - e.t0;
+        const envP = e.mag * 0.55 * (1 - Math.exp(-dt / 2.5)) * Math.exp(-dt / (e.p * 0.9));
+        v += envP * (Math.sin(e.fP * dt + e.ph[0]) * 0.7 + (R() - 0.5) * 0.8);
+        if (dt >= e.p) {
+          const ds = dt - e.p, envS = e.mag * 1.6 * (1 - Math.exp(-ds / 3)) * Math.exp(-ds / e.sDur);
+          v += envS * (Math.sin(e.fS * ds + e.ph[1]) * 0.6 + Math.sin(e.fS * 1.9 * ds + e.ph[2]) * 0.3 + (R() - 0.5) * 0.55);
+          if (ds > e.sDur * 3) { st.ev = null; st.next = st.t + rnd(10, 70); }   // short quiet spell, then the next quake
+        }
+      }
+      v = Math.max(-1, Math.min(1, v));
+      return mid - v * h * 0.43;
     };
     if (!st.y.length) { for (let i = 0; i < penX; i += 2) st.y.push(sample()); }
     for (let k = 0; k < steps; k++) { st.y.push(sample()); if (st.y.length > penX / 2 + 2) st.y.shift(); st.shift = (st.shift + 2) % 16; }
