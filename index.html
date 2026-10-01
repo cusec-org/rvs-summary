@@ -78,6 +78,7 @@
   .skip-link:focus { top: 0; }
 
   /* ── Header ── */
+  #header:has(#filter-dropdown.open, .multi-dropdown.open) { position: relative; z-index: 4600; }
   #header { background: #0B2E6B; padding: 12px 16px 10px; flex-shrink: 0; z-index: 100; padding-top: max(12px, env(safe-area-inset-top)); }
   .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
   .app-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -136,7 +137,7 @@
     box-shadow: var(--shadow-lg); min-width: 220px; max-height: 320px; overflow-y: auto;
   }
   .multi-dropdown.open { display: block; }
-  .fdd-count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); font-weight: 600; }
+  .fdd-count { margin-left: auto; font-family: 'DM Sans', sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text3); font-weight: 700; }
   .fdd-clear { color: var(--cusec-blue); font-weight: 700; border-bottom: 1px solid var(--border); }
   .fdd-empty { padding: 12px 14px; font-size: 12px; color: var(--text3); font-style: italic; }
   .fdd-item {
@@ -182,6 +183,8 @@
   #layers-toggle.has-on::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--cusec-gold); margin-left: 2px; }
   .map-rotating, .map-rotating * { cursor: grabbing !important; }
   .leaflet-control-rotate a { cursor: pointer; }
+  .leaflet-control-rotate { background: #fff; }
+  .leaflet-control-rotate-arrow { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Ctext x='15' y='9.2' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-size='8.5' font-weight='700' fill='%23b3261e'%3EN%3C/text%3E%3Cpath d='M15 10.5l4 9.5-4-2.2-4 2.2z' fill='%23b3261e'/%3E%3Cpath d='M15 17.8l4 2.2-4 5.5-4-5.5z' fill='%239aa3b2'/%3E%3C/svg%3E") !important; background-size: 30px 30px !important; }
   #layers-panel { position: absolute; top: calc(100% + 6px); left: 0; min-width: 250px; max-width: 300px; background: var(--surface);
     border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px 0; font-family: 'DM Sans', sans-serif; }
   .lp-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); padding: 4px 14px 6px; }
@@ -398,6 +401,8 @@
   #overview-photos { display: flex; flex-direction: column; gap: 8px; }
   #overview-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
   .ov-nophoto { padding: 28px 12px; text-align: center; font-size: 12px; color: var(--text3); font-style: italic; background: var(--surface); border: 1px dashed #cfd5de; border-radius: 10px; }
+  .sketch-link { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
+  .sketch-link:hover { text-decoration: underline; }
   .view-all-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--cusec-blue); cursor: pointer; padding: 6px; }
   .view-all-link:hover { text-decoration: underline; }
   /* P-154 Screening Details tab (spec v2) */
@@ -436,6 +441,7 @@
     width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.55); color: #fff; }
   .sheet-edit-btn:hover { background: rgba(0,0,0,0.32); }
   .sheet-edit-btn.on { background: var(--cusec-gold); border-color: var(--cusec-gold); color: #1a1000; }
+  .sheet-edit-btn.locked { opacity: 0.45; cursor: not-allowed; }
   @media (max-width: 899px) {
     .sheet-edit-btn:not([hidden]) { top: 12px; right: 58px; width: 34px; height: 34px; background: var(--surface2); color: var(--text); border-color: var(--border); }
     .sheet-edit-btn.on { background: var(--cusec-gold) !important; color: #1a1000 !important; border-color: var(--cusec-gold) !important; }
@@ -1163,7 +1169,7 @@
     </div>
     <div class="filter-row">
       <button id="filter-toggle-btn" class="filter-btn" onclick="toggleFilterDropdown(event)" aria-expanded="false" aria-controls="filter-dropdown">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="1.5"/><path d="M8.5 7h2M13.5 7h2M8.5 11h2M13.5 11h2M8.5 15h2M13.5 15h2"/><path d="M10.5 21.5v-3h3v3"/></svg>
         Facility Type
       </button>
       <button class="filter-btn" id="score-filter-btn" onclick="toggleMultiDropdown(event,'score')" aria-expanded="false" aria-controls="score-dropdown" title="Filter by L1 score">
@@ -1278,6 +1284,11 @@ const CONFIG = {
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
   reportUrls: { p154: '', nonstructural: '' },
+  // "Open Sketch Tool" link under the building photo / sketch in the Post, QA/QC and
+  // Engineer Review edits. Opens this Experience Builder app centered on the record.
+  // mapWidgetId is looked up from the app's own settings at sign-in; this is the fallback.
+  sketchTool: { url: 'https://experience.arcgis.com/experience/ed078d41a859476da373bca710a4bc8e', itemId: 'ed078d41a859476da373bca710a4bc8e',
+    mapWidgetId: 'widget_1', scale: 1000, phases: ['post', 'qaqc', 'engineer'] },
   // AWS Lambda that does the USGS seismic lookups (see rvs-seismic-lambda/).
   // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
   // Calculations tab. Leave blank to use the values saved on each record.
@@ -3206,7 +3217,10 @@ function openLocPicker() {
   const lat = Number(editVal(FIELDS.lat) ?? a.lat), lng = Number(editVal(FIELDS.lng) ?? a.lng);
   const start = isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0) ? [lat, lng] : (map ? [map.getCenter().lat, map.getCenter().lng] : [36.75, -90.4]);
   if (!LOC.map) {
-    LOC.map = L.map('lp-map', { zoomControl: true, attributionControl: true }).setView(start, 18);
+    const rot = typeof L.Map.prototype.setBearing === 'function';
+    LOC.map = L.map('lp-map', Object.assign({ zoomControl: true, attributionControl: true },
+      rot ? { rotate: true, bearing: 0, touchRotate: true, shiftKeyRotate: true, rotateControl: { closeOnZeroBearing: false, position: 'topleft' } } : {})).setView(start, 18);
+    if (rot) enableMouseRotate(LOC.map);
     LOC.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 19 });
     LOC.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
     LOC.sat.addTo(LOC.map);
@@ -3278,12 +3292,44 @@ function canEditRecords() {
   const lim = CONFIG.editorGroupIds || [];
   return !lim.length || (USER_GROUP_IDS || []).some(id => lim.includes(id));
 }
+// Phased edits (post / qaqc / engineer / complete): a screening can only be edited in the
+// edit that matches its own Phase, e.g. a QA/QC screening isn't editable from ?phase=post
+function phaseMismatch(a) {
+  if (!a || !phaseCfg()) return null;
+  const k = recordPhaseIndex(a), q = queuePhaseIndex();
+  return k === q ? null : { rec: k < 0 ? (choiceLabel(FIELDS.phase, (a.attrs || {})[FIELDS.phase]) || 'No phase') : PHASE_FLOW[k].name, recKey: k < 0 ? null : PHASE_FLOW[k].key, edit: PHASE_FLOW[q].name };
+}
+// ── Open Sketch Tool ──
+let SKETCH_MAP_ID = null, SKETCH_LOOKUP = null;
+function sketchOn() { const T = CONFIG.sketchTool; return !!(T && EDIT_URL_ON && (T.phases || []).includes(phaseKey())); }
+// The Experience's Map widget ID, from the app's settings (falls back to CONFIG.sketchTool.mapWidgetId)
+function lookupSketchMapId() {
+  const T = CONFIG.sketchTool; if (SKETCH_LOOKUP || !T || !T.itemId || !TOKEN) return SKETCH_LOOKUP;
+  SKETCH_LOOKUP = arcgisFetch(`${CONFIG.itemInfoUrl}/${T.itemId}/data?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`).then(cfg => {
+    const hit = Object.entries((cfg && cfg.widgets) || {}).find(([, w]) => /arcgis-map/i.test(String(w.uri || w.manifest?.name || '')));
+    if (hit) SKETCH_MAP_ID = hit[0];
+  }).catch(() => {}).then(() => document.querySelectorAll('#sheet-body .sketch-link').forEach(l => { const a = currentRecord(); if (a) l.href = sketchToolUrl(a); }));
+  return SKETCH_LOOKUP;
+}
+function sketchToolUrl(a) {
+  const T = CONFIG.sketchTool, id = SKETCH_MAP_ID || T.mapWidgetId || 'widget_1';
+  if (!(typeof a.lat === 'number' && typeof a.lng === 'number')) return T.url;
+  return `${T.url}#${id}=center:${a.lng.toFixed(6)}%2C${a.lat.toFixed(6)}%2C4326,scale:${T.scale || 1000}`;
+}
+function sketchLinkHTML(a) {
+  if (!sketchOn()) return '';
+  lookupSketchMapId();
+  return `<a class="view-all-link sketch-link" href="${escHtml(sketchToolUrl(a))}" target="_blank" rel="noopener" title="Opens the sketch tool zoomed to this building">Open Sketch Tool
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+}
 function updateEditButton() {
   const b = document.getElementById('sheet-edit-btn'); if (!b) return;
   b.hidden = !canEditRecords();
+  const mm = !EDIT.on && phaseMismatch(currentRecord());
+  b.classList.toggle('locked', !!mm); b.setAttribute('aria-disabled', mm ? 'true' : 'false');
   document.querySelectorAll('#sheet-body .dtab[data-tab="notes"]').forEach(t => { t.hidden = !canEditRecords(); });
   b.classList.toggle('on', EDIT.on || !!EDIT.inline || !!EDIT.wizard);
-  b.title = EDIT.on ? 'Stop editing' : 'Edit this record'; b.setAttribute('aria-label', b.title);
+  b.title = EDIT.on ? 'Stop editing' : mm ? `In ${mm.rec} - edit it from the ${mm.rec} edit` : 'Edit this record'; b.setAttribute('aria-label', b.title);
 }
 const YN = { yes: 'Yes', no: 'No' };
 const YN_DNK = { yes: 'Yes', no: 'No', do_not_know: "Don't Know" };
@@ -3492,6 +3538,8 @@ function currentRecord() { return assets.find(x => String(x.id) === String(selec
 // Pencil click → the chosen workflow
 function onPencil() {
   // Editing always uses workflow D: steps across the top, boxes in place on the real tabs
+  if (!EDIT.on) { const mm = phaseMismatch(currentRecord());
+    if (mm) { showToast(`This screening is in ${mm.rec}. Open it from the ${mm.rec} edit${mm.recKey ? ` (&phase=${mm.recKey})` : ''} to edit it.`); return; } }
   return EDIT.on ? cancelEdit() : startComboEdit();
 }
 // ── B · Quick edit: pencils on each editable row; one field saved at a time ──
@@ -4789,6 +4837,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        ${sketchLinkHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
@@ -4819,6 +4868,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        ${sketchLinkHTML(a)}
         <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
       </div>
     </div>`;
