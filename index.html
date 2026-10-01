@@ -422,7 +422,7 @@
   .ed-ms-list[hidden] { display: none; }
   .ed-ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12.5px; color: #13233d; cursor: pointer; }
   .ed-ms-opt:hover { background: #f3f5f8; }
-  .ed-ms-opt input { margin: 0; accent-color: var(--cusec-blue); width: 15px; height: 15px; }
+  .ed-ms-opt input { margin: 0; accent-color: #2f74d0; width: 15px; height: 15px; }
   .ed-row.ed-changed .ed-ms-btn { border-color: var(--cusec-gold); background: #fffdf5; }
   .ed-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; border: 1.5px solid #c9d1dd; border-radius: 999px; padding: 3px 9px; cursor: pointer; background: #fff; color: #13233d; }
   .ed-chip input { margin: 0; accent-color: var(--cusec-blue); }
@@ -498,7 +498,7 @@
   .cb-radio-cell { display: flex; align-items: center; justify-content: center; }
   .cb-radio { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
   .cb-radio:hover { background: rgba(11,46,107,0.08); }
-  .cb-radio input { width: 17px; height: 17px; margin: 0; accent-color: #0B2E6B; cursor: pointer; }
+  .cb-radio input { width: 17px; height: 17px; margin: 0; accent-color: #2f74d0; cursor: pointer; }
   .cb-stack .ed-row { padding: 5px 0; border-bottom: 1px dashed #f0d49a; }
   .cb-stack .ed-row:last-child { border-bottom: none; }
   .cb-stack .ed-k { font-size: 11.5px; padding-top: 6px; }
@@ -525,6 +525,70 @@
   .sheet-name.cb-live .ed-name { background: #fff; }
   .cb-auto { margin: 12px 20px 0; padding: 8px 12px; font-size: 12.5px; color: #13233d; background: #eef3fb; box-shadow: inset 3px 0 0 #0B2E6B; }
   .cb-auto:empty { display: none; }
+  /* Notes / Reports tabs, P-154 edit layout */
+  .rp-wrap { padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .nt-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @container (max-width: 760px) { .nt-two { grid-template-columns: 1fr; } }
+  .nt-na { font-size: 13px; color: var(--text3); font-style: italic; padding: 4px 0; }
+  .nt-c + .nt-c { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e6e9ef; }
+  .nt-c-k { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #4a5363; margin-bottom: 2px; }
+  .nt-c-v { font-size: 13px; color: #13233d; line-height: 1.5; white-space: pre-line; }
+  .nt-table { border: 1px solid #dfe3ea; font-size: 12.5px; }
+  .nt-tr { display: grid; grid-template-columns: 100px 90px minmax(0, 1fr) 130px; gap: 10px; padding: 8px 12px; border-top: 1px solid #e6e9ef; color: #13233d; }
+  .nt-tr:first-child { border-top: none; }
+  .nt-th { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
+  .nt-note { font-size: 11.5px; color: #4a5363; margin-top: 8px; }
+  .rp-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid #e6e9ef; font-size: 13px; }
+  .rp-row:last-child { border-bottom: none; }
+  .rp-n { width: 22px; height: 22px; border-radius: 50%; background: #e6e9ef; color: #3a4453; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+  .rp-name { color: var(--cusec-blue); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rp-size { font-size: 11.5px; color: #4a5363; }
+  .rp-pend { background: #fde9a8; margin: 0 -12px; padding: 9px 12px; }
+  .rp-add .ed-err { grid-column: 2 / -1; }
+  .cb-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .rp-drop-wrap { padding-top: 12px; }
+  /* Blue checkboxes and radio buttons everywhere in edit mode */
+  .cb-check input, .ed-ms-opt input, .cb-radio input {
+    -webkit-appearance: none; appearance: none; width: 17px; height: 17px; margin: 0; flex-shrink: 0; cursor: pointer;
+    border: 1.5px solid #8fb3e6; background: #fff; display: inline-grid; place-content: center; transition: background 0.12s, border-color 0.12s; }
+  .cb-check input[type="checkbox"], .ed-ms-opt input[type="checkbox"] { border-radius: 4px; }
+  .cb-check input[type="radio"], .cb-radio input[type="radio"] { border-radius: 50%; }
+  .cb-check input:hover, .ed-ms-opt input:hover, .cb-radio input:hover { border-color: #2f74d0; }
+  .cb-check input:focus-visible, .ed-ms-opt input:focus-visible, .cb-radio input:focus-visible { outline: 2px solid #2f74d0; outline-offset: 2px; }
+  .cb-check input[type="checkbox"]:checked, .ed-ms-opt input[type="checkbox"]:checked { background: #2f74d0; border-color: #2f74d0; }
+  .cb-check input[type="checkbox"]:checked::after, .ed-ms-opt input[type="checkbox"]:checked::after {
+    content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+  .cb-check input[type="radio"]:checked, .cb-radio input[type="radio"]:checked { border-color: #2f74d0; }
+  .cb-check input[type="radio"]:checked::after, .cb-radio input[type="radio"]:checked::after { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #2f74d0; }
+  .cb-check span, .ed-ms-opt { color: #2d4466; }
+  .cb-bigbox { grid-template-columns: 1fr !important; }
+  .cb-allcm { width: 100%; min-height: 120px; background: #fff; color: #13233d; font-size: 13px; line-height: 1.5; resize: vertical; cursor: default; }
+  .rp-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 30px 16px; border: 2px dashed #c9cfda; border-radius: 10px;
+             background: #fff; cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s; }
+  .rp-drop:hover, .rp-drop.over { border-color: #2f74d0; background: #f4f8fe; }
+  .rp-clip { color: #8a93a3; margin-bottom: 4px; }
+  .rp-drop-t { font-size: 15px; font-weight: 700; color: #13233d; }
+  .rp-drop-s { font-size: 12.5px; color: #6b7384; }
+  .rp-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .rp-drop:focus-within { outline: 2px solid #2f74d0; outline-offset: 2px; }
+  .rp-pick { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; color: #13233d; background: #fff6d6; box-shadow: inset 3px 0 0 var(--cusec-gold); padding: 7px 12px; }
+  .rp-pick input { font: inherit; font-weight: 400; max-width: 100%; }
+  .cb-p154 { display: flex; flex-direction: column; gap: 16px; }
+  .cb-p154 .ed-row { background: #fff6d6; box-shadow: inset 3px 0 0 var(--cusec-gold); margin: 0 -12px; padding: 8px 12px; border-bottom: 1px solid #f3e3b0; }
+  .cb-p154 .ed-row.ed-changed { background: #fde9a8; }
+  .cb-p154 .ed-row:has(.ed-locked) { background: transparent; box-shadow: none; }
+  .cb-p154 .nt-two:first-child .ed-row { grid-template-columns: 1fr; }
+  .cb-p154 .nt-two:first-child .ed-row .ed-k { display: none; }
+  .detail-tabs.cb-steps { flex-wrap: nowrap; overflow-x: auto; }
+  .cb-steps .dtab.cb-step { padding-left: 9px; padding-right: 9px; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; }
+  .cb-score-note { font-size: 11.5px; color: #4a5363; margin: -4px 0 8px; font-style: italic; }
+  .cb-q { font-size: 12.5px; font-weight: 700; color: #13233d; margin: 8px 0 4px; }
+  .cb-checks { display: flex; flex-direction: column; gap: 4px; }
+  .cb-check { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: #13233d; cursor: pointer; padding: 3px 0; line-height: 1.35; }
+  .cb-check input { margin: 1px 0 0; flex-shrink: 0; }
+  .cb-p154-hz .ed-row:has(.cb-checks) { grid-template-columns: 1fr; }
+  .cb-p154-hz .ed-row:has(.cb-checks) .ed-k { display: none; }   /* the question above already names it */
+  .cb-p154-main .ed-row:has(.cb-checks) { align-items: start; }
   /* Edit phases: three states */
   .ph-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 20px 0; font-size: 12.5px; color: #13233d; }
   .ph-legend b { margin-right: 6px; font-size: 13.5px; }
@@ -533,7 +597,7 @@
   .ph-c-view { background: #eef1f5; box-shadow: inset 3px 0 0 #8a93a3; color: #3a4453; }
   .ph-c-hide { background: repeating-linear-gradient(45deg, #f3f5f8, #f3f5f8 6px, #e9ecf1 6px, #e9ecf1 12px); color: #8a93a3; }
   .ph-view { box-shadow: inset 3px 0 0 #8a93a3 !important; background: #f6f7f9 !important; }
-  .ov-stat.ph-view::after, .ov-card.ph-view::after { content: '🔒'; font-size: 11px; position: absolute; right: 8px; top: 8px; opacity: 0.55; }
+
   .p2-row.ph-view, .ov-row.ph-view { padding-left: 10px; padding-right: 10px; margin-left: -10px; margin-right: -10px; }
   .ph-view { position: relative; }
   .ph-hidden { opacity: 0.45; background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,0.035) 6px, rgba(0,0,0,0.035) 12px) !important; position: relative; }
@@ -1156,6 +1220,12 @@ const CONFIG = {
   // Editing workflow: D (numbered steps across the top; edit boxes in place on
   // the real tabs; Review & Save at the end). Other workflows were mockups only.
   editStyle: 'D',
+  // Text field that keeps the record's edit history (one JSON list). The app adds
+  // an entry on every save. If the layer doesn't have it yet, the Notes tab shows
+  // only "created" / "last edited" from editor tracking.
+  historyField: 'EditHistory',
+  // Reports / attachments tab: up to this many files, each up to this size
+  reportSlots: 3, reportMaxBytes: 3 * 1024 * 1024,
   // Questions the survey marks required (XLSForm "required" column). Required
   // dropdowns don't offer "Not answered"; required text/number boxes can't be
   // left empty. Fields the layer itself marks as not-nullable are added
@@ -1226,14 +1296,18 @@ const CONFIG = {
         Adjacency: ['Other observed hazards (adjacency)', 'multi'], Seismicity: ['Seismicity', 'select'],
         VertIrregularitiesPresent: ['Vertical types', 'multi'], PlanIrregularitiesPresent: ['Plan types', 'multi'], PlanIrregularities: ['Plan irregularity', 'yesno'],
         ExtFallingHazards: ['Exterior falling hazards', 'multi'],
+        // always editable: comments and the action questions
+        Level1Comments: ['Screener comments', 'textarea'], ReviewComments: ['Comments for engineer', 'textarea'], EngineerNotes: ['Engineer comments', 'textarea'],
+        OtherHazards: ['Other hazards', 'multi'], DetailedEvalRequired: ['Detailed structural evaluation required', 'multi'],
+        DetailedEvalRecommended: ['Detailed nonstructural evaluation recommended', 'select'],
       },
       // calculated / read-only in that form: still shown in the app, never editable
-      // Ss / S1 / source are filled by the ASCE 7-22 lookup and can't be typed over
-      viewOnly: ['SsSpectralAcc', 'S1SpectralAcc', 'SeismicitySource', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
+      // Ss / S1 are filled by the ASCE 7-22 lookup and can't be typed over
+      viewOnly: ['SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
       // everything else the app can edit is hidden in that form → not part of this phase
       required: { SoilType: '', Seismicity: '' },
       // When editing starts, run the functions.js lookups and fill these in:
-      // Ss / S1 from ASCE 7-22 (source = "ASCE 7-22"), Seismicity from the form's
+      // Ss / S1 from ASCE 7-22, Seismicity from the form's
       // Ss / S1 thresholds, Soil Type from USGS Vs30, Liquefaction from the
       // susceptibility map. They show as changes to review before saving.
       autoFill: true,
@@ -2121,7 +2195,7 @@ function _pickDateFields(info) {
   console.info('[RVS] screening-date fields (priority order):', screenFields, '| created:', creationField, '| edited:', editField);
   return { screenFields, creationField, editField };
 }
-let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {};
+let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {}, LAYER_EFI = {};
 function relevantNow(expr, get) {
   if (!expr || !String(expr).trim()) return true;
   const toks = String(expr).match(/\$\{\w+\}|'[^']*'|"[^"]*"|!=|=|\(|\)|,|\band\b|\bor\b|\bnot\b|\bselected\b|[^\s()',=!]+/gi) || [];
@@ -2173,20 +2247,10 @@ function isRelevant(f) { const ph = phaseCfg(); const r = (ph ? (ph.relevant || 
 function syncRelevance() {
   const scope = [document.getElementById('sheet-body'), document.getElementById('ed-wizard')].filter(Boolean);
   scope.forEach(root => {
-    // individual question rows (edit forms, wizard, multi-field boxes in option D)
-    root.querySelectorAll('.ed-row[data-f]').forEach(row => { row.hidden = !isRelevant(row.dataset.f); });
-    // option D items on the real tabs
-    root.querySelectorAll('.cb-live[data-ie]').forEach(el => {
-      const fs = el.dataset.ie.split(',').filter(Boolean);
-      const anyShown = fs.some(isRelevant);
-      el.classList.toggle('cb-notasked', !anyShown);
-      let note = el.querySelector(':scope > .cb-na-note, :scope .cb-na-note');
-      if (!anyShown && !note) {
-        const host = el.querySelector(':scope > .ov-v, :scope > .p2-cm-v') || el;
-        host.insertAdjacentHTML('beforeend', '<span class="cb-na-note">Not asked</span>');
-      }
-      if (anyShown && note) note.remove();
-    });
+    // Every question stays visible and editable. The form's relevant conditions
+    // are still used for "required" (e.g. Generator anchored is only required when
+    // there is a generator), but nothing is hidden or marked "Not asked".
+    root.querySelectorAll('.ed-row[data-f][hidden]').forEach(row => { row.hidden = false; });
   });
 }
 // After an answer changes, refresh any question whose "required" depends on it
@@ -2231,6 +2295,7 @@ async function loadDomainLabels() {
     (info.fields || []).forEach(f => add(f.name, f.domain));
     // fields the layer won't accept blank (skip system-managed ones)
     LAYER_FIELD_TYPES = Object.fromEntries((info.fields || []).map(f => [f.name, f.type]));
+    LAYER_EFI = info.editFieldsInfo || {};
     LAYER_REQUIRED = (info.fields || []).filter(f => f.nullable === false && f.editable !== false
       && !/^(objectid|oid|fid|globalid|shape.*|creationdate|creator|editdate|editor)$/i.test(f.name) && f.type !== 'esriFieldTypeOID' && f.type !== 'esriFieldTypeGlobalID').map(f => f.name);
     LAYER_DATES = Object.assign(_pickDateFields(info), { screenFields: SCREEN_DATE_FIELDS });
@@ -2928,6 +2993,7 @@ async function loadEditorAccess() {
   try {
     const me = await arcgisFetch(`https://www.arcgis.com/sharing/rest/community/self?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
     USER_GROUP_IDS = (me.groups || []).map(g => g.id);
+    USER_DISPLAY = shortName(me.fullName || me.username || '');
     const priv = me.privileges || [];
     USER_CAN_EDIT = priv.some(p => /^features:user:(edit|fullEdit)$/.test(p)) || /admin|publisher/i.test(me.role || '');
   } catch (e) { console.warn('[RVS] could not check editing access', e); }
@@ -2949,6 +3015,7 @@ function canEditRecords() {
 function updateEditButton() {
   const b = document.getElementById('sheet-edit-btn'); if (!b) return;
   b.hidden = !canEditRecords();
+  document.querySelectorAll('#sheet-body .dtab[data-tab="notes"]').forEach(t => { t.hidden = !canEditRecords(); });
   b.classList.toggle('on', EDIT.on || !!EDIT.inline || !!EDIT.wizard);
   b.title = EDIT.on ? 'Stop editing' : 'Edit this record'; b.setAttribute('aria-label', b.title);
 }
@@ -2978,7 +3045,7 @@ function EDIT_TABS(a) {
         [soilSrc, 'Soil Type Source', 'lock'], [geoSrc, 'Geologic Hazard Source', 'lock'], [contact, 'Facility Contact', 'lock']]],
     ],
     p154: [
-      ['Screening', [['CodeYear', 'Code Year', 'lock'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
+      ['Screening', [['CodeYear', 'Code Year', 'text'], ['PreCodeQ', 'Pre-Code', 'yesno'], ['PostBenchmarkQ', 'Post-Benchmark', 'yesno'],
         ['DetailedEvalRequired', 'Detailed Eval. Required (Structural)', 'multi'], ['DetailedEvalRecommended', 'Detailed Eval. Required (Nonstructural)', 'select'],
         ['BasicScore', 'Basic Score', 'calc'], ['Level1Score', 'Final Level 1 Score', 'calc']]],
       // VertIrregularities / VertIrregularitiesType / PlanIrregularities are hidden survey calculations → locked
@@ -3017,24 +3084,28 @@ function editChanged() { return Object.keys(EDIT.draft).filter(f => _raw(EDIT.dr
 function editControl(a, [f, label, type, min, max, listField, fixed]) {
   if (phaseCfg()) {                      // edit phase decides what can be edited
     const m = phaseMode(f);
-    if (m === 'hidden') return '';
-    if (m === 'view') type = 'calc';
-    else { const e = phaseCfg().editable[f]; label = label || e[0]; type = e[1]; min = e[2]; max = e[3]; }
+    if (m === 'view' || m === 'hidden') type = 'calc';              // outside the phase → view only
+    else { const e = phaseCfg().editable[f]; const want = type; label = label || e[0]; type = (want === 'checks' || want === 'radios') ? want : e[1]; min = e[2]; max = e[3]; }
   }
   const id = 'ed_' + f.replace(/\W/g, '_');
   const v = editVal(f);
   // Choice lists only for choice questions (or any field the layer gives a coded list)
-  const isChoice = ['select', 'multi', 'yesno', 'yesno_dnk', 'brace'].includes(type);
+  const isChoice = ['select', 'multi', 'yesno', 'yesno_dnk', 'brace', 'checks', 'radios'].includes(type);
   const ch = isChoice ? editChoices(f, type, listField, fixed) : (DOMAIN_LABELS[f] && Object.keys(DOMAIN_LABELS[f]).length ? DOMAIN_LABELS[f] : null);
   const changed = _raw(EDIT.draft[f] !== undefined ? EDIT.draft[f] : EDIT.orig[f]) !== _raw(EDIT.orig[f]);
   let ctl;
   if (type === 'calc' || type === 'lock') {
-    const shown = v === '' || v === null || v === undefined ? '-' : (f === 'SurveyDate' ? editShow(f, v) : (type === 'lock' ? (multiLabels(f, v).join(', ') || String(v)) : String(v)));
-    ctl = `<div class="ed-locked" title="${type === 'calc' ? "Calculated by the survey - change the inputs in Survey123" : 'This field is locked'}">${escHtml(shown)}
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>`;
+    const shown = v === '' || v === null || v === undefined ? '-' : (f === 'SurveyDate' ? editShow(f, v) : (typeof v === 'number' ? String(v) : (multiLabels(f, v).join(', ') || String(v))));
+    ctl = `<div class="ed-locked" title="View only">${escHtml(shown)}</div>`;
+  } else if (type === 'checks' && ch) {          // multi-select as a checkbox list
+    const on = multiCodes(v);
+    ctl = `<div class="cb-checks" role="group" aria-label="${escHtml(label)}">${Object.entries(ch).map(([c, l]) =>
+      `<label class="cb-check"><input type="checkbox" ${on.has(c) ? 'checked' : ''} onchange="editMulti('${f}','${escHtml(c)}',this.checked, this)"><span>${escHtml(l)}</span></label>`).join('')}</div>`;
+  } else if (type === 'radios' && ch) {          // single choice as a radio list
+    ctl = `<div class="cb-checks" role="radiogroup" aria-label="${escHtml(label)}">${Object.entries(ch).map(([c, l]) =>
+      `<label class="cb-check"><input type="radio" name="rd_${escHtml(f)}" value="${escHtml(c)}" ${c === _raw(v) ? 'checked' : ''} onchange="if(this.checked) editSet('${f}', this.value)"><span>${escHtml(l)}</span></label>`).join('')}</div>`;
   } else if ((type === 'select' || type === 'multi') && !ch) {
-    ctl = `<div class="ed-locked" title="No survey choice list found for this field">${escHtml(v === '' || v === null || v === undefined ? '-' : multiLabels(f, v).join(', ') || String(v))}
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>`;
+    ctl = `<div class="ed-locked" title="View only">${escHtml(v === '' || v === null || v === undefined ? '-' : multiLabels(f, v).join(', ') || String(v))}</div>`;
   } else if (type === 'multi' && ch) {
     const on = multiCodes(v);
     const summary = [...on].map(c => ch[c] || choiceLabel(f, c)).join(', ');
@@ -3098,7 +3169,8 @@ function editSet(f, value, el) {
   }
   if (EDIT.invalid) delete EDIT.invalid[f];
   EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
-  syncRequired(); syncRelevance();
+  document.querySelectorAll(`textarea[data-f="${CSS.escape(f)}"]`).forEach(t => { if (t !== document.activeElement && t.value !== value) t.value = value; });
+  syncRequired(); syncRelevance(); refreshScorePane();
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
   if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
   document.querySelectorAll('#sheet-body .cb-live').forEach(el => { if (el.dataset.ie.split(',').includes(f)) cbMarkChanged(el); });
@@ -3108,7 +3180,7 @@ function editMulti(f, code, checked, el) {
   const orig = _raw(EDIT.orig[f]);
   const sep = orig.includes(',') || !orig.trim() ? ',' : ' ';          // keep the record's own separator (Survey123 uses commas)
   const set = multiCodes(editVal(f)); checked ? set.add(code) : set.delete(code);
-  if (isRequired(f) && !set.size && el) { const err = el.closest('.ed-ms').parentNode.querySelector('.ed-err'); if (err) { err.hidden = false; err.textContent = 'Required - pick at least one'; } }
+  if (isRequired(f) && !set.size && el) { const host = el.closest('.ed-ms') || el.closest('.cb-checks'); const err = host && host.parentNode.querySelector('.ed-err'); if (err) { err.hidden = false; err.textContent = 'Required - pick at least one'; } }
   editSet(f, [...set].join(sep));
   // refresh the dropdown's summary text
   const box = el && el.closest('.ed-ms');
@@ -3258,14 +3330,14 @@ async function wizardSave(btn) {
 
 // ── D · Combo: wizard steps across the top + each tab's own layout, with
 // editable rows highlighted and their boxes right in the row (no pencils) ──
-const COMBO_STEPS = [['overview', 'Facility Overview'], ['p154', 'P-154 Screening Details'], ['nonstruct', 'Nonstructural Review'], ['review', 'Review & Save']];
+const COMBO_STEPS = [['overview', 'Facility Overview'], ['p154', 'P-154 Screening Details'], ['nonstruct', 'Nonstructural Review'], ['reports', 'Reports/Attachments'], ['notes', 'Notes'], ['review', 'Review & Save']];
 function comboRow(a, spec) {
   const [f, label, type] = spec;
   if (type === 'calc' || type === 'lock') {
     const v = EDIT.orig[f];
     const shown = (v === '' || v === null || v === undefined) ? '-' : (f === 'SurveyDate' ? editShow(f, v) : (multiLabels(f, v).join(', ') || String(v)));
     return `<div class="ov-row cb-locked"><div class="ov-k">${escHtml(label)}</div><div class="ov-v">${escHtml(shown)}
-      <svg class="cb-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-label="${type === 'calc' ? 'Calculated by the survey' : 'Locked'}"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div></div>`;
+</div></div>`;
   }
   // Highlighted row showing the current answer; click it to quick-edit in place
   const v = EDIT.orig[f];
@@ -3342,9 +3414,8 @@ function enhanceCombo() {
       // phase view: mark what's view-only vs not part of this phase
       if (phaseCfg() && !el.classList.contains('ph-mark')) {
         const fs = el.dataset.ie.split(',').filter(Boolean);
-        const hidden = fs.every(f => phaseMode(f) === 'hidden');
-        el.classList.add('ph-mark', hidden ? 'ph-hidden' : 'ph-view');
-        el.setAttribute('title', hidden ? 'Not part of this edit phase' : 'Visible, not editable in this phase');
+        el.classList.add('ph-mark', 'ph-view');
+        el.setAttribute('title', 'View only in this phase');
       }
       return;
     }
@@ -3525,12 +3596,37 @@ function renderComboReview() {
 async function comboSave(btn) {
   const a = currentRecord(); if (!a) return;
   const changes = editChanged(); if (!changes.length || Object.keys(EDIT.invalid || {}).length || missingRequired().length) return;
-  const attrs = Object.fromEntries(changes.map(f => [f, EDIT.draft[f] === '' ? null : EDIT.draft[f]]));
+  const attrs = Object.fromEntries(changes.filter(f => !f.startsWith('__')).map(f => [f, EDIT.draft[f] === '' ? null : EDIT.draft[f]]));
+  const has = f => Object.prototype.hasOwnProperty.call(a.attrs || {}, f) || (LAYER_FIELD_TYPES || {})[f];
+  // keep the stored scores in step with the new answers (like the survey's calculations)
+  if (changes.some(f => ['FEMABuildingType', 'VertIrregularitiesPresent', 'PlanIrregularitiesPresent', 'PreCodeQ', 'PostBenchmarkQ', 'SoilType', 'Seismicity', 'StoriesAboveGrade'].includes(f))) {
+    const c = computeP154(f => editCurrent(f) ?? (a.attrs || {})[f]);
+    if (c.T) {
+      if (has('BasicScore')) attrs.BasicScore = c.T.basic;
+      if (has('VL1')) attrs.VL1 = c.vl1;
+      if (has('PL1')) attrs.PL1 = c.pl1;
+      if (has('Level1Score')) attrs.Level1Score = c.final;
+      if (has('FinalSL1Score')) attrs.FinalSL1Score = c.final;
+    }
+  }
+  // edit history entry
+  const histOn = has(CONFIG.historyField);
+  if (histOn) {
+    let list = []; try { list = JSON.parse((a.attrs || {})[CONFIG.historyField] || '[]'); } catch {} if (!Array.isArray(list)) list = [];
+    list.push({ t: Date.now(), by: USER_DISPLAY || (TOKEN && TOKEN.username) || '', what: historySummary(changes) });
+    attrs[CONFIG.historyField] = JSON.stringify(list);
+  }
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    await saveEditsToLayer(a, attrs);
+    if (Object.keys(attrs).length) await saveEditsToLayer(a, attrs);
+    // attachments: removals, then new files
+    const infos = String(LAST_ATTACH.id) === String(a.id) ? LAST_ATTACH.infos : [];
+    for (const f of changes.filter(x => /^__del\d$/.test(x))) { const k = Number(f.slice(5)); const ex = infos.find(i => reportSlotOf(i) === k); if (ex) await deleteReport(a, ex.id); }
+    for (const f of changes.filter(x => /^__att\d$/.test(x))) { const k = Number(f.slice(5)); if (REPORT_PENDING[k]) await uploadReport(a, k, REPORT_PENDING[k]); }
+    Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
     applySavedEdits(a, attrs); updateEditButton();
+    if (changes.some(f => f.startsWith('__'))) loadAttachments(a.id);
     showToast(`Saved ${changes.length} change${changes.length > 1 ? 's' : ''}`);
   } catch (e) { btn.disabled = false; btn.textContent = 'Save changes'; const m = document.querySelector('#cb-review .ed-rv-msg'); if (m) m.textContent = `Couldn't save: ${e.message || e}`; }
 }
@@ -3565,7 +3661,6 @@ async function autoFillFromLookups(a) {
   const ss = st.ss722 && st.ss722.val, s1 = st.s1722 && st.s1722.val;
   if (isFinite(ss) && isFinite(s1) && ss !== undefined && s1 !== undefined) {
     put('SsSpectralAcc', Number(Number(ss).toFixed(3))); put('S1SpectralAcc', Number(Number(s1).toFixed(3)));
-    put('SeismicitySource', 'ASCE 7-22');
     const lSs = seisFromSs(ss), lS1 = seisFromS1(s1);
     if (has('SeismicitySs')) EDIT.draft.SeismicitySs = lSs > 1 ? lSs : null;          // form: '' below the first threshold
     if (has('SeismicityS1')) EDIT.draft.SeismicityS1 = lS1 > 1 ? lS1 : null;
@@ -3589,9 +3684,174 @@ async function autoFillFromLookups(a) {
 }
 function refreshAutoStatus() { const el = document.getElementById('cb-auto'); if (el) el.textContent = EDIT.autoStatus || ''; }
 
+// Discard every unsaved change and start the edit workflow again at step 1
+function restartComboEdit() {
+  const go = () => { const a = currentRecord(); if (!a) return;
+    EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.invalid = {}; EDIT.missing = [];
+    startComboEdit(); showToast('Changes discarded - back to step 1'); };
+  if (!editChanged().length) return go();
+  appConfirm('Discard your changes and start again from step 1?', 'Discard changes', 'Keep editing').then(ok => { if (ok) go(); });
+}
+// ── Notes tab (editors only): comments + edit history ──
+function notesTabHTML(a) {
+  const at = a.attrs || {};
+  const fmtT = t => { const d = new Date(typeof t === 'number' ? t : Date.parse(t)); return isNaN(d) ? ['', ''] : [d.toLocaleDateString(), d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })]; };
+  const rows = historyRows(a);
+  const noHist = !(CONFIG.historyField in at) && !(LAYER_FIELD_TYPES || {})[CONFIG.historyField];
+  const editing = EDIT.on && String(EDIT.id) === String(a.id) && EDIT.mode === 'combo';
+  return `<div class="rp-wrap">
+    <div class="nt-two">
+      <div class="ov-card p2-card"><div class="ov-card-title">Screener Comments for Engineer</div>${editing
+        ? comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Screener comments for engineer') : commentBlock(screenerForEngineer(at))}</div>
+      <div class="ov-card p2-card"><div class="ov-card-title">Engineer Comments</div>${editing
+        ? comboTextBox(a, 'EngineerNotes', String(at.EngineerNotes ?? '').trim(), 'Engineer comments') : commentBlock([['Final review', String(at.EngineerNotes ?? '').trim()]])}</div>
+    </div>
+    <div class="ov-card p2-card nt-hist"><div class="ov-card-title">Edit History</div>
+      <div class="nt-table" role="table">
+        <div class="nt-tr nt-th" role="row"><div>Date</div><div>Time</div><div>Change</div><div>By</div></div>
+        ${rows.length ? rows.map(r => { const [d, t] = fmtT(r.t); return `<div class="nt-tr" role="row"><div>${escHtml(d)}</div><div>${escHtml(t)}</div><div>${escHtml(r.what || '')}</div><div>${escHtml(r.by || '')}</div></div>`; }).join('')
+          : '<div class="nt-tr"><div class="nt-na" style="grid-column:1/-1">No edits recorded yet.</div></div>'}
+      </div>
+      ${noHist ? `<div class="nt-note">Only "created" and "last edited" can be shown: add a text field named <b>${escHtml(CONFIG.historyField)}</b> to the layer to keep the full history of edits made in this app.</div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── P-154 step while editing: comments on top, Building Characteristics (left) + live score (right) ──
+function comboP154HTML(a) {
+  const at = a.attrs || {};
+  const field = (spec) => editControl(a, spec);
+  return `<div class="cb-wrap cb-p154">
+    <div class="nt-two">
+      <div class="ov-card p2-card"><div class="ov-card-title">Screener Comments</div>
+        ${comboTextBox(a, 'Level1Comments', joinedScreenerComments(at), 'Screener comments')}</div>
+      <div class="ov-card p2-card"><div class="ov-card-title">Comments for Engineer</div>
+        ${comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Comments for engineer')}</div>
+    </div>
+    <div class="nt-two cb-p154-main">
+      <div class="cb-col">
+        <div class="ov-card p2-card"><div class="ov-card-title">Building Characteristics</div>
+          ${field(['FEMABuildingType', 'FEMA Building Type', 'select'])}
+          ${field(['VertIrregularitiesPresent', 'Vertical irregularities', 'multi'])}
+          ${field(['PlanIrregularitiesPresent', 'Plan irregularities', 'multi'])}
+          ${field(['PreCodeQ', 'Pre-code modifier', 'yesno'])}
+          ${field(['PostBenchmarkQ', 'Post-benchmark modifier', 'yesno'])}
+          ${field(['Adjacency', 'Adjacency hazards', 'checks'])}
+          ${field(['ExtFallingHazards', 'Exterior falling hazards', 'checks'])}
+          ${field(['FallingHazardsOther', 'Other falling hazard (describe)', 'text'])}
+        </div>
+        <div class="ov-card p2-card"><div class="ov-card-title">Other Hazards</div>
+          ${field(['OtherHazards', 'Hazards that trigger a detailed structural evaluation', 'checks'])}</div>
+      </div>
+      <div class="cb-col">
+        <div class="ov-card p2-card cb-score-card"><div class="ov-card-title">P-154 Score Details</div>
+          <div class="cb-score-note">Read only - updates as you change the items on the left.</div>
+          <div id="cb-score" class="p2-table">${p154ScorePane(a)}</div></div>
+        <div class="ov-card p2-card"><div class="ov-card-title">Action Required</div>
+          ${field(['DetailedEvalRequired', 'Detailed structural evaluation required?', 'checks'])}
+          ${field(['DetailedEvalRecommended', 'Detailed nonstructural evaluation recommended?', 'radios'])}</div>
+      </div>
+    </div>
+  </div>`;
+}
+// Live P-154 Level 1 score from the current (unsaved) answers
+function computeP154(get) {
+  const region = p154Region(choiceLabel('Seismicity', get('Seismicity') || ''));
+  const code = String(get('FEMABuildingType') || '').toUpperCase().match(/^[A-Z]+\d*A?/);
+  const tcode = code ? code[0] : '';
+  const T = (region && P154_SCORES[region] && P154_SCORES[region][tcode]) || null;
+  const vt = [...multiCodes(get('VertIrregularitiesPresent') || '')].map(c => (c + ' ' + choiceLabel('VertIrregularitiesPresent', c)).toLowerCase());
+  const severe = vt.some(t => /weak|soft|out.?of.?plane|short.?col|cripple/.test(t)) || (vt.some(t => /slop/.test(t)) && /^W1/.test(tcode));
+  const moderate = !severe && vt.some(t => /in.?plane|split|slop/.test(t));
+  const plan = multiCodes(get('PlanIrregularitiesPresent') || '').size > 0;
+  const pre = isYes(get('PreCodeQ')), post = isYes(get('PostBenchmarkQ'));
+  const soilL = (String(choiceLabel('SoilType', get('SoilType') || '')).match(/^([A-F])\b/i) || [])[1];
+  const stories = Number(get('StoriesAboveGrade')) || 0;
+  const soilKey = soilL === 'A' || soilL === 'B' ? 'soilAB' : soilL === 'E' ? (stories > 3 ? 'soilE4' : 'soilE13') : null;
+  if (!T) return { T: null, region, tcode };
+  const v = k => (T[k] === null || T[k] === undefined) ? 0 : T[k];
+  const vl1 = severe ? v('sevV') : moderate ? v('modV') : 0, pl1 = plan ? v('plan') : 0;
+  const sum = T.basic + vl1 + pl1 + (pre ? v('pre') : 0) + (post ? v('post') : 0) + (soilKey ? v(soilKey) : 0);
+  const final = Math.max(T.smin ?? 0, Math.round(sum * 10) / 10);
+  return { T, region, tcode, severe, moderate, plan, pre, post, soilKey, soilL, vl1, pl1, final };
+}
+function p154ScorePane(a) {
+  const c = computeP154(f => editCurrent(f) ?? (a.attrs || {})[f]);
+  if (!c.T) return `<div class="nt-na">Needs a FEMA building type and a seismicity region to calculate.</div>`;
+  const f1 = x => (x === null || x === undefined) ? 'NA' : (x > 0 ? '+' : x < 0 ? '-' : '') + Math.abs(x).toFixed(1);
+  const row = (k, val, on, strong) => `<div class="p2-row ${strong ? 'p2-strong' : on ? 'p2-on' : 'p2-off'}"><div class="p2-k">${k}</div><div class="p2-v">${escHtml(val)}</div></div>`;
+  return [
+    row(`Basic Score (${escHtml(c.region)} Seismicity, ${escHtml(c.tcode)})`, c.T.basic.toFixed(1), true, true),
+    row('Severe Vertical Irregularity', f1(c.T.sevV), c.severe),
+    row('Moderate Vertical Irregularity', f1(c.T.modV), c.moderate),
+    row('Plan Irregularity', f1(c.T.plan), c.plan),
+    row('Pre-Code', f1(c.T.pre), c.pre),
+    row('Post-Benchmark', f1(c.T.post), c.post),
+    row(c.soilL ? `Soil Type (${escHtml(c.soilL)}${c.soilL === 'E' ? (c.soilKey === 'soilE4' ? ', > 3 stories' : ', 1-3 stories') : ''})` : 'Soil Type', c.soilKey ? f1(c.T[c.soilKey]) : 'N/A', !!c.soilKey),
+    `<div class="p2-row p2-final"><div class="p2-k">Final Level 1 Score (S<sub>MIN</sub> = ${c.T.smin.toFixed(1)})</div><div class="p2-v">${c.final.toFixed(1)}</div></div>`,
+  ].join('');
+}
+function refreshScorePane() { const el = document.getElementById('cb-score'); const a = currentRecord(); if (el && a) el.innerHTML = p154ScorePane(a); }
+
+// ── Reports / Attachments tab ──
+let LAST_ATTACH = { id: null, infos: [] };
+const REPORT_PENDING = {};   // slot → File (chosen in edit mode, uploaded on Save)
+function reportSlotOf(info) { const m = String(info.keywords || '').match(/^report\s*([1-9])$/i) || String(info.name || '').match(/^report[_\s-]?([1-9])\b/i); return m ? Number(m[1]) : null; }
+function renderReports() {
+  const el = document.getElementById('reports-area'); const a = currentRecord(); if (!el || !a) return;
+  const infos = String(LAST_ATTACH.id) === String(a.id) ? LAST_ATTACH.infos : [];
+  const editing = EDIT.on && String(EDIT.id) === String(a.id) && canEditRecords();
+  const n = CONFIG.reportSlots || 3, maxMB = ((CONFIG.reportMaxBytes || 3e6) / 1048576).toFixed(0);
+  const bySlot = {}; infos.forEach(i => { const k = reportSlotOf(i); if (k && k <= n && !bySlot[k]) bySlot[k] = i; });
+  const size = b => b ? (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB') : '';
+  let html = '', shownEmpty = false;
+  for (let k = 1; k <= n; k++) {
+    const ex = bySlot[k], pend = REPORT_PENDING[k], removing = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, '__del' + k);
+    if (ex && !removing) {
+      html += `<div class="rp-row"><span class="rp-n">${k}</span><a class="rp-name" href="${escHtml(ex.url)}" target="_blank" rel="noopener">${escHtml(ex.name)}</a><span class="rp-size">${size(ex.size)}</span>
+        ${editing ? `<button class="ie-x" onclick="reportRemove(${k}, ${JSON.stringify(ex.name).replace(/"/g, '&quot;')})">Remove</button>` : ''}</div>`;
+    } else if (pend && editing) {
+      html += `<div class="rp-row rp-pend"><span class="rp-n">${k}</span><span class="rp-name">${escHtml(pend.name)}</span><span class="rp-size">${size(pend.size)} · will upload on save</span><button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`;
+    } else if (editing && !shownEmpty) {
+      shownEmpty = true;                          // only the next empty slot is offered
+      html += `<div class="rp-drop-wrap"><label class="rp-drop" ondragover="event.preventDefault(); this.classList.add('over')" ondragleave="this.classList.remove('over')"
+          ondrop="event.preventDefault(); this.classList.remove('over'); reportDrop(${k}, event)">
+        <svg class="rp-clip" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        <span class="rp-drop-t">Click to attach or drag &amp; drop</span>
+        <span class="rp-drop-s">Attachment ${k} of ${n} - max ${maxMB} MB</span>
+        <input type="file" class="rp-file" onchange="reportPick(${k}, this)"></label>
+        <div class="ed-err" hidden></div></div>`;
+    }
+  }
+  el.innerHTML = html || '<div class="nt-na">No reports or attachments yet.</div>';
+}
+function reportDrop(k, ev) {
+  const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0]; if (!f) return;
+  reportPick(k, { files: [f], closest: () => document.querySelector('#reports-area .rp-drop-wrap'), value: '' });
+}
+function reportPick(k, input) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const err = (input.closest('.rp-drop-wrap') || input.closest('.rp-row')).querySelector('.ed-err');
+  if (f.size > (CONFIG.reportMaxBytes || 3145728)) { err.hidden = false; err.textContent = `That file is ${(f.size / 1048576).toFixed(2)} MB - the limit is ${((CONFIG.reportMaxBytes || 3145728) / 1048576).toFixed(0)} MB.`; input.value = ''; return; }
+  REPORT_PENDING[k] = f; EDIT.draft['__att' + k] = f.name; renderReports(); updateEditBar();
+}
+function reportUnpick(k) { delete REPORT_PENDING[k]; delete EDIT.draft['__att' + k]; renderReports(); updateEditBar(); }
+function reportRemove(k, name) { EDIT.orig['__del' + k] = name; EDIT.draft['__del' + k] = 'Removed'; renderReports(); updateEditBar(); }
+async function uploadReport(a, k, file) {
+  const fd = new FormData(); fd.append('attachment', file, file.name); fd.append('keywords', 'Report' + k); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
+  const j = await (await fetch(`${CONFIG.serviceUrl}/${a.id}/addAttachment`, { method: 'POST', body: fd })).json();
+  if (j.error || !(j.addAttachmentResult && j.addAttachmentResult.success)) throw new Error((j.error && j.error.message) || `attachment ${k} was not added`);
+}
+async function deleteReport(a, id) {
+  const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, attachmentIds: String(id) });
+  const j = await (await fetch(`${CONFIG.serviceUrl}/${a.id}/deleteAttachments`, { method: 'POST', body })).json();
+  if (j.error) throw new Error(j.error.message || 'attachment was not removed');
+}
+
 function startComboEdit() {
   const a = currentRecord(); if (!a || !canEditRecords()) return;
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
+  Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
   EDIT.autoStatus = '';
   openDetail(a); comboGo('overview'); updateEditButton();
@@ -3643,7 +3903,9 @@ function cancelEdit(skipConfirm, then) {
 function editLabel(f) {
   const a = assets.find(x => String(x.id) === String(EDIT.id)) || { attrs: {} };
   if (f === 'BuildingName') return 'Building name';
-  const extra = { SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
+  if (/^__att\d$/.test(f)) return `Attachment ${f.slice(5)}`;
+  if (/^__del\d$/.test(f)) return `Remove attachment ${f.slice(5)}`;
+  const extra = { OtherHazards: 'Other hazards (trigger a detailed evaluation)', Level1Comments: 'Screener comments', ReviewComments: 'Comments for engineer', EngineerNotes: 'Engineer comments', SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
   if (extra[f]) return extra[f];
   const ph = phaseCfg(); if (ph && ph.editable && ph.editable[f]) return ph.editable[f][0];
   for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) { const hit = fields.find(x => x[0] === f); if (hit) return hit[1]; }
@@ -3749,6 +4011,67 @@ function showToast(text) {
   });
 })();
 
+// ── Comments shown on the Notes and P-154 tabs ──
+// Screener comments flagged for the engineer: every "Comments for Engineer" box
+// from the Survey123 form (exterior, vertical, plan, interior) plus the general
+// review comments. Engineer comments: the supervising engineer's notes.
+const ENGINEER_FLAG_COMMENTS = [['Exterior review', 'EngineerCommentsExterior'], ['Vertical irregularities', 'EngineerCommentsVertical'],
+  ['Plan irregularities', 'EngineerCommentsPlan'], ['Building type / interior', 'EngineerCommentsInterior'], ['General review', 'ReviewComments']];
+function screenerForEngineer(at) {
+  return ENGINEER_FLAG_COMMENTS.map(([k, f]) => [k, String(at[f] ?? '').trim()]);   // every section, empty ones too
+}
+function screenerL1Comments(at) {
+  const l1 = String(at.Level1Comments ?? '').trim(); if (l1) return l1;
+  return ['ScreenerCommentsBuilding', 'ScreenerCommentsExterior', 'ScreenerCommentsInterior'].map(f => String(at[f] ?? '').trim()).filter(Boolean).join('\n');
+}
+// One big editable box. Starts with every related comment joined together;
+// whatever the editor types is saved to `field`.
+function comboTextBox(a, field, joined, label) {
+  const v = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, field) ? EDIT.draft[field] : joined;
+  return `<div class="ed-row cb-bigbox" data-f="${escHtml(field)}"><textarea id="ed_${escHtml(field)}" data-f="${escHtml(field)}" class="ed-in ed-ta cb-allcm" rows="5" maxlength="8000"
+    aria-label="${escHtml(label)}" oninput="editSet('${escHtml(field)}', this.value)">${escHtml(v)}</textarea><div class="ed-err" hidden></div></div>`;
+}
+function joinedEngineerComments(at) { return screenerForEngineer(at).map(([, v]) => v).filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k).join('\n\n'); }
+function joinedScreenerComments(at) {
+  return [at.Level1Comments, at.ScreenerCommentsBuilding, at.ScreenerCommentsExterior, at.ScreenerCommentsInterior]
+    .map(x => String(x ?? '').trim()).filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k && !arr.some((o, j) => j !== k && o.length > v.length && o.includes(v))).join('\n\n');
+}
+function commentBlock(items) {
+  return items.map(([k, v]) => `<div class="nt-c"><div class="nt-c-k">${escHtml(k)}</div>${v ? `<div class="nt-c-v">${escHtml(v)}</div>` : '<div class="nt-na">N/A</div>'}</div>`).join('');
+}
+// ── Edit history ──
+let USER_DISPLAY = '';
+function shortName(full) { const p = String(full || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : (p[0] || ''); }
+function readHistory(a) {
+  const at = a.attrs || {}, raw = at[CONFIG.historyField];
+  let list = [];
+  try { list = raw ? JSON.parse(raw) : []; } catch { list = String(raw || '').split('\n').filter(Boolean).map(l => ({ what: l })); }
+  if (!Array.isArray(list)) list = [];
+  const efi = LAYER_EFI || {};
+  const cDate = at[efi.creationDateField || (LAYER_DATES && LAYER_DATES.creationField) || 'CreationDate'];
+  const cBy = at[efi.creatorField || 'Creator'];
+  if (cDate && !list.some(x => /created/i.test(x.what || ''))) list.unshift({ t: cDate, by: cBy ? shortName(cBy) : '', what: 'Record created' });
+  return list;
+}
+function historyRows(a) {
+  const list = readHistory(a), at = a.attrs || {}, efi = LAYER_EFI || {};
+  if (!(CONFIG.historyField in at) && !(LAYER_FIELD_TYPES || {})[CONFIG.historyField]) {
+    const eDate = at[efi.editDateField || 'EditDate'], eBy = at[efi.editorField || 'Editor'];
+    if (eDate) list.push({ t: eDate, by: eBy ? shortName(eBy) : '', what: 'Last edited' });
+  }
+  return list.sort((x, y) => (Number(new Date(x.t)) || 0) - (Number(new Date(y.t)) || 0));
+}
+function historySummary(changes) {
+  const fields = changes.filter(f => !f.startsWith('__') && f !== 'Phase' && f !== CONFIG.historyField);
+  const parts = [];
+  if (fields.length) parts.push(`${[...new Set(fields.map(f => editLabel(f)))].join(', ')} set`);
+  if (changes.includes('Phase')) parts.push(`phase set to ${choiceLabel('Phase', EDIT.draft.Phase) || 'blank'}`);
+  const add = changes.filter(f => /^__att\d$/.test(f)).map(f => f.slice(5)), del = changes.filter(f => /^__del\d$/.test(f)).map(f => f.slice(5));
+  if (add.length) parts.push(`Attachment${add.length > 1 ? 's' : ''} ${add.join(', ')} appended`);
+  if (del.length) parts.push(`Attachment${del.length > 1 ? 's' : ''} ${del.join(', ')} removed`);
+  const txt = parts.join('; '); return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
 function selectAsset(id, panMap = true) {
   if (EDIT.on && String(EDIT.id) !== String(id)) { if (!cancelEdit(false, () => selectAsset(id, panMap))) return; }
   if (EDIT.wizard) closeEditWizard(true);
@@ -3824,6 +4147,7 @@ DESKTOP_MQ.addEventListener('change', () => {
 
 function openDetail(a) {
   setTimeout(updateEditButton, 0);
+  setTimeout(renderReports, 0);
   setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); }, 0);
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
@@ -3850,7 +4174,7 @@ function closeDetail() {
 function buildDetailHTML(a) {
   const editing = EDIT.on && String(EDIT.id) === String(a.id);
   const combo = editing && EDIT.mode === 'combo';
-  const comboHint = (phaseCfg() && phaseCfg().autoFill ? `<div class="cb-auto" id="cb-auto" role="status">${escHtml(EDIT.autoStatus || '')}</div>` : '') + (phaseCfg() ? `<div class="ph-legend"><b>${escHtml(phaseCfg().title)}</b><span class="ph-chip ph-c-edit">Editable</span><span class="ph-chip ph-c-view">Visible, not editable</span><span class="ph-chip ph-c-hide">Not part of this phase</span></div>` : '') + `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
+  const comboHint = (phaseCfg() && phaseCfg().autoFill ? `<div class="cb-auto" id="cb-auto" role="status">${escHtml(EDIT.autoStatus || '')}</div>` : '') + (phaseCfg() ? `<div class="ph-legend"><b>${escHtml(phaseCfg().title)}</b><span class="ph-chip ph-c-edit">Editable</span><span class="ph-chip ph-c-view">View only</span></div>` : '') + `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
   const sc = a.level1Score;
   const scColor = scoreColor(sc, a.surveyType);
@@ -4008,7 +4332,7 @@ function buildDetailHTML(a) {
     <div class="ov-grid">
       <div class="ov-main">
         <div class="ov-stats">
-          ${statCard('Seismicity', fieldValue('Seismicity'), '', seisSub, 'Seismicity,SsSpectralAcc,S1SpectralAcc,SeismicitySource')}
+          ${statCard('Seismicity', fieldValue('Seismicity'), '', seisSub, 'Seismicity,SsSpectralAcc,S1SpectralAcc')}
           ${statCard('Soil Type', soilM ? soilM[1].toUpperCase() : soilLbl, soilM ? soilM[2] : '', '', 'SoilType')}
           ${statCard('FEMA Building Type', femaLbl, constructionType, '', 'FEMABuildingType')}
           ${statCard('Year Built', yb, addlNote, '', 'YearBuilt,Additions,AdditionsYearBuilt')}
@@ -4442,13 +4766,17 @@ function buildDetailHTML(a) {
       ${tabBtn('p154', 'P-154 Screening Details', false)}
       ${tabBtn('nonstruct', 'Nonstructural Review', false)}
       ${editing ? '' : tabBtn('calc', 'Calculations', false)}
-      ${editing ? '' : tabBtn('photos', 'Photos', false)}`}
+      ${editing ? '' : tabBtn('photos', 'Photos', false)}
+      ${tabBtn('reports', 'Reports/Attachments', false)}
+      ${tabBtn('notes', 'Notes', false).replace('<button', '<button' + (canEditRecords() ? '' : ' hidden'))}`}
     </div>
 
     <div class="detail-panels">
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${combo ? comboHint + overviewHTML : editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
-      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${combo ? comboHint + p154HTML : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
+      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${combo ? comboHint + comboP154HTML(a) : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
       <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${combo ? comboHint + nonstructHTML : editing ? editTabHTML(a, 'nonstruct') : nonstructHTML}</div>
+      <div class="dtab-panel" data-panel="reports" role="tabpanel" hidden>${combo ? comboHint : ''}<div class="rp-wrap"><div class="ov-card p2-card"><div class="ov-card-title">Reports &amp; Attachments</div><div id="reports-area"><div class="attachment-tile loading" style="height:60px"></div></div></div></div></div>
+      <div class="dtab-panel" data-panel="notes" role="tabpanel" hidden>${combo ? comboHint : ''}${notesTabHTML(a)}</div>
       ${combo ? `<div class="dtab-panel" data-panel="review" role="tabpanel" hidden><div class="cb-wrap" id="cb-review"></div></div>` : ''}
       <div class="dtab-panel" data-panel="calc" role="tabpanel" hidden>${calcHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
@@ -4460,7 +4788,7 @@ function buildDetailHTML(a) {
     ${combo ? `
     <div class="ed-bar cb-bar" id="ed-bar" role="region" aria-label="Edit actions">
       <span class="ed-count">No changes yet</span>
-      <button class="ed-cancel" onclick="cancelEdit()">Cancel</button>
+      <button class="ed-cancel" onclick="restartComboEdit()">Discard changes</button>
       <button class="ed-cancel cb-back" onclick="comboStep(-1)" disabled>Back</button>
       <button class="ed-save cb-next" onclick="comboStep(1)">Next</button>
     </div>` : editing ? `
@@ -4545,6 +4873,7 @@ async function loadAttachments(objectId) {
   const ov = document.getElementById('overview-photos');
   if (!area) return;
   const result = await fetchAttachments(objectId);
+  LAST_ATTACH = { id: objectId, infos: result.state === 'error' ? [] : result.infos }; renderReports();
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
     const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = `<div class="ov-nophoto">No photos</div>`;
