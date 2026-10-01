@@ -431,6 +431,10 @@
   .ed-locked svg { flex-shrink: 0; }
   .ed-err { font-size: 11.5px; color: #b3261e; margin-top: 3px; }
   .ed-req-star { color: #b3261e; font-weight: 800; }
+  .ed-row[hidden] { display: none !important; }
+  .cb-live.cb-notasked { background: transparent !important; box-shadow: none !important; }
+  .cb-live.cb-notasked > .ov-v > :not(.cb-na-note), .cb-live.cb-notasked > .cb-cell, .cb-live.cb-notasked .cb-cell, .cb-live.cb-notasked .cb-radio-cell input { display: none; }
+  .cb-na-note { font-size: 12px; font-style: italic; color: #8a93a3; }
   .cb-miss { background: #fff5f4; border: 1px solid #f0b3aa; border-left: 4px solid #b3261e; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: #7f1d12; }
   .cb-miss span { display: block; font-size: 12px; color: #6b4a46; margin-top: 3px; }
   .ed-in.ed-bad { border-color: #b3261e !important; background: #fff5f4 !important; }
@@ -1134,6 +1138,45 @@ const CONFIG = {
   // "Generator anchored" only when there is a generator. Required questions the
   // app doesn't edit (Screening Type, Perform Level 2, DNS reason/other,
   // Building Photo, Engineer Review, Review Comments) are left out on purpose.
+  // When each question in the edit workflow is asked, from the XLSForm's
+  // "relevant" column (its own condition + its groups'). A question whose
+  // condition is false is hidden while editing - e.g. "Generator anchored"
+  // disappears when Emergency generator is No. Questions not listed are always shown.
+  relevantRules: {
+    FEMABuildingType:              "${SurveyType}!='Did Not Screen' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    AdditionsYearBuilt:            "${Additions}='yes'",
+    Occupancy:                     "${SurveyType}!='Did Not Screen'",
+    NonstructuralReview:           "${SurveyType}!='Did Not Screen'",
+    Exterior:                      "${SurveyType}!='Did Not Screen'",
+    Interior:                      "${SurveyType}!='Did Not Screen'",
+    DrawingsReviewed:              "${SurveyType}!='Did Not Screen' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    CodeYear:                      "${SurveyType}!='Did Not Screen' and ${DrawingsReviewed}='yes'",
+    DetailedEvalRecommended:       "${SurveyType}!='Did Not Screen'",
+    VertIrregularitiesPresent:     "${SurveyType}='P-154 Rapid Visual Screening' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    PlanIrregularitiesPresent:     "${SurveyType}='P-154 Rapid Visual Screening' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    Adjacency:                     "${SurveyType}!='Did Not Screen'",
+    ExtFallingHazards:             "${SurveyType}!='Did Not Screen'",
+    FallingHazardsOther:           "${SurveyType}!='Did Not Screen' and selected(${ExtFallingHazards}, 'other')",
+    Level1Comments:                "${SurveyType}!='Did Not Screen'",
+    OnsiteGenerator:               "${SurveyType}!='Did Not Screen'",
+    Anchored:                      "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    Isolators:                     "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    NaturalGas:                    "${SurveyType}!='Did Not Screen'",
+    GasShutoff:                    "${SurveyType}!='Did Not Screen' and ${NaturalGas}='Yes'",
+    FlexibleGasLines:              "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes' and ${NaturalGas}='Yes'",
+    EgressRoutes:                  "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    EmergencyWaterandFoodSupplies: "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    FurnitureFixturesEquipment:    "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    WaterHeaters:                  "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    FireSuppression:               "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    DropCeilings:                  "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    LayInLightFixtures:            "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    BoilersChillersHVACsystems:    "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    HeavyEquipment:                "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    OtherMEPEquipment:             "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    FuelorPropaneTanks:            "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+    OtherNonstructural:            "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes'",
+  },
   requiredFields: {
     BuildingName:        "",
     Exterior:            "${SurveyType}!='Did Not Screen'",
@@ -2052,9 +2095,32 @@ function requiredRule(f) {
 }
 // Required right now = on the list AND relevant for this record's current answers
 function isRequired(f) {
+  if (!isRelevant(f)) return false;
   const rule = requiredRule(f);
   if (rule === null) return LAYER_REQUIRED.includes(f);
   return relevantNow(rule, editCurrent);
+}
+// Is this question asked right now (its relevant condition, using unsaved answers)?
+function isRelevant(f) { const r = (CONFIG.relevantRules || {})[f]; return relevantNow(r || '', editCurrent); }
+// Show / hide follow-up questions in every edit view as answers change
+function syncRelevance() {
+  const scope = [document.getElementById('sheet-body'), document.getElementById('ed-wizard')].filter(Boolean);
+  scope.forEach(root => {
+    // individual question rows (edit forms, wizard, multi-field boxes in option D)
+    root.querySelectorAll('.ed-row[data-f]').forEach(row => { row.hidden = !isRelevant(row.dataset.f); });
+    // option D items on the real tabs
+    root.querySelectorAll('.cb-live[data-ie]').forEach(el => {
+      const fs = el.dataset.ie.split(',').filter(Boolean);
+      const anyShown = fs.some(isRelevant);
+      el.classList.toggle('cb-notasked', !anyShown);
+      let note = el.querySelector(':scope > .cb-na-note, :scope .cb-na-note');
+      if (!anyShown && !note) {
+        const host = el.querySelector(':scope > .ov-v, :scope > .p2-cm-v') || el;
+        host.insertAdjacentHTML('beforeend', '<span class="cb-na-note">Not asked</span>');
+      }
+      if (anyShown && note) note.remove();
+    });
+  });
 }
 // After an answer changes, refresh any question whose "required" depends on it
 function syncRequired() {
@@ -2942,7 +3008,7 @@ function editSet(f, value, el) {
   }
   if (EDIT.invalid) delete EDIT.invalid[f];
   EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
-  syncRequired();
+  syncRequired(); syncRelevance();
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
   if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
   document.querySelectorAll('#sheet-body .cb-live').forEach(el => { if (el.dataset.ie.split(',').includes(f)) cbMarkChanged(el); });
@@ -3074,6 +3140,7 @@ function renderWizard() {
         <button class="ed-cancel" onclick="wizardGo(${WIZ.step - 1})" ${WIZ.step === 0 ? 'disabled' : ''}>Back</button>
         ${st.review ? `<button class="ed-save" onclick="wizardSave(this)" ${!n || bad ? 'disabled' : ''}>Save changes</button>` : `<button class="ed-save" onclick="wizardGo(${WIZ.step + 1})">Next</button>`}</div>
     </div>`;
+  syncRelevance();   // hide follow-up questions that don't apply
 }
 function wizardGo(k) { const a = currentRecord(); if (!a) return; k = Math.max(0, Math.min(k, wizardSteps(a).length - 1)); WIZ.step = k; renderWizard(); }
 function closeEditWizard(skip, then) {
@@ -3556,7 +3623,7 @@ DESKTOP_MQ.addEventListener('change', () => {
 
 function openDetail(a) {
   setTimeout(updateEditButton, 0);
-  setTimeout(enhanceCombo, 0);
+  setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); }, 0);
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
