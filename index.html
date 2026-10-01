@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -179,6 +180,8 @@
   }
   #layers-toggle:hover, #layers-toggle[aria-expanded="true"] { background: var(--cusec-blue); color: white; border-color: var(--cusec-blue); }
   #layers-toggle.has-on::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--cusec-gold); margin-left: 2px; }
+  .map-rotating, .map-rotating * { cursor: grabbing !important; }
+  .leaflet-control-rotate a { cursor: pointer; }
   #layers-panel { position: absolute; top: calc(100% + 6px); left: 0; min-width: 250px; max-width: 300px; background: var(--surface);
     border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px 0; font-family: 'DM Sans', sans-serif; }
   .lp-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); padding: 4px 14px 6px; }
@@ -338,10 +341,51 @@
   .ov-sep { margin: 0 5px; color: var(--text3); }
   .ov-accel { white-space: nowrap; }
   .ov-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; margin-top: 16px; align-items: stretch; }
+  .ov-main > .ov-cards:first-child { margin-top: 0; }
   .ov-cards > .ov-card { padding: 16px 18px 12px; }
   .ov-card-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #3a4453; margin-bottom: 8px; }
   .ov-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
   .ov-row:last-child { border-bottom: none; }
+  .ov-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; border-bottom: 1px solid #e6e9ef; }
+  .ov-pair:last-child { border-bottom: none; }
+  .ov-pair > .ov-half { border-bottom: none; grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .ov-half > .ov-v { overflow-wrap: anywhere; }
+  /* edit layout: a pair spans the card like a full row, its left half lines up with the labels
+     and its right half with the value column; one bar on the left for the whole pair */
+  .ov-pair { margin: 0 -12px; gap: 0; }
+  .ov-pair > .ov-half, .ov-pair > .ov-half.cb-target, .ov-pair > .ov-half.ph-view { margin: 0 !important; padding: 8px 12px 9px !important; box-shadow: none !important; border-radius: 0 !important; }
+  .ov-pair > .ov-half + .ov-half { padding-left: 5px !important; }
+  .ov-pair { position: relative; }
+  .ov-pair:has(> .cb-live)::before, .ov-pair:has(> .ph-view)::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; z-index: 1; background: #8a93a3; }
+  .ov-pair:has(> .cb-live)::before { background: var(--cusec-gold); }
+  .ov-pair > .ov-half > .ov-v { min-height: 29px; display: flex; align-items: center; }
+  .ov-pair > .ov-half > .ov-v.cb-cell { display: block; }
+  .rp-pend-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .rp-fn-k { font: 600 11px 'DM Sans', sans-serif; color: #4a5363; }
+  .rp-fn.ed-bad { border-color: #c62828; }
+  .rp-pend-file { font-size: 12px; color: var(--text3); overflow-wrap: anywhere; }
+  .rp-fn-err { font-size: 12px; color: #c62828; }
+  .ov-v.cb-occ-boxes { display: flex !important; flex-wrap: wrap; gap: 6px 16px; }
+  .cb-occ-box input { margin: 0; }
+  .cb-occ-box { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; }
+  .ov-card > .ov-occ-others { border-top: none; border-bottom: 1px solid #e6e9ef; padding: 9px 0; }
+  .loc-btn { display: inline-flex; align-items: center; gap: 6px; width: 100%; justify-content: space-between; text-align: left; cursor: pointer; font-weight: 700; }
+  .loc-btn small { font-weight: 600; color: #0B2E6B; white-space: nowrap; }
+  #loc-picker { position: fixed; inset: 0; z-index: 4000; background: rgba(10, 20, 40, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #loc-picker[hidden] { display: none; }
+  .lp-card { background: #fff; border-radius: 12px; box-shadow: var(--shadow-lg); width: min(860px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .lp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .lp-head h3 { margin: 0; font: 700 15px 'DM Sans', sans-serif; color: #13233d; }
+  .lp-base { display: inline-flex; border: 1.5px solid #0B2E6B; border-radius: 8px; overflow: hidden; }
+  .lp-base button { font: 600 12px 'DM Sans', sans-serif; padding: 6px 12px; border: 0; background: #fff; color: #0B2E6B; cursor: pointer; }
+  .lp-base button.on { background: #0B2E6B; color: #fff; }
+  #lp-map { height: min(56vh, 460px); background: #dde3ea; }
+  .lp-foot { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .lp-foot label { display: flex; flex-direction: column; gap: 3px; font: 600 11px 'DM Sans', sans-serif; color: #4a5363; }
+  .lp-foot input { width: 130px; }
+  .lp-hint { flex: 1 1 200px; font-size: 12px; color: var(--text2); }
+  .lp-btns { display: flex; gap: 8px; margin-left: auto; }
+  .lp-pin { background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
   .ov-k { color: #4a5363; }
   .ov-v { color: #13233d; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ov-occ-others { display: grid; grid-template-columns: repeat(3, max-content); justify-content: space-between; gap: 6px 10px; padding: 10px 0 4px; border-top: 1px solid #e6e9ef; font-size: 12px; }
@@ -520,7 +564,7 @@
   .p2-irr-row.cb-live, .cb-occ-row, .p2-cm.cb-live { align-items: center; }
   .p2-irr-row.cb-live { grid-template-columns: 70px minmax(0, 1fr); }
   /* building name gets the same highlight as the other editable items */
-  .sheet-name.cb-live { background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; padding: 6px 10px 6px 12px !important; margin: 0 0 2px -12px; border-radius: 0 !important; }
+  .sheet-name.cb-live { background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; padding: 5px 10px 2px 12px !important; margin: 0 0 0 -12px; border-radius: 0 !important; }
   .sheet-name.cb-live.cb-changed { background: #fde9a8 !important; }
   .sheet-name.cb-live .ed-name { background: #fff; }
   .cb-auto { margin: 12px 20px 0; padding: 8px 12px; font-size: 12.5px; color: #13233d; background: #eef3fb; box-shadow: inset 3px 0 0 #0B2E6B; }
@@ -617,8 +661,10 @@
   .ov-stat.ph-hidden::after, .ov-card.ph-hidden::after { top: auto; bottom: 8px; transform: none; }
   .p2-dse.ph-hidden::after, .p2-row.ph-hidden::after, .ns-br-row.ph-hidden::after, .cb-group.ph-hidden::after, .ov-occ-others.ph-hidden::after { content: none; }
   .ov-row.ph-hidden, .p2-dse.ph-hidden { padding-left: 10px; margin-left: -10px; }
-  .sheet-addr-wrap.cb-live { background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; padding: 6px 10px; margin: 4px 0 2px -12px; }
-  .cb-addr { display: grid; grid-template-columns: 2fr 1.4fr 1fr 0.8fr 1.2fr; gap: 6px 8px; }
+  .sheet-addr-wrap.cb-live { background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; padding: 2px 10px 6px 12px; margin: 0 0 0 -12px; }
+  .sheet-addr-wrap.cb-live .ed-in { padding: 4px 8px; }
+  .cb-addr .ed-locked { display: flex; width: 100%; min-height: 29px; padding: 4px 8px; border: 1.5px solid #dde2ea; border-radius: 7px; background: #f1f3f6; color: #5b6473; }
+  .cb-addr { display: grid; grid-template-columns: 2fr 1.4fr 0.8fr 1fr 1.2fr; gap: 4px 8px; }
   .cb-addr .ed-row { grid-template-columns: 1fr; gap: 2px; padding: 0; border: none; }
   .cb-addr .ed-k { padding-top: 0; font-size: 11px; color: #4a5363; }
   @media (max-width: 899px) { .cb-addr { grid-template-columns: 1fr 1fr; } }
@@ -981,6 +1027,19 @@
   .stats-tile:last-child { border-right: none; }
   .stats-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.9; margin-bottom: 5px; font-family: 'DM Sans', sans-serif; }
   .stats-num { font-size: 36px; font-weight: 800; font-family: 'DM Sans', sans-serif; line-height: 1; letter-spacing: -1px; }
+  /* edit-mode scoreboard: Queue → next phase */
+  #stats-bar.stats-edit { grid-template-columns: minmax(0, 1fr) !important; background: linear-gradient(180deg, #1d2140, #171a30) !important; }
+  .sq-tile { position: relative; padding: 13px 16px 12px; min-width: 0; }
+  .sq-tile::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 2px; border-radius: 0 0 2px 2px; opacity: .9; }
+  .sq-queue::before { background: var(--cusec-gold); }
+  .sq-next::before { background: #6f9cff; }
+  .sq-label { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; letter-spacing: 0.5px; margin-bottom: 7px; opacity: 1; }
+  .sq-cap { color: rgba(255,255,255,0.88); flex-shrink: 0; }
+  .sq-phase { text-transform: none; letter-spacing: 0; font-size: 1.08em; font-weight: 700; }
+  .sq-queue .sq-phase { color: #f2cf6b; }
+  .sq-next .sq-phase { color: #a9c4ff; }
+  .sq-tile .stats-num { font-size: 34px; }
+  .stats-edit .sq-queue { border-right: 1px solid rgba(255,255,255,0.12); }
   .stats-num.red { color: #ff6b6b; }
   .stats-num.green { color: #69db7c; }
 
@@ -1310,7 +1369,10 @@ const CONFIG = {
       editable: {
         SurveyType: ['Screening Type', 'select'], SurveyDate: ['Date of screening', 'date'], BuildingName: ['Building name', 'text'],
         EssentialFacility: ['Facility Type', 'select'], CodeYear: ['Code Year', 'text'], PreCodeQ: ['Pre-Code', 'yesno'], PostBenchmarkQ: ['Post-Benchmark', 'yesno'],
-        Address: ['Address', 'text'], City: ['City', 'text'], State: ['State', 'select'], ZIP: ['ZIP', 'text'], County: ['County', 'text'],
+        Occupancy: ['Occupancy Type', 'select'], OccupancyOthers: ['Shelter / Government / Historic', 'multi'],
+        YearBuiltEstimated: ['Year Built Estimated?', 'yesno'], Additions: ['Additions', 'yesno'], AdditionsYearBuilt: ['Additions Year Built', 'int', 1600, new Date().getFullYear()],
+        Latitude: ['Latitude', 'location'], Longitude: ['Longitude', 'location'],
+        Address: ['Address', 'text'], City: ['City', 'text'], ZIP: ['ZIP', 'text'],
         StoriesAboveGrade: ['Stories above grade', 'int', 0, 150], StoriesBelowGrade: ['Stories below grade', 'int', 0, 20],
         TotalFloorArea: ['Total Floor Area (sq. ft.)', 'number', 0, 1e8], YearBuilt: ['Year Built', 'int', 1600, new Date().getFullYear()],
         FEMABuildingType: ['FEMA Building Type', 'select'], SoilType: ['Soil Type', 'select'],
@@ -1325,7 +1387,7 @@ const CONFIG = {
       },
       // calculated / read-only in that form: still shown in the app, never editable
       // Ss / S1 are filled by the ASCE 7-22 lookup and can't be typed over
-      viewOnly: ['SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
+      viewOnly: ['State', 'County', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
       // everything else the app can edit is hidden in that form → not part of this phase
       required: { SoilType: '', Seismicity: '' },
       // When editing starts, run the functions.js lookups and fill these in:
@@ -1384,6 +1446,13 @@ const CONFIG = {
   tokenKey:    'rvs_token_v1',
   cacheKey:    'rvs_cache_v5', // bumped: old cache holds Simple Form records
 };
+
+// QA/QC, Engineer Review and Complete edit with the same rules as post-processing
+// (same editable / view-only items); the lookups only run in the post phase.
+[['qaqc', 'QA/QC edit'], ['engineer', 'Engineer review edit'], ['complete', 'Complete - edit']].forEach(([k, title]) => {
+  if (!CONFIG.editPhases[k]) CONFIG.editPhases[k] = Object.assign({}, CONFIG.editPhases.post, { title, autoFill: false });
+});
+CONFIG.editPhases.post.title = 'Post data collection edit';
 
 // ════════════════════════════════════════════════════════════════
 //  FIELD MAPPING
@@ -2217,7 +2286,7 @@ function _pickDateFields(info) {
   console.info('[RVS] screening-date fields (priority order):', screenFields, '| created:', creationField, '| edited:', editField);
   return { screenFields, creationField, editField };
 }
-let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {}, LAYER_EFI = {};
+let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {}, LAYER_EFI = {}, LAYER_SR = null;
 function relevantNow(expr, get) {
   if (!expr || !String(expr).trim()) return true;
   const toks = String(expr).match(/\$\{\w+\}|'[^']*'|"[^"]*"|!=|=|\(|\)|,|\band\b|\bor\b|\bnot\b|\bselected\b|[^\s()',=!]+/gi) || [];
@@ -2318,6 +2387,7 @@ async function loadDomainLabels() {
     // fields the layer won't accept blank (skip system-managed ones)
     LAYER_FIELD_TYPES = Object.fromEntries((info.fields || []).map(f => [f.name, f.type]));
     LAYER_EFI = info.editFieldsInfo || {};
+    LAYER_SR = (info.extent && info.extent.spatialReference) || info.spatialReference || info.sourceSpatialReference || null;
     LAYER_REQUIRED = (info.fields || []).filter(f => f.nullable === false && f.editable !== false
       && !/^(objectid|oid|fid|globalid|shape.*|creationdate|creator|editdate|editor)$/i.test(f.name) && f.type !== 'esriFieldTypeOID' && f.type !== 'esriFieldTypeGlobalID').map(f => f.name);
     LAYER_DATES = Object.assign(_pickDateFields(info), { screenFields: SCREEN_DATE_FIELDS });
@@ -2623,6 +2693,15 @@ function onSearch() { searchTerm = document.getElementById('search-input').value
 
 function toggleSort() { /* sort options removed - list is always newest first */ }
 
+// Edit-mode scoreboard: keep each label on one line, shrinking the text a little if the tile is narrow
+function fitStatsLabels() {
+  document.querySelectorAll('#stats-bar .sq-label').forEach(el => {
+    el.style.fontSize = '';
+    let fs = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > el.clientWidth + 0.5 && fs > 8.5) { fs -= 0.5; el.style.fontSize = fs + 'px'; }
+  });
+}
+if (window.ResizeObserver) document.addEventListener('DOMContentLoaded', () => { const b = document.getElementById('stats-bar'); if (b) new ResizeObserver(() => fitStatsLabels()).observe(b); });
 function getFiltered(skipPhase) {
   let list = assets.filter(a => {
     if (!passesMultiFilters(a, skipPhase)) return false;
@@ -2676,14 +2755,13 @@ function renderList() {
     // Edit mode: how many screenings sit in this session's phase, and how many have moved on to the next
     // (follows the other filters, not the Phase filter)
     const qk = queuePhaseIndex(), scope = EDIT_URL_ON ? getFiltered(true) : [], inPhase = k => scope.filter(a => recordPhaseIndex(a) === k).length;
+    const hasNext = qk < PHASE_FLOW.length - 1;
+    statsBar.classList.toggle('stats-edit', EDIT_URL_ON);
+    const QUEUE_LABEL = { post: 'Post Data Collection Queue', qaqc: 'QA/QC Queue', engineer: 'Engineer Queue', complete: 'Complete' };
     if (EDIT_URL_ON) statsBar.innerHTML = `
-      <div class="stats-tile">
-        <div class="stats-label">Queue</div>
+      <div class="stats-tile sq-tile sq-queue">
+        <div class="stats-label sq-label"><span class="sq-cap">${escHtml(QUEUE_LABEL[PHASE_FLOW[qk].key] || PHASE_FLOW[qk].name + ' Queue')}</span></div>
         <div class="stats-num">${inPhase(qk).toLocaleString()}</div>
-      </div>
-      <div class="stats-tile">
-        <div class="stats-label">${qk < PHASE_FLOW.length - 1 ? `Submitted to ${escHtml(PHASE_FLOW[qk + 1].name)}` : 'All Screenings'}</div>
-        <div class="stats-num">${(qk < PHASE_FLOW.length - 1 ? inPhase(qk + 1) : scope.length).toLocaleString()}</div>
       </div>`;
     else statsBar.innerHTML = `
       <div class="stats-tile">
@@ -2694,6 +2772,7 @@ function renderList() {
         <div class="stats-label">L1 Score ≤2.0</div>
         <div class="stats-num">${atRisk.toLocaleString()}</div>
       </div>`;
+    fitStatsLabels();
   }
 
   if (!filtered.length) {
@@ -2745,9 +2824,39 @@ function cardHTML(a) {
 //  MAP
 // ════════════════════════════════════════════════════════════════
 let basemapStreet, basemapSat, usingSat = false;
+// Right-click (or Ctrl / Alt + click) and drag on the map to rotate it around its center
+function enableMouseRotate(m) {
+  const el = m.getContainer(); let drag = null;
+  el.addEventListener('contextmenu', e => e.preventDefault());      // the map has no right-click menu; right-drag rotates
+  el.addEventListener('mousedown', e => {
+    if (!(e.button === 2 || (e.button === 0 && (e.ctrlKey || e.altKey)))) return;
+    if (e.target.closest('.leaflet-control, .leaflet-popup')) return;
+    const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    drag = { cx, cy, a0: Math.atan2(e.clientY - cy, e.clientX - cx), b0: m.getBearing() };
+    m.dragging.disable(); el.classList.add('map-rotating'); e.preventDefault(); e.stopPropagation();
+  }, true);
+  window.addEventListener('mousemove', e => {
+    if (!drag) return;
+    const a = Math.atan2(e.clientY - drag.cy, e.clientX - drag.cx);
+    m.setBearing(drag.b0 + (a - drag.a0) * 180 / Math.PI);
+  });
+  window.addEventListener('mouseup', () => { if (!drag) return; drag = null; m.dragging.enable(); el.classList.remove('map-rotating'); });
+}
+// Building symbols (the screenings layer) on / off from the Layers panel
+const BLDG_KEY = 'rvs_bldg_symbols_v1';
+let SHOW_BLDGS = true; try { SHOW_BLDGS = localStorage.getItem(BLDG_KEY) !== '0'; } catch {}
+function setBuildingSymbols(on) {
+  SHOW_BLDGS = !!on; try { localStorage.setItem(BLDG_KEY, on ? '1' : '0'); } catch {}
+  if (map && markerCluster) { if (on && !map.hasLayer(markerCluster)) map.addLayer(markerCluster); if (!on && map.hasLayer(markerCluster)) map.removeLayer(markerCluster); }
+  renderLayersPanel();
+}
 function initMap() {
-  map = L.map('map', { zoomControl: false, attributionControl: true }).setView([35.5, -89.5], 7);
+  // Rotation (leaflet-rotate): right-click + drag, Shift + mouse wheel, two-finger twist, or drag the compass; click the compass to reset north
+  const canRotate = typeof L.Map.prototype.setBearing === 'function';
+  map = L.map('map', Object.assign({ zoomControl: false, attributionControl: true },
+    canRotate ? { rotate: true, bearing: 0, touchRotate: true, shiftKeyRotate: true, rotateControl: { closeOnZeroBearing: false, position: 'bottomleft' } } : {})).setView([35.5, -89.5], 7);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
+  if (canRotate) enableMouseRotate(map);
   basemapStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>', maxZoom: 19
   });
@@ -2756,7 +2865,7 @@ function initMap() {
   });
   basemapStreet.addTo(map);
   markerCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 50 });
-  map.addLayer(markerCluster);
+  if (SHOW_BLDGS) map.addLayer(markerCluster);
   initOverlays();
 }
 // ── Overlay layers (Layers button) ─────────────────────────────
@@ -2854,7 +2963,8 @@ function setOverlay(id, on) {
 }
 function renderLayersPanel() {
   const panel = document.getElementById('layers-panel'); if (!panel) return;
-  panel.innerHTML = `<div class="lp-title">Map layers</div>` + (CONFIG.overlays || []).map(ov => {
+  panel.innerHTML = `<div class="lp-title">Map layers</div>
+    <label class="lp-item"><input type="checkbox" ${SHOW_BLDGS ? 'checked' : ''} onchange="setBuildingSymbols(this.checked)"><div><div>Building symbols</div><div class="lp-status">Screened facilities</div></div></label>` + (CONFIG.overlays || []).map(ov => {
     const st = OVERLAY_STATE[ov.id] || {};
     const status = st.status === 'loading' ? '<div class="lp-status">Loading…</div>'
                  : st.status === 'error' ? `<div class="lp-status err">Couldn't load this layer</div>` : '';
@@ -2931,7 +3041,9 @@ function panToAsset(a) {
       }
     }
     const z = Math.max(map.getZoom(), RECORD_ZOOM);
-    const target = map.project([a.lat, a.lng], z).subtract(L.point(tx - size.x / 2, ty - size.y / 2));
+    // screen offset → map offset (undo the map's rotation, if it's rotated)
+    const br = (map.getBearing ? map.getBearing() : 0) * Math.PI / 180, dx = tx - size.x / 2, dy = ty - size.y / 2;
+    const target = map.project([a.lat, a.lng], z).subtract(L.point(dx * Math.cos(br) + dy * Math.sin(br), -dx * Math.sin(br) + dy * Math.cos(br)));
     map.flyTo(map.unproject(target, z), z, { duration: 0.9 });
   }, 330);
 }
@@ -3011,7 +3123,13 @@ const EDIT_PHASE = (() => {
   } catch {}
   return 'field';
 })();
-function phaseCfg() { return (CONFIG.editPhases || {})[window.EDIT_PHASE_OVERRIDE || EDIT_PHASE] || null; }
+// ?phase= value → editPhases key (post, qaqc, engineer, complete; 'field' or unknown = field collection rules)
+function phaseKey() {
+  const v = String(window.EDIT_PHASE_OVERRIDE || EDIT_PHASE || '').toLowerCase(), n = _norm(v), P = CONFIG.editPhases || {};
+  if (P[v]) return v;
+  return /^post/.test(n) ? 'post' : /^qa/.test(n) ? 'qaqc' : /^engineer/.test(n) ? 'engineer' : /^complete/.test(n) ? 'complete' : v;
+}
+function phaseCfg() { return (CONFIG.editPhases || {})[phaseKey()] || null; }
 // ── Screening phases (the Phase field): Post → QA/QC → Engineer Review → Complete ──
 const PHASE_FLOW = [
   { key: 'post',     name: 'Post',            match: /^post/ },
@@ -3055,6 +3173,70 @@ function phaseMoveHTML() {
     <div class="ph-note">Move this screening to:</div>
     <div class="ph-btns" role="group" aria-label="Move this screening to">${btns}</div>
     ${cur < 0 ? `<div class="ph-note">Current phase: ${escHtml(choiceLabel(FIELDS.phase, EDIT.orig[FIELDS.phase]) || 'No phase')}</div>` : ''}</div>`;
+}
+// Point geometry for the layer's spatial reference (Web Mercator or WGS84)
+function layerGeometry(lat, lng) {
+  const wk = LAYER_SR ? (LAYER_SR.latestWkid || LAYER_SR.wkid) : 4326;
+  if ([102100, 3857, 900913, 102113].includes(wk)) {
+    const R = 6378137, x = R * lng * Math.PI / 180, y = R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+    return { x, y, spatialReference: { wkid: 102100, latestWkid: 3857 } };
+  }
+  return { x: lng, y: lat, spatialReference: { wkid: 4326 } };
+}
+// ── Location picker: drag the pin (or click the map) on satellite or street view ──
+const LOC = { map: null, marker: null, sat: null, street: null };
+function openLocPicker() {
+  const a = currentRecord(); if (!a) return;
+  let host = document.getElementById('loc-picker');
+  if (!host) {
+    host = document.createElement('div'); host.id = 'loc-picker'; host.hidden = true;
+    host.innerHTML = `<div class="lp-card" role="dialog" aria-modal="true" aria-labelledby="lp-title">
+      <div class="lp-head"><h3 id="lp-title">Move building location</h3>
+        <div class="lp-base" role="group" aria-label="Map view"><button type="button" class="on" data-b="sat" onclick="locBase('sat')">Satellite</button><button type="button" data-b="street" onclick="locBase('street')">Street</button></div></div>
+      <div id="lp-map"></div>
+      <div class="lp-foot"><div class="lp-hint">Drag the pin, or click the map, to put it on the building.</div>
+        <label>Latitude<input id="lp-lat" class="ed-in" type="number" step="0.00001" min="-90" max="90" oninput="locTyped()"></label>
+        <label>Longitude<input id="lp-lng" class="ed-in" type="number" step="0.00001" min="-180" max="180" oninput="locTyped()"></label>
+        <div class="lp-btns"><button type="button" class="ed-cancel" onclick="closeLocPicker()">Cancel</button><button type="button" class="ed-save" onclick="useLocPicker()">Use this location</button></div></div></div>`;
+    document.body.appendChild(host);
+    host.addEventListener('click', e => { if (e.target === host) closeLocPicker(); });
+    host.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeLocPicker(); } });
+  }
+  host.hidden = false;
+  const lat = Number(editVal(FIELDS.lat) ?? a.lat), lng = Number(editVal(FIELDS.lng) ?? a.lng);
+  const start = isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0) ? [lat, lng] : (map ? [map.getCenter().lat, map.getCenter().lng] : [36.75, -90.4]);
+  if (!LOC.map) {
+    LOC.map = L.map('lp-map', { zoomControl: true, attributionControl: true }).setView(start, 18);
+    LOC.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 19 });
+    LOC.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
+    LOC.sat.addTo(LOC.map);
+    const pin = L.divIcon({ className: 'lp-pin', iconSize: [30, 42], iconAnchor: [15, 41],
+      html: '<svg width="30" height="42" viewBox="0 0 30 42" aria-hidden="true"><path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.3 15 41 15 41s14-15.7 14-26.1C29 7.2 22.7 1 15 1z" fill="#C8960C" stroke="#fff" stroke-width="2"/><circle cx="15" cy="15" r="5.5" fill="#fff"/></svg>' });
+    LOC.marker = L.marker(start, { draggable: true, keyboard: true, title: 'Building location', icon: pin }).addTo(LOC.map);
+    LOC.marker.on('drag dragend', () => locShow(LOC.marker.getLatLng()));
+    LOC.map.on('click', e => { LOC.marker.setLatLng(e.latlng); locShow(e.latlng); });
+  } else { LOC.map.setView(start, 18); LOC.marker.setLatLng(start); }
+  locBase('sat'); locShow({ lat: start[0], lng: start[1] });
+  setTimeout(() => { LOC.map.invalidateSize(); document.getElementById('lp-lat').focus(); }, 60);
+}
+function locBase(b) {
+  if (!LOC.map) return;
+  [LOC.sat, LOC.street].forEach(l => LOC.map.removeLayer(l)); (b === 'street' ? LOC.street : LOC.sat).addTo(LOC.map);
+  document.querySelectorAll('#loc-picker .lp-base button').forEach(x => x.classList.toggle('on', x.dataset.b === b));
+}
+function locShow(ll) { document.getElementById('lp-lat').value = ll.lat.toFixed(6); document.getElementById('lp-lng').value = ll.lng.toFixed(6); }
+function locTyped() {
+  const lat = Number(document.getElementById('lp-lat').value), lng = Number(document.getElementById('lp-lng').value);
+  if (isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) { LOC.marker.setLatLng([lat, lng]); LOC.map.panTo([lat, lng]); }
+}
+function closeLocPicker() { const h = document.getElementById('loc-picker'); if (h) h.hidden = true; const b = document.querySelector('#sheet-body .loc-btn'); if (b) b.focus(); }
+function useLocPicker() {
+  const ll = LOC.marker.getLatLng(), lat = Number(ll.lat.toFixed(6)), lng = Number(ll.lng.toFixed(6));
+  [[FIELDS.lat, lat], [FIELDS.lng, lng]].forEach(([f, v]) => { if (Number(EDIT.orig[f]) === v) delete EDIT.draft[f]; else EDIT.draft[f] = v; });
+  closeLocPicker();
+  const row = document.querySelector('#sheet-body .ov-loc');
+  if (row) { const s = row.querySelector('.loc-btn span'); if (s) s.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; cbMarkChanged(row); }
+  updateEditBar();
 }
 function phaseMove(k) {
   k = Number(k); EDIT.phaseAuto = false;
@@ -3119,7 +3301,7 @@ function EDIT_TABS(a) {
     overview: [
       ['Site & Seismicity', [['Seismicity', 'Seismicity', 'lock'], ['SoilType', 'Soil Type', 'lock'], ['FEMABuildingType', 'FEMA Building Type', 'select'],
         ['SsSpectralAcc', 'Ss (g)', 'calc'], ['S1SpectralAcc', 'S1 (g)', 'calc']]],
-      ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
+      ['Facility Details', [['EssentialFacility', 'Facility Type', 'select'], ['Latitude', 'Latitude', 'location'], ['Longitude', 'Longitude', 'location'], ['StoriesAboveGrade', 'Stories above grade', 'int', 0, 150], ['StoriesBelowGrade', 'Stories below grade', 'int', 0, 20],
         ['TotalFloorArea', 'Total Floor Area (sq. ft.)', 'number', 0, 1e8], ['YearBuilt', 'Year Built', 'int', 1600, new Date().getFullYear()], ['YearBuiltEstimated', 'Year Built Estimated?', 'yesno'],
         ['Additions', 'Additions', 'yesno'], ['AdditionsYearBuilt', 'Additions Year Built', 'int', 1600, new Date().getFullYear()],
         ['Occupancy', 'Occupancy Type', 'select'], ['OccupancyOthers', 'Shelter / Historic / Government', 'multi'],
@@ -3287,11 +3469,11 @@ document.addEventListener('keydown', e => {
   e.stopImmediatePropagation(); e.preventDefault();   // Esc just closes the dropdown, not the whole panel
 }, true);
 function updateEditBar() {
-  if (EDIT.wizard) { const c = document.querySelector('#ed-wizard .ed-count'); if (c) { const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length; c.textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} change${n > 1 ? 's' : ''}` : 'No changes yet'; } return; }
+  if (EDIT.wizard) { const c = document.querySelector('#ed-wizard .ed-count'); if (c) { const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length; c.textContent = bad ? `${bad} field${bad > 1 ? 's need' : ' needs'} fixing` : n ? `${n} change${n > 1 ? 's' : ''}` : 'No changes yet'; } return; }
   const bar = document.getElementById('ed-bar'); if (!bar) return;
   const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length;
-  bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet';
-  if (bar.classList.contains('cb-bar')) { bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet'; const nx = bar.querySelector('.cb-next'); if (comboCurrent() === 'review') nx.disabled = !n || !!bad || !!(EDIT.missing || []).length; return; }
+  bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's need' : ' needs'} fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet';
+  if (bar.classList.contains('cb-bar')) { bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's need' : ' needs'} fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet'; const nx = bar.querySelector('.cb-next'); if (comboCurrent() === 'review') nx.disabled = !n || !!bad || !!(EDIT.missing || []).length; return; }
   else bar.querySelector('.ed-save').disabled = !n || !!bad;
 }
 const IE_PENCIL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(45 12 12)"><rect x="9" y="0.8" width="6" height="15.2" rx="1.2"/><line x1="9" y1="4" x2="15" y2="4"/><path d="M9 16 L12 22.2 L15 16"/></g></svg>';
@@ -3388,7 +3570,7 @@ function renderWizard() {
       </div>
       <div class="wiz-steps">${steps.map((x, k) => `<button class="wiz-dot${k === WIZ.step ? ' on' : k < WIZ.step ? ' done' : ''}" onclick="wizardGo(${k})"><span>${k + 1}</span>${escHtml(x.title)}</button>`).join('')}</div>
       <div class="wiz-body">${body}<div class="ed-rv-msg" role="alert"></div></div>
-      <div class="wiz-foot"><span class="ed-count">${bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} change${n > 1 ? 's' : ''}` : 'No changes yet'}</span>
+      <div class="wiz-foot"><span class="ed-count">${bad ? `${bad} field${bad > 1 ? 's need' : ' needs'} fixing` : n ? `${n} change${n > 1 ? 's' : ''}` : 'No changes yet'}</span>
         <button class="ed-cancel" onclick="wizardGo(${WIZ.step - 1})" ${WIZ.step === 0 ? 'disabled' : ''}>Back</button>
         ${st.review ? `<button class="ed-save" onclick="wizardSave(this)" ${!n || bad ? 'disabled' : ''}>Save changes</button>` : `<button class="ed-save" onclick="wizardGo(${WIZ.step + 1})">Next</button>`}</div>
     </div>`;
@@ -3524,7 +3706,13 @@ function enhanceCombo() {
       cbMarkChanged(el); return;
     }
     if (el.classList.contains('sheet-addr-wrap')) {
-      el.innerHTML = `<div class="cb-stack cb-addr">${specs.map(sp => editControl(a, sp)).join('')}</div>`;
+      el.innerHTML = `<div class="cb-stack cb-addr">${all.map(sp => editControl(a, sp)).join('')}</div>`;
+      cbMarkChanged(el); return;
+    }
+    if (el.classList.contains('ov-loc')) {
+      const lat = Number(editVal(FIELDS.lat) ?? a.lat), lng = Number(editVal(FIELDS.lng) ?? a.lng), ok = isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0);
+      const v = el.querySelector(':scope > .ov-v'); v.classList.add('cb-cell');
+      v.innerHTML = `<button type="button" class="ed-in loc-btn" onclick="openLocPicker()" aria-label="Edit the building location on a map"><span>${ok ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'Not set'}</span><small>Move on map</small></button>`;
       cbMarkChanged(el); return;
     }
     if (el.id === 'sheet-building-name') {
@@ -3551,7 +3739,11 @@ function enhanceCombo() {
     } else if (el.classList.contains('ov-card')) {                       // comments card
       el.querySelectorAll(':scope > :not(.ov-card-title)').forEach(c => c.remove()); const d = document.createElement('div'); d.className = 'cb-cell'; d.innerHTML = ctl; el.appendChild(d);
     } else if (el.classList.contains('ov-occ-others')) {                // Shelter / Historic / Government
-      el.innerHTML = `<div class="ov-row cb-occ-row"><div class="ov-k">Shelter / Historic / Government</div><div class="ov-v cb-cell">${ctl}</div></div>`;
+      // three checkboxes in a row, like the paper form's Shelter / Government / Historic blanks
+      const f = specs[0][0], ch = editChoices(f, 'multi') || CHOICE_LABELS.OccupancyOthers, cur = multiCodes(editVal(f));
+      const boxes = ['Shelter', 'Government', 'Historic'].map(lbl => { const code = (Object.entries(ch).find(([c, l]) => new RegExp(lbl, 'i').test(l) || new RegExp(lbl, 'i').test(c)) || [lbl.toLowerCase()])[0];
+        return `<label class="cb-occ-box"><input type="checkbox" ${cur.has(code) ? 'checked' : ''} onchange="editMulti('${escHtml(f)}', '${escHtml(code)}', this.checked, this); cbMarkChanged(this.closest('.cb-live'))">${lbl}</label>`; }).join('');
+      el.innerHTML = `<div class="ov-row cb-occ-row"><div class="ov-k">Shelter / Government / Historic</div><div class="ov-v cb-cell cb-occ-boxes">${boxes}</div></div>`;
     } else {                                                             // checklists
       el.innerHTML = `<div class="cb-cell">${ctl}</div>`;
     }
@@ -3670,8 +3862,10 @@ function renderComboReview() {
   const ch = editChanged();
   const miss = missingRequired();
   EDIT.missing = miss;
-  const missHtml = miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
-      <span>These became required because of an answer you changed (for example, a generator now marked Yes needs "Generator anchored").</span></div>` : '';
+  const unnamed = Object.keys(REPORT_PENDING).filter(k => REPORT_PENDING[k] && !(REPORT_NAMES[k] || '').trim()).length;
+  const nameHtml = unnamed ? `<div class="cb-miss"><b>Still needed before saving:</b> a file name for ${unnamed} new attachment${unnamed > 1 ? 's' : ''} (step 4, Reports/Attachments).</div>` : '';
+  const missHtml = nameHtml + (miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
+      <span>These became required because of an answer you changed (for example, a generator now marked Yes needs "Generator anchored").</span></div>` : '');
   el.innerHTML = missHtml + `<div class="cb-rv-two">` + (ch.length
     ? `<div class="ov-card p2-card"><div class="ov-card-title">Review your changes</div><div class="ed-rv-body"><div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>${ch.map(f =>
         `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('')}</div><div class="ed-rv-msg" role="alert"></div></div>`
@@ -3702,10 +3896,15 @@ async function comboSave(btn) {
   }
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    if (Object.keys(attrs).length) await saveEditsToLayer(a, attrs);
+    // a moved point: new geometry, and Latitude / Longitude only if the layer has those fields
+    const moved = changes.includes(FIELDS.lat) || changes.includes(FIELDS.lng);
+    const nLat = Number(editVal(FIELDS.lat) ?? a.lat), nLng = Number(editVal(FIELDS.lng) ?? a.lng);
+    [FIELDS.lat, FIELDS.lng].forEach(f => { if (f in attrs && !(LAYER_FIELD_TYPES || {})[f] && !(f in (a.attrs || {}))) delete attrs[f]; });
+    if (Object.keys(attrs).length || moved) await saveEditsToLayer(a, attrs, moved ? layerGeometry(nLat, nLng) : null);
+    if (moved) { a.lat = nLat; a.lng = nLng; }
     // attachments: removals, then new files
     if (changes.some(f => /^__(att|del)\d+$/.test(f))) await saveReports(a, changes);
-    Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
+    Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
     applySavedEdits(a, attrs); updateEditButton();
     if (changes.some(f => f.startsWith('__'))) loadReports(a);
@@ -3898,6 +4097,7 @@ function refreshHeaderScore() {
 // Building photos still come from the screening record's own attachments.
 let LAST_ATTACH = { id: null, infos: [] };
 const REPORT_PENDING = {};   // slot → File (chosen in edit mode, uploaded on Save)
+const REPORT_NAMES = {};     // slot → the name the user gave it (required; saved to FileName)
 const REPORTS = { id: null, src: null, state: 'idle', msg: '', rows: [], files: [], req: 0 };
 const _ITEM_URLS = {}, _LAYER_INFO = {}, _PARENT_GID = {};
 async function itemLayerUrl(itemId) {
@@ -3953,7 +4153,9 @@ async function loadReports(a) {
           .sort((x, y) => x.slot - y.slot || x.i.id - y.i.id).forEach(({ i, slot }) => {
             let u = i.url || `${url}/${rid}/attachments/${i.id}`;
             if (!/^(data|blob):/.test(u) && !/[?&]token=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN.accessToken);
-            files.push({ rid, attId: i.id, slot, name: i.name, size: i.size, contentType: i.contentType, url: u });
+            const rec = (rows.find(x => String(x.attributes[oidF]) === String(rid)) || {}).attributes || {}, fnF = (layerField(info, R.fields.fileName) || {}).name;
+            const title = g.attachmentInfos.length === 1 && fnF && String(rec[fnF] ?? '').trim() ? String(rec[fnF]).trim() : '';
+            files.push({ rid, attId: i.id, slot, name: i.name, title, size: i.size, contentType: i.contentType, url: u });
           });
       });
     }
@@ -3979,14 +4181,20 @@ function renderReports() {
     const removing = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, '__del' + x.attId);
     if (removing) return;
     num++;
-    html += `<div class="rp-row"><span class="rp-n">${num}</span><a class="rp-name" href="${escHtml(x.url)}" target="_blank" rel="noopener">${escHtml(x.name)}</a><span class="rp-size">${size(x.size)}</span>
+    html += `<div class="rp-row"><span class="rp-n">${num}</span><a class="rp-name" href="${escHtml(x.url)}" target="_blank" rel="noopener" title="${escHtml(x.name)}">${escHtml(x.title || x.name)}</a><span class="rp-size">${x.title && x.title !== x.name ? `${escHtml(x.name)} · ` : ''}${size(x.size)}</span>
       ${editing ? `<button class="ie-x" onclick="reportRemove(${x.attId})">Remove</button>` : ''}</div>`;
   });
   if (editing) {
     let shownEmpty = false;
     for (let k = 1; k <= n; k++) {
       const pend = REPORT_PENDING[k];
-      if (pend) { num++; html += `<div class="rp-row rp-pend"><span class="rp-n">${num}</span><span class="rp-name">${escHtml(pend.name)}</span><span class="rp-size">${size(pend.size)} · will upload on save</span><button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`; }
+      if (pend) { num++; const nm = REPORT_NAMES[k] || '';
+        html += `<div class="rp-row rp-pend"><span class="rp-n">${num}</span><div class="rp-pend-main">
+          <label class="rp-fn-k" for="rp_fn_${k}">File name <span class="ed-req-star" title="Required">*</span></label>
+          <input id="rp_fn_${k}" class="ed-in rp-fn${nm ? '' : ' ed-bad'}" type="text" maxlength="255" required aria-required="true" placeholder="Name this attachment" value="${escHtml(nm)}" oninput="reportName(${k}, this)">
+          <div class="ed-err rp-fn-err"${nm ? ' hidden' : ''}>Required - give this attachment a file name</div>
+          <div class="rp-pend-file">${escHtml(pend.name)} · ${size(pend.size)} · uploads on save</div></div>
+          <button class="ie-x" onclick="reportUnpick(${k})">Remove</button></div>`; }
       else if (!shownEmpty) {
         shownEmpty = true;                          // only the next empty slot is offered
         html += `<div class="rp-drop-wrap"><label class="rp-drop" ondragover="event.preventDefault(); this.classList.add('over')" ondragleave="this.classList.remove('over')"
@@ -4009,10 +4217,23 @@ function reportPick(k, input) {
   const f = input.files && input.files[0]; if (!f) return;
   const err = (input.closest('.rp-drop-wrap') || input.closest('.rp-row')).querySelector('.ed-err');
   if (f.size > (CONFIG.reportMaxBytes || 3145728)) { err.hidden = false; err.textContent = `That file is ${(f.size / 1048576).toFixed(2)} MB - the limit is ${((CONFIG.reportMaxBytes || 3145728) / 1048576).toFixed(0)} MB.`; input.value = ''; return; }
-  REPORT_PENDING[k] = f; EDIT.draft['__att' + k] = f.name; renderReports(); updateEditBar();
+  REPORT_PENDING[k] = f; REPORT_NAMES[k] = ''; reportDraft(k); renderReports(); updateEditBar();
+  const box = document.getElementById('rp_fn_' + k); if (box) box.focus();
 }
-function reportUnpick(k) { delete REPORT_PENDING[k]; delete EDIT.draft['__att' + k]; renderReports(); updateEditBar(); }
-function reportRemove(attId) { const x = REPORTS.files.find(f => f.attId === attId); if (!x) return; EDIT.orig['__del' + attId] = x.name; EDIT.draft['__del' + attId] = 'Removed'; renderReports(); updateEditBar(); }
+// The draft entry for a new attachment: "Name - file.ext"; blank name = needs fixing before Save
+function reportDraft(k) {
+  const f = REPORT_PENDING[k], nm = (REPORT_NAMES[k] || '').trim(); if (!f) return;
+  EDIT.draft['__att' + k] = nm ? `${nm} - ${f.name}` : f.name;
+  EDIT.invalid = EDIT.invalid || {}; if (nm) delete EDIT.invalid['__att' + k]; else EDIT.invalid['__att' + k] = true;
+}
+function reportName(k, input) {
+  REPORT_NAMES[k] = input.value; reportDraft(k);
+  const ok = !!input.value.trim(); input.classList.toggle('ed-bad', !ok);
+  const err = input.parentNode.querySelector('.rp-fn-err'); if (err) err.hidden = ok;
+  updateEditBar();
+}
+function reportUnpick(k) { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; delete EDIT.draft['__att' + k]; if (EDIT.invalid) delete EDIT.invalid['__att' + k]; renderReports(); updateEditBar(); }
+function reportRemove(attId) { const x = REPORTS.files.find(f => f.attId === attId); if (!x) return; EDIT.orig['__del' + attId] = x.title || x.name; EDIT.draft['__del' + attId] = 'Removed'; renderReports(); updateEditBar(); }
 async function repPost(url, params) {
   const j = await (await fetch(url, { method: 'POST', body: new URLSearchParams(Object.assign({ f: 'json', token: TOKEN.accessToken }, params)) })).json();
   if (j.error) throw new Error(/permission|not authorized|403|does not have/i.test(j.error.message || '') ? "your account can't edit the attachments layer" : (j.error.message || 'the attachments layer refused the edit'));
@@ -4031,32 +4252,35 @@ async function saveReports(a, changes) {
     if (!left.length) await repPost(`${url}/applyEdits`, { deletes: String(rid) });
     else { const clr = Object.fromEntries(xs.map(x => F(R.fields.slots[x.slot - 1] || '')).filter(Boolean).map(f => [f, null])); if (Object.keys(clr).length) await repPost(`${url}/applyEdits`, { updates: JSON.stringify([{ attributes: Object.assign({ [oidF]: Number(rid) }, clr) }]) }); }
   }
-  // new files: one new related record holding them as attachment1..3
+  // new files: one related record per file, FileName = the name the user typed, the file as attachment1
   const adds = Object.keys(REPORT_PENDING).map(Number).sort((x, y) => x - y).filter(k => changes.includes('__att' + k) && REPORT_PENDING[k]);
   if (!adds.length) return;
-  const gid = await reportParentGid(a), at = a.attrs || {}, attrs = {};
-  const put = (name, v) => { const f = layerField(info, name); if (!f || v === undefined || v === null || v === '') return; attrs[f.name] = (f.type === 'esriFieldTypeString' && f.length) ? String(v).slice(0, f.length) : v; };
-  put(R.fields.parent, gid);
-  put(R.fields.fileName, adds.map(k => REPORT_PENDING[k].name).join('; '));
-  put(R.fields.city, at.City ?? a.city); put(R.fields.state, at.State ?? a.state); put(R.fields.county, at.County ?? a.county);
-  adds.forEach((k, n) => { const sf = layerField(info, R.fields.slots[n] || ''); if (sf && sf.type === 'esriFieldTypeString') put(sf.name, REPORT_PENDING[k].name); });
-  const feature = { attributes: attrs };
-  if (info.geometryType && typeof a.lat === 'number' && typeof a.lng === 'number') feature.geometry = { x: a.lng, y: a.lat, spatialReference: { wkid: 4326 } };
-  const j = await repPost(`${url}/applyEdits`, { adds: JSON.stringify([feature]), rollbackOnFailure: 'true' });
-  const r = (j.addResults || [])[0]; if (!r || !r.success) throw new Error((r && r.error && r.error.description) || 'the attachments record was not created');
-  for (let n = 0; n < adds.length; n++) {
-    const file = REPORT_PENDING[adds[n]], fd = new FormData();
-    fd.append('attachment', file, file.name); fd.append('keywords', R.fields.slots[n] || ('attachment' + (n + 1))); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
-    const k = await (await fetch(`${url}/${r.objectId}/addAttachment`, { method: 'POST', body: fd })).json();
-    if (k.error || !(k.addAttachmentResult && k.addAttachmentResult.success)) throw new Error((k.error && k.error.message) || `${file.name} was not uploaded`);
+  const gid = await reportParentGid(a), at = a.attrs || {};
+  for (const k of adds) {
+    const file = REPORT_PENDING[k], attrs = {};
+    const put = (name, v) => { const f = layerField(info, name); if (!f || v === undefined || v === null || v === '') return; attrs[f.name] = (f.type === 'esriFieldTypeString' && f.length) ? String(v).slice(0, f.length) : v; };
+    put(R.fields.parent, gid);
+    put(R.fields.fileName, (REPORT_NAMES[k] || '').trim() || file.name);
+    put(R.fields.city, at.City ?? a.city); put(R.fields.state, at.State ?? a.state); put(R.fields.county, at.County ?? a.county);
+    const sf = layerField(info, R.fields.slots[0] || ''); if (sf && sf.type === 'esriFieldTypeString') put(sf.name, file.name);
+    const feature = { attributes: attrs };
+    if (info.geometryType && typeof a.lat === 'number' && typeof a.lng === 'number') feature.geometry = { x: a.lng, y: a.lat, spatialReference: { wkid: 4326 } };
+    const j = await repPost(`${url}/applyEdits`, { adds: JSON.stringify([feature]), rollbackOnFailure: 'true' });
+    const r = (j.addResults || [])[0]; if (!r || !r.success) throw new Error((r && r.error && r.error.description) || `the record for ${file.name} was not created`);
+    const fd = new FormData();
+    fd.append('attachment', file, file.name); fd.append('keywords', R.fields.slots[0] || 'attachment1'); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
+    const up = await (await fetch(`${url}/${r.objectId}/addAttachment`, { method: 'POST', body: fd })).json();
+    if (up.error || !(up.addAttachmentResult && up.addAttachmentResult.success)) throw new Error((up.error && up.error.message) || `${file.name} was not uploaded`);
   }
 }
 
 function startComboEdit() {
   const a = currentRecord(); if (!a || !canEditRecords()) return;
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
-  Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
+  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
+  if (typeof a.lat === 'number' && !(FIELDS.lat in EDIT.orig)) EDIT.orig[FIELDS.lat] = a.lat;
+  if (typeof a.lng === 'number' && !(FIELDS.lng in EDIT.orig)) EDIT.orig[FIELDS.lng] = a.lng;
   EDIT.autoStatus = ''; setDefaultPhaseMove();
   openDetail(a); comboGo('overview'); updateEditButton();
   if (phaseCfg() && phaseCfg().autoFill) autoFillFromLookups(a);
@@ -4099,7 +4323,7 @@ function cancelEdit(skipConfirm, then) {
   const a = assets.find(x => String(x.id) === String(EDIT.id));
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
   EDIT.on = false; EDIT.mode = null; EDIT.id = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
-  Object.keys(REPORT_PENDING).forEach(k => delete REPORT_PENDING[k]);
+  Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; });
   closeEditReview();
   if (a && String(selectedId) === String(a.id)) { openDetail(a); switchDetailTab(tab); }
   updateEditButton();
@@ -4141,7 +4365,7 @@ function openEditReview() {
 function closeEditReview() { const b = document.getElementById('ed-review'); if (b) b.hidden = true; }
 // Sends the changed fields to the layer (applyEdits). ArcGIS decides whether
 // this user is allowed to save.
-async function saveEditsToLayer(a, attrs) {
+async function saveEditsToLayer(a, attrs, geometry) {
   // match each value to the layer's field type (e.g. Year Built / Floor Area are text fields in this survey)
   attrs = Object.fromEntries(Object.entries(attrs).map(([f, v]) => {
     const t = LAYER_FIELD_TYPES[f];
@@ -4152,7 +4376,7 @@ async function saveEditsToLayer(a, attrs) {
   }));
   const oidField = Object.keys(a.attrs || {}).find(n => /^(objectid|oid|fid)$/i.test(n)) || FIELDS.objectId;
   const body = new URLSearchParams({ f: 'json', token: TOKEN.accessToken, rollbackOnFailure: 'true',
-    updates: JSON.stringify([{ attributes: Object.assign({ [oidField]: a.id }, attrs) }]) });
+    updates: JSON.stringify([Object.assign({ attributes: Object.assign({ [oidField]: a.id }, attrs) }, geometry ? { geometry } : {})]) });
   const res = await fetch(`${CONFIG.serviceUrl}/applyEdits`, { method: 'POST', body });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const j = await res.json();
@@ -4534,6 +4758,13 @@ function buildDetailHTML(a) {
   const storiesStr = stAbove === null && stBelow === null ? '' : (stBelow ? `${(stAbove || 0) + stBelow} (incl. ${stBelow} below)` : String(stAbove));
   const addlYearStr = isYes(attrs.Additions) ? (attrs.AdditionsYearBuilt ? String(attrs.AdditionsYearBuilt) : 'Unknown')
                     : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'N/A' : (attrs.AdditionsYearBuilt ? String(attrs.AdditionsYearBuilt) : ''));
+  // Two items side by side in one row (each still edits on its own)
+  const half = ([k, v, extra, f]) => `<div class="ov-row ov-half"${f ? ` data-ie="${escHtml(f)}"` : ''}><div class="ov-k">${escHtml(k)}</div><div class="ov-v">${escHtml(String(dash(v)))}${extra || ''}</div></div>`;
+  const pairRow = (l, r) => `<div class="ov-pair">${half(l)}${half(r)}</div>`;
+  const drawingsStr = isYes(attrs.DrawingsReviewed) ? (fieldValue('DrawingsReviewed') || 'Yes') : '-';
+  const ybEst = attrs.YearBuiltEstimated !== undefined ? fieldValue('YearBuiltEstimated') : '';
+  const occOthersHtml = `<div class="ov-occ-others" data-ie="OccupancyOthers">${['Shelter', 'Government', 'Historic'].map(k =>
+      `<span class="ov-occ"><span class="ov-occ-lbl">${k}</span><span class="ov-blank" aria-label="${k}: ${occMark[k] ? 'yes' : 'no'}">${occMark[k] ? 'X' : ''}</span></span>`).join('')}</div>`;
   const overviewHTML = `
     <div class="ov-grid">
       <div class="ov-main">
@@ -4554,6 +4785,36 @@ function buildDetailHTML(a) {
             ['Nonstructural Review', fieldValue('NonstructuralReview'), '', 'NonstructuralReview'], ['Exterior Review', fieldValue('Exterior'), '', 'Exterior'],
             ['Interior Review', fieldValue('Interior'), '', 'Interior'], ['Drawings Reviewed', fieldValue('DrawingsReviewed'), '', 'DrawingsReviewed'],
             ['Soil Type Source', soilSrc, '', 'SoilTypeSource'], ['Geologic Hazard Source', geoSrc, '', 'GeologicHazardsSource'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
+        </div>
+      </div>
+      <div class="ov-photos">
+        <div id="overview-photos"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
+        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+      </div>
+    </div>`;
+
+  // Edit modes: Screening Record (left) | Facility Details (right), no stat row; every Facility Details item editable
+  const overviewEditHTML = `
+    <div class="ov-grid">
+      <div class="ov-main">
+        <div class="ov-cards">
+          <div class="ov-card"><div class="ov-card-title">Screening Record</div>${kvRows([
+            ['Date of Screening', screenDate || 'Not recorded', screenDate ? '' : ' <span class="ov-missing">Missing</span>', 'SurveyDate'],
+            ['Type of Screening', screeningTypeStr, '', 'SurveyType'],
+            ['Exterior Review', fieldValue('Exterior'), '', 'Exterior'], ['Interior Review', fieldValue('Interior'), '', 'Interior'],
+            ['Nonstructural Review Conducted?', fieldValue('NonstructuralReview'), '', 'NonstructuralReview'],
+            ['Seismicity', fieldValue('Seismicity'), '', 'Seismicity,SsSpectralAcc,S1SpectralAcc']])}
+            ${pairRow(['Soil Type', soilLbl, '', 'SoilType'], ['Geologic Hazards', geoHazStr, '', 'Liquefaction,Landslide,SurfaceRupture'])}
+            ${pairRow(['Soil Type Source', soilSrc, '', 'SoilTypeSource'], ['Hazard Source', geoSrc, '', 'GeologicHazardsSource'])}
+            ${kvRows([['Drawings Reviewed?', drawingsStr, '', 'DrawingsReviewed'], ['Facility Contact', contactStr || '-', '', 'ContactPerson']])}</div>
+          <div class="ov-card"><div class="ov-card-title">Facility Details</div>${kvRows([
+            ['Facility Type', singularFacility(a.facilityType), '', 'EssentialFacility'], ['Occupancy Type', fieldValue('Occupancy'), '', 'Occupancy']])}
+            ${occOthersHtml}
+            <div class="ov-row ov-loc" data-ie="${escHtml(FIELDS.lat)},${escHtml(FIELDS.lng)}"><div class="ov-k">Latitude/Longitude</div><div class="ov-v">${escHtml(dash(latLongStr))}</div></div>
+            ${pairRow(['Stories Above', stAbove, '', 'StoriesAboveGrade'], ['Below', stBelow, '', 'StoriesBelowGrade'])}
+            ${kvRows([['Total Floor Area (sq. ft.)', sqft, '', 'TotalFloorArea']])}
+            ${pairRow(['Year Built', yb, '', 'YearBuilt'], ['Est.?', ybEst, '', 'YearBuiltEstimated'])}
+            ${pairRow(['Additions?', fieldValue('Additions'), '', 'Additions'], ['Year Built', addlYearStr, '', 'AdditionsYearBuilt'])}</div>
         </div>
       </div>
       <div class="ov-photos">
@@ -4957,7 +5218,7 @@ function buildDetailHTML(a) {
         ${editing && !combo ? `<input class="ed-name" id="ed_BuildingName" aria-label="Building name" maxlength="255" value="${escHtml(_raw(editVal('BuildingName')))}" oninput="editSet('BuildingName', this.value); this.classList.toggle('ed-changed', this.value !== _raw(EDIT.orig.BuildingName))">`
                   : `<div class="sheet-name" id="sheet-building-name" data-ie="BuildingName">${escHtml(a.buildingName)}</div>`}
         ${addrFull ? `<div class="sheet-addr-wrap" data-ie="Address,City,State,ZIP,County"><a class="sheet-addr addr-link" href="${streetViewUrl}" target="_blank" rel="noopener" title="Open in Google Street View">${escHtml(addrFull)}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></div>` : ''}
-        ${a.county ? `<div class="sheet-county">${escHtml(a.county)} County</div>` : ''}
+        ${a.county && !combo ? `<div class="sheet-county">${escHtml(a.county)} County</div>` : ''}
         ${distHtml}
       </div>
       <div class="sheet-score" title="${escHtml(scInfo.desc)}">
@@ -4978,7 +5239,7 @@ function buildDetailHTML(a) {
     </div>
 
     <div class="detail-panels">
-      <div class="dtab-panel" data-panel="overview" role="tabpanel">${combo ? comboHint + overviewHTML : editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
+      <div class="dtab-panel" data-panel="overview" role="tabpanel">${combo ? comboHint + overviewEditHTML : editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
       <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${combo ? comboHint + comboP154HTML(a) : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
       <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${combo ? comboHint + nonstructHTML : editing ? editTabHTML(a, 'nonstruct') : nonstructHTML}</div>
       <div class="dtab-panel" data-panel="reports" role="tabpanel" hidden>${combo ? comboHint : ''}<div class="rp-wrap"><div class="ov-card p2-card"><div class="ov-card-title">Reports &amp; Attachments</div><div id="reports-area"><div class="attachment-tile loading" style="height:60px"></div></div></div></div></div>
