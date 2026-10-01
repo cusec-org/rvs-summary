@@ -431,6 +431,8 @@
   .ed-locked svg { flex-shrink: 0; }
   .ed-err { font-size: 11.5px; color: #b3261e; margin-top: 3px; }
   .ed-req-star { color: #b3261e; font-weight: 800; }
+  .cb-miss { background: #fff5f4; border: 1px solid #f0b3aa; border-left: 4px solid #b3261e; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: #7f1d12; }
+  .cb-miss span { display: block; font-size: 12px; color: #6b4a46; margin-top: 3px; }
   .ed-in.ed-bad { border-color: #b3261e !important; background: #fff5f4 !important; }
   .ed-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 20px; background: #fff; border-top: 1px solid var(--border); box-shadow: 0 -4px 14px rgba(0,0,0,0.08); }
   .ed-count { flex: 1; font-size: 13px; font-weight: 700; color: #13233d; }
@@ -1126,10 +1128,26 @@ const CONFIG = {
   // dropdowns don't offer "Not answered"; required text/number boxes can't be
   // left empty. Fields the layer itself marks as not-nullable are added
   // automatically at sign-in.
-  // From the XLSForm (L1L2.xlsx) "required" column:
-  requiredFields: ['SurveyType', 'PerformLevel2', 'DnsReason', 'DnsOther', 'BuildingName', 'BuildingPhoto', 'Exterior',
-    'OnsiteGenerator', 'Anchored', 'Isolators', 'NaturalGas', 'GasShutoff', 'Interior', 'DrawingsReviewed',
-    'FEMABuildingType', 'NonstructuralReview', 'FlexibleGasLines', 'EngineerReview', 'ReviewComments'],
+  // Required questions from the XLSForm (L1L2.xlsx) that are part of the edit
+  // workflow, each with its "relevant" condition (its own + its groups'). A
+  // question is only required when its condition is true for the record, e.g.
+  // "Generator anchored" only when there is a generator. Required questions the
+  // app doesn't edit (Screening Type, Perform Level 2, DNS reason/other,
+  // Building Photo, Engineer Review, Review Comments) are left out on purpose.
+  requiredFields: {
+    BuildingName:        "",
+    Exterior:            "${SurveyType}!='Did Not Screen'",
+    OnsiteGenerator:     "${SurveyType}!='Did Not Screen'",
+    Anchored:            "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    Isolators:           "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    NaturalGas:          "${SurveyType}!='Did Not Screen'",
+    GasShutoff:          "${SurveyType}!='Did Not Screen' and ${NaturalGas}='Yes'",
+    Interior:            "${SurveyType}!='Did Not Screen'",
+    DrawingsReviewed:    "${SurveyType}!='Did Not Screen' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    FEMABuildingType:    "${SurveyType}!='Did Not Screen' and ${SurveyType}='P-154 Rapid Visual Screening'",
+    NonstructuralReview: "${SurveyType}!='Did Not Screen'",
+    FlexibleGasLines:    "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes' and ${NaturalGas}='Yes'",
+  },
   // Map overlay layers users can turn on/off (Layers button beside the
   // basemap switch). Public layers only; they load the first time they're
   // switched on. styleField colors polygons low→high; labelField/rangeField
@@ -1995,7 +2013,79 @@ function _pickDateFields(info) {
   return { screenFields, creationField, editField };
 }
 let LAYER_REQUIRED = [], LAYER_FIELD_TYPES = {};
-function isRequired(f) { return (CONFIG.requiredFields || []).some(r => r.toLowerCase() === String(f).toLowerCase()) || LAYER_REQUIRED.includes(f); }
+function relevantNow(expr, get) {
+  if (!expr || !String(expr).trim()) return true;
+  const toks = String(expr).match(/\$\{\w+\}|'[^']*'|"[^"]*"|!=|=|\(|\)|,|\band\b|\bor\b|\bnot\b|\bselected\b|[^\s()',=!]+/gi) || [];
+  let i = 0;
+  const peek = () => toks[i], next = () => toks[i++];
+  const val = t => /^\$\{/.test(t) ? get(t.slice(2, -1)) : t.replace(/^['"]|['"]$/g, '');
+  const same = (f, raw, v) => { const r = String(raw ?? '').trim(), w = String(v).trim();
+    return r.toLowerCase() === w.toLowerCase() || String(choiceLabel(f, r)).toLowerCase() === w.toLowerCase(); };
+  function atom() {
+    const t = next();
+    if (t === '(') { const v = orx(); next(); return v; }
+    if (/^not$/i.test(t)) { next(); const v = orx(); next(); return !v; }
+    if (/^selected$/i.test(t)) { next(); const a = next(); next(); const b = next(); next();
+      const f = a.slice(2, -1); return multiCodes(get(f)).has(val(b)) || [...multiCodes(get(f))].some(c => same(f, c, val(b))); }
+    if (/^\$\{/.test(t)) {
+      const op = peek(); if (op !== '=' && op !== '!=') return String(get(t.slice(2, -1)) ?? '').trim() !== '';
+      next(); const rhs = val(next()); const f = t.slice(2, -1); const eq = same(f, get(f), rhs);
+      return op === '=' ? eq : !eq;
+    }
+    return !!t;
+  }
+  function andx() { let v = atom(); while (/^and$/i.test(peek() || '')) { next(); const r = atom(); v = v && r; } return v; }
+  function orx() { let v = andx(); while (/^or$/i.test(peek() || '')) { next(); const r = andx(); v = v || r; } return v; }
+  try { return orx(); } catch (e) { console.warn('[RVS] could not read relevant:', expr, e); return true; }
+}
+// Current value of a field while editing (unsaved change first, then the record)
+function editCurrent(f) {
+  if (EDIT && EDIT.draft && Object.prototype.hasOwnProperty.call(EDIT.draft, f)) return EDIT.draft[f];
+  if (EDIT && EDIT.orig && Object.prototype.hasOwnProperty.call(EDIT.orig, f)) return EDIT.orig[f];
+  const a = typeof currentRecord === 'function' ? currentRecord() : null; return a && a.attrs ? a.attrs[f] : undefined;
+}
+function requiredRule(f) {
+  const r = CONFIG.requiredFields || {};
+  if (Array.isArray(r)) return r.some(x => x.toLowerCase() === String(f).toLowerCase()) ? '' : null;
+  const k = Object.keys(r).find(x => x.toLowerCase() === String(f).toLowerCase());
+  return k === undefined ? null : r[k];
+}
+// Required right now = on the list AND relevant for this record's current answers
+function isRequired(f) {
+  const rule = requiredRule(f);
+  if (rule === null) return LAYER_REQUIRED.includes(f);
+  return relevantNow(rule, editCurrent);
+}
+// After an answer changes, refresh any question whose "required" depends on it
+function syncRequired() {
+  document.querySelectorAll('#sheet-body select.ed-in').forEach(sel => {
+    const f = (sel.id || '').replace(/^ed_/, ''); if (requiredRule(f) === null) return;
+    const req = isRequired(f), blank = sel.querySelector('option[value=""]');
+    if (req && blank && !blank.disabled) { if (sel.value === '') { blank.textContent = 'Choose… (required)'; blank.disabled = true; } else blank.remove(); }
+    if (!req && (!blank || blank.disabled)) {
+      if (blank) blank.remove();
+      const o = document.createElement('option'); o.value = ''; o.textContent = '- Not answered -'; sel.insertBefore(o, sel.firstChild);
+      if (!sel.value) sel.value = '';
+    }
+    const row = sel.closest('.cb-live, .ed-row'); const lbl = row && row.querySelector('.ov-k, .ed-k, .ov-stat-label');
+    const star = row && row.querySelector('.ed-req-star');
+    if (req && !star && lbl) lbl.insertAdjacentHTML('beforeend', ' <span class="ed-req-star" title="Required">*</span>');
+    if (!req && star) star.remove();
+  });
+}
+// Required + relevant questions left blank by this edit (checked before saving)
+function missingRequired() {
+  const r = CONFIG.requiredFields || {}, names = Array.isArray(r) ? r : Object.keys(r);
+  const touched = new Set(Object.keys(EDIT.draft || {}));
+  return names.filter(f => {
+    if (!isRequired(f)) return false;
+    const v = editCurrent(f); if (v !== undefined && v !== null && String(v).trim() !== '') return false;
+    // only questions this edit made required or cleared, so old blanks never block an unrelated fix
+    const rule = requiredRule(f) || '';
+    const deps = (rule.match(/\$\{(\w+)\}/g) || []).map(x => x.slice(2, -1));
+    return touched.has(f) || deps.some(d => touched.has(d));
+  });
+}
 async function loadDomainLabels() {
   try {
     const info = await arcgisFetch(`${CONFIG.serviceUrl}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
@@ -2852,6 +2942,7 @@ function editSet(f, value, el) {
   }
   if (EDIT.invalid) delete EDIT.invalid[f];
   EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
+  syncRequired();
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
   if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
   document.querySelectorAll('#sheet-body .cb-live').forEach(el => { if (el.dataset.ie.split(',').includes(f)) cbMarkChanged(el); });
@@ -2888,7 +2979,7 @@ function updateEditBar() {
   const bar = document.getElementById('ed-bar'); if (!bar) return;
   const n = editChanged().length, bad = Object.keys(EDIT.invalid || {}).length;
   bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet';
-  if (bar.classList.contains('cb-bar')) { bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet'; const nx = bar.querySelector('.cb-next'); if (comboCurrent() === 'review') nx.disabled = !n || !!bad; return; }
+  if (bar.classList.contains('cb-bar')) { bar.querySelector('.ed-count').textContent = bad ? `${bad} field${bad > 1 ? 's' : ''} need fixing` : n ? `${n} unsaved change${n > 1 ? 's' : ''}` : 'No changes yet'; const nx = bar.querySelector('.cb-next'); if (comboCurrent() === 'review') nx.disabled = !n || !!bad || !!(EDIT.missing || []).length; return; }
   else bar.querySelector('.ed-save').disabled = !n || !!bad;
 }
 const IE_PENCIL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(45 12 12)"><rect x="9" y="0.8" width="6" height="15.2" rx="1.2"/><line x1="9" y1="4" x2="15" y2="4"/><path d="M9 16 L12 22.2 L15 16"/></g></svg>';
@@ -3243,14 +3334,18 @@ function comboStep(d) { const idx = COMBO_STEPS.findIndex(s => s[0] === comboCur
 function renderComboReview() {
   const el = document.getElementById('cb-review'); if (!el) return;
   const ch = editChanged();
-  el.innerHTML = ch.length
+  const miss = missingRequired();
+  EDIT.missing = miss;
+  const missHtml = miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
+      <span>These became required because of an answer you changed (for example, a generator now marked Yes needs "Generator anchored").</span></div>` : '';
+  el.innerHTML = missHtml + (ch.length
     ? `<div class="ov-card p2-card"><div class="ov-card-title">Review your changes</div><div class="ed-rv-body"><div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>${ch.map(f =>
         `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('')}</div><div class="ed-rv-msg" role="alert"></div></div>`
-    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`;
+    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`);
 }
 async function comboSave(btn) {
   const a = currentRecord(); if (!a) return;
-  const changes = editChanged(); if (!changes.length || Object.keys(EDIT.invalid || {}).length) return;
+  const changes = editChanged(); if (!changes.length || Object.keys(EDIT.invalid || {}).length || missingRequired().length) return;
   const attrs = Object.fromEntries(changes.map(f => [f, EDIT.draft[f] === '' ? null : EDIT.draft[f]]));
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
@@ -3330,6 +3425,7 @@ function editShow(f, v) {
 }
 function openEditReview() {
   const changes = editChanged(); if (!changes.length) return;
+  if (missingRequired().length) { const m = document.querySelector('#ed-review .ed-rv-msg'); if (m) m.textContent = `Still needed: ${missingRequired().map(editLabel).join(', ')}`; return; }
   const box = document.getElementById('ed-review');
   box.querySelector('.ed-rv-body').innerHTML = `<div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>` +
     changes.map(f => `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('');
