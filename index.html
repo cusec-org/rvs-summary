@@ -104,6 +104,7 @@
   #search-input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(255,191,71,0.35); }
   .filter-row { display: flex; align-items: center; gap: 6px; padding-bottom: 2px; flex-wrap: wrap; row-gap: 6px; }
   .sort-static { cursor: default; }
+  .filter-btn[hidden] { display: none !important; }
   .filter-btn {
     display: flex; align-items: center; gap: 5px;
     background: var(--surface); border: 1.5px solid var(--border);
@@ -184,7 +185,7 @@
   .map-rotating, .map-rotating * { cursor: grabbing !important; }
   .leaflet-control-rotate a { cursor: pointer; }
   .leaflet-control-rotate { background: #fff; }
-  .leaflet-control-rotate-arrow { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Ctext x='15' y='9.2' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-size='8.5' font-weight='700' fill='%23b3261e'%3EN%3C/text%3E%3Cpath d='M15 10.5l4 9.5-4-2.2-4 2.2z' fill='%23b3261e'/%3E%3Cpath d='M15 17.8l4 2.2-4 5.5-4-5.5z' fill='%239aa3b2'/%3E%3C/svg%3E") !important; background-size: 30px 30px !important; }
+  .leaflet-control-rotate-arrow { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Ctext x='15' y='11' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-size='10' font-weight='700' fill='%2313233d'%3EN%3C/text%3E%3Cpath d='M15 13l5 12-5-3-5 3z' fill='%2313233d'/%3E%3C/svg%3E") !important; background-size: 30px 30px !important; }
   #layers-panel { position: absolute; top: calc(100% + 6px); left: 0; min-width: 250px; max-width: 300px; background: var(--surface);
     border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px 0; font-family: 'DM Sans', sans-serif; }
   .lp-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text3); padding: 4px 14px 6px; }
@@ -2628,9 +2629,10 @@ function buildMultiDropdown(key) {
   const f = MULTI_FILTERS[key];
   const dd = document.getElementById(f.dd);
   const counts = new Map();
-  assets.filter(a => !f.scope || f.scope(a)).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
+  assets.filter(a => inSessionPhase(a) && (!f.scope || f.scope(a))).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
   f.active.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
   (f.options || []).forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
+  if (key === 'phase') [...counts.keys()].forEach(k => { if (/^field/.test(_norm(k))) counts.delete(k); });   // Field isn't offered as a phase
   const keys = f.options ? f.options.slice() : [...counts.keys()].sort((x, y) => x === NO_VALUE ? 1 : y === NO_VALUE ? -1 : f.name(x).localeCompare(f.name(y)));
   if (!keys.length) { dd.innerHTML = '<div class="fdd-empty">No records loaded yet</div>'; return; }
   dd.innerHTML = (f.active.size ? `<div class="fdd-item fdd-clear" data-clear-all="1"><span>Clear ${escHtml(f.label)} filter</span></div>` : '') +
@@ -2713,8 +2715,12 @@ function fitStatsLabels() {
   });
 }
 if (window.ResizeObserver) document.addEventListener('DOMContentLoaded', () => { const b = document.getElementById('stats-bar'); if (b) new ResizeObserver(() => fitStatsLabels()).observe(b); });
+// Phased edits (post / qaqc / engineer / complete): the list, map and filter counts only
+// hold screenings currently in that phase. Field collection and the read-only view show all.
+function inSessionPhase(a) { return !(typeof phaseCfg === 'function' && phaseCfg()) || recordPhaseIndex(a) === queuePhaseIndex(); }
 function getFiltered(skipPhase) {
   let list = assets.filter(a => {
+    if (!inSessionPhase(a)) return false;
     if (!passesMultiFilters(a, skipPhase)) return false;
     if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
@@ -2746,6 +2752,9 @@ function getFiltered(skipPhase) {
 //  RENDER LIST
 // ════════════════════════════════════════════════════════════════
 function renderList() {
+  const phased = !!phaseCfg(), pb = document.getElementById('phase-filter-btn');
+  if (pb) pb.hidden = phased;
+  if (phased && MULTI_FILTERS.phase.active.size) { MULTI_FILTERS.phase.active.clear(); updateMultiBtns(); updateActiveFilterBar(); }
   const filtered = getFiltered();
   const el = document.getElementById('asset-list');
   const countEl = document.getElementById('list-count');
@@ -3311,10 +3320,15 @@ function lookupSketchMapId() {
   }).catch(() => {}).then(() => document.querySelectorAll('#sheet-body .sketch-link').forEach(l => { const a = currentRecord(); if (a) l.href = sketchToolUrl(a); }));
   return SKETCH_LOOKUP;
 }
+// Pulsing gold marker (animated GIF) shown on the building in the sketch tool
+const SKETCH_PULSE_GIF = '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';
 function sketchToolUrl(a) {
   const T = CONFIG.sketchTool, id = SKETCH_MAP_ID || T.mapWidgetId || 'widget_1';
   if (!(typeof a.lat === 'number' && typeof a.lng === 'number')) return T.url;
-  return `${T.url}#${id}=center:${a.lng.toFixed(6)}%2C${a.lat.toFixed(6)}%2C4326,scale:${T.scale || 1000}`;
+  const x = a.lng.toFixed(6), y = a.lat.toFixed(6);
+  const sym = encodeURIComponent(JSON.stringify({ type: 'esriPMS', imageData: SKETCH_PULSE_GIF, contentType: 'image/gif', width: 30, height: 30 }));
+  // marker:<x>,<y>;<wkid>;<title>;<label>;<symbol>
+  return `${T.url}#${id}=center:${x}%2C${y}%2C4326,scale:${T.scale || 1000},marker:${x}%2C${y}%3B4326%3B%3B%3B${sym}`;
 }
 function sketchLinkHTML(a) {
   if (!sketchOn()) return '';
