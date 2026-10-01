@@ -508,6 +508,15 @@
   .cb-pop .ed-row { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
   .detail-panels { position: relative; }
   .cb-name-box .ed-name { font-size: 18px; }
+  /* Edit highlights: square corners everywhere, labels centred with their boxes */
+  .cb-target, .cb-live, .ov-card.cb-target, .ov-card.cb-live, .cb-group.cb-live, .ov-occ-others.cb-live, .p2-dse.cb-live,
+  .p2-row.cb-live, .p2-irr-row.cb-live, .p2-cm.cb-live, .ov-row.cb-live, .ns-br-row.cb-live { border-radius: 0 !important; }
+  .p2-irr-row.cb-live, .cb-occ-row, .p2-cm.cb-live { align-items: center; }
+  .p2-irr-row.cb-live { grid-template-columns: 70px minmax(0, 1fr); }
+  /* building name gets the same highlight as the other editable items */
+  .sheet-name.cb-live { background: #fff6d6 !important; box-shadow: inset 3px 0 0 var(--cusec-gold) !important; padding: 6px 10px 6px 12px !important; margin: 0 0 2px -12px; border-radius: 0 !important; }
+  .sheet-name.cb-live.cb-changed { background: #fde9a8 !important; }
+  .sheet-name.cb-live .ed-name { background: #fff; }
   /* D · combo: stepper + highlighted editable rows */
   .cb-steps .cb-step { display: inline-flex; align-items: center; gap: 7px; }
   .cb-num { width: 20px; height: 20px; border-radius: 50%; background: #e6e9ef; color: #3a4453; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
