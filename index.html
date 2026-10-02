@@ -1150,6 +1150,7 @@
   .sq-queue .sq-phase { color: #f2cf6b; }
   .sq-next .sq-phase { color: #a9c4ff; }
   .sq-tile .stats-num { font-size: 34px; }
+  .sq-inline { font: 700 16px/1.2 'DM Sans', sans-serif; color: #fff; letter-spacing: .3px; padding: 11px 16px 10px; font-variant-numeric: tabular-nums; }
   .stats-edit .sq-queue { border-right: 1px solid rgba(255,255,255,0.12); }
   .stats-num.red { color: #ff6b6b; }
   .stats-num.green { color: #69db7c; }
@@ -3022,10 +3023,7 @@ function renderList() {
     // phased edits: screenings in that phase; plain ?edit=1: every screening in the list (all phases)
     const queueN = phaseCfg() ? inPhase(qk) : total;
     if (EDIT_URL_ON) statsBar.innerHTML = `
-      <div class="stats-tile sq-tile sq-queue">
-        <div class="stats-label sq-label"><span class="sq-cap">Queue</span></div>
-        <div class="stats-num">${queueN.toLocaleString()}</div>
-      </div>`;
+      <div class="stats-tile sq-tile sq-queue sq-inline" aria-label="Queue: ${queueN}">Queue: ${queueN.toLocaleString()}</div>`;
     else statsBar.innerHTML = `
       <div class="stats-tile">
         <div class="stats-label">${escHtml(totalLabel)}</div>
@@ -3860,12 +3858,35 @@ function editSet(f, value, el) {
   }
   if (EDIT.invalid) delete EDIT.invalid[f];
   EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
+  // Pre-Code and Post-Benchmark can't both be Yes: choosing Yes for one sets the other to No
+  if ((f === 'PreCodeQ' || f === 'PostBenchmarkQ') && isYes(choiceLabel(f, EDIT.draft[f]) || EDIT.draft[f])) {
+    const o = f === 'PreCodeQ' ? 'PostBenchmarkQ' : 'PreCodeQ', ov = editVal(o);
+    if (isYes(choiceLabel(o, ov) || ov) || isYes(ov)) {
+      const no = codeForLabel(o, ['No'], 'no'); EDIT.draft[o] = no;
+      document.querySelectorAll(`#sheet-body [data-f="${o}"] select, #sheet-body #ed_${o}`).forEach(x => { if (x.tagName === 'SELECT') x.value = no; });
+      document.querySelectorAll(`#sheet-body .ed-row[data-f="${o}"]`).forEach(r => r.classList.toggle('ed-changed', _raw(no) !== _raw(EDIT.orig[o])));
+      showToast(`${o === 'PreCodeQ' ? 'Pre-Code' : 'Post-Benchmark'} set to No - Pre-Code and Post-Benchmark can't both be Yes`);
+    }
+  }
+  checkPrePost();
   document.querySelectorAll(`textarea[data-f="${CSS.escape(f)}"]`).forEach(t => { if (t !== document.activeElement && t.value !== value) t.value = value; });
   syncRequired(); syncRelevance(); refreshScorePane();
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
   if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
   document.querySelectorAll('#sheet-body .cb-live').forEach(el => { if (el.dataset.ie.split(',').includes(f)) cbMarkChanged(el); });
   updateEditBar();
+}
+// Both Yes (it can come in that way from the survey) blocks saving until one is set to No
+function prePostBothYes() { const y = f => { const v = editVal(f); return isYes(v) || isYes(choiceLabel(f, v)); }; return y('PreCodeQ') && y('PostBenchmarkQ'); }
+function checkPrePost() {
+  EDIT.invalid = EDIT.invalid || {};
+  const both = prePostBothYes();
+  if (both) EDIT.invalid.__prepost = true; else delete EDIT.invalid.__prepost;
+  document.querySelectorAll('#sheet-body .ed-row[data-f="PreCodeQ"], #sheet-body .ed-row[data-f="PostBenchmarkQ"]').forEach(r => {
+    let err = r.querySelector('.pp-err');
+    if (both && !err) { err = document.createElement('div'); err.className = 'ed-err pp-err'; err.textContent = "Pre-Code and Post-Benchmark can't both be Yes"; (r.querySelector('.ed-v') || r).appendChild(err); }
+    if (!both && err) err.remove();
+  });
 }
 function editMulti(f, code, checked, el) {
   const orig = _raw(EDIT.orig[f]);
@@ -4292,7 +4313,8 @@ function renderComboReview() {
   EDIT.missing = miss;
   const unnamed = Object.keys(REPORT_PENDING).filter(k => REPORT_PENDING[k] && !(REPORT_NAMES[k] || '').trim()).length;
   const nameHtml = unnamed ? `<div class="cb-miss"><b>Still needed before saving:</b> a file name for ${unnamed} new attachment${unnamed > 1 ? 's' : ''} (step 4, Reports/Attachments).</div>` : '';
-  const missHtml = nameHtml + (miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
+  const ppHtml = prePostBothYes() ? `<div class="cb-miss"><b>Still needed before saving:</b> Pre-Code and Post-Benchmark can't both be Yes - set one of them to No (step 2, P-154 Screening Details).</div>` : '';
+  const missHtml = ppHtml + nameHtml + (miss.length ? `<div class="cb-miss"><b>Still needed before saving:</b> ${miss.map(f => escHtml(editLabel(f))).join(', ')}.
       <span>These became required because of an answer you changed (for example, a generator now marked Yes needs "Generator anchored").</span></div>` : '');
   el.innerHTML = missHtml + `<div class="cb-rv-two">` + (ch.length
     ? `<div class="ov-card p2-card"><div class="ov-card-title">Review your changes</div><div class="ed-rv-body"><div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>${ch.map(f =>
@@ -4836,7 +4858,7 @@ function startComboEdit() {
   if (typeof a.lat === 'number' && !(FIELDS.lat in EDIT.orig)) EDIT.orig[FIELDS.lat] = a.lat;
   if (typeof a.lng === 'number' && !(FIELDS.lng in EDIT.orig)) EDIT.orig[FIELDS.lng] = a.lng;
   EDIT.autoStatus = ''; EDIT.autoLowVal = undefined; setDefaultPhaseMove(); dropAutoLowScore(a);
-  openDetail(a); comboGo('overview'); updateEditButton();
+  openDetail(a); comboGo('overview'); checkPrePost(); updateEditButton(); updateEditBar();
   if (phaseCfg() && phaseCfg().autoFill) autoFillFromLookups(a);
 }
 
@@ -5199,7 +5221,7 @@ function openDetail(a) {
   closePhotosOverlay();
   setTimeout(updateEditButton, 0);
   setTimeout(renderReports, 0);
-  setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); refreshHeaderScore(); }, 0);
+  setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); if (EDIT.on) checkPrePost(); refreshHeaderScore(); }, 0);
   const sheet = document.getElementById('detail-sheet');
   document.getElementById('sheet-body').innerHTML = buildDetailHTML(a);
   document.getElementById('detail-content').scrollTop = 0;
