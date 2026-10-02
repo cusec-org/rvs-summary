@@ -373,6 +373,8 @@
   .rpn-other { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
   .rpn-other[hidden] { display: none; }
   .rpn-err { margin-bottom: 8px; }
+  .rpn-as { font-size: 12.5px; color: var(--text2); margin: 2px 0 8px; overflow-wrap: anywhere; }
+  .rpn-as:empty { display: none; }
   .rp-pend-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .rp-fn-k { font: 600 11px 'DM Sans', sans-serif; color: #4a5363; }
   .rp-fn.ed-bad { border-color: #c62828; }
@@ -757,6 +759,37 @@
   .wiz-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 20px 0; text-align: center; }
   .wiz-foot { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: #fff; border-top: 1px solid var(--border); }
   .wiz-foot .ed-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pv-ov { position: absolute; left: 0; right: 0; top: 0; height: 100%; z-index: 60; background: rgba(12,20,36,0.4); display: flex; align-items: flex-start; justify-content: center; padding: 18px; animation: seismoIn .15s ease-out; }
+  .pv-card { background: var(--surface); border-radius: 14px; width: min(980px, 100%); max-height: 100%; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); overflow: hidden; }
+  .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 12px 18px; background: #0B2E6B; color: #fff; }
+  .pv-title { font: 700 16px 'DM Sans', sans-serif; }
+  .pv-close { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.55); background: transparent; color: #fff; font: 700 20px/1 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .pv-close:hover { background: rgba(255,255,255,.14); }
+  .pv-close:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .pv-body { overflow: auto; padding: 14px; background: var(--bg, #eef1f5); }
+  .pv-body > .tab-card { margin: 0; }
+  .phase-switch { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .phase-switch[hidden] { display: none; }
+  .ph-pill-post { --pc: #f2c94c; } .ph-pill-qaqc { --pc: #a9c8ff; } .ph-pill-engineer { --pc: #cdb9ff; } .ph-pill-complete { --pc: #93dcab; } .ph-pill-all { --pc: #ffffff; }
+  .ph-sw { border: 1.5px solid transparent; cursor: pointer; gap: 6px; transition: background .15s, color .15s, border-color .15s; }
+  .ph-sw:not(.on) { opacity: .8; }
+  .ph-sw:not(.on):hover { opacity: 1; transform: translateY(-1px); }
+  .ph-sw.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+  .ph-sw.on::before { content: ''; width: 9px; height: 5px; border: solid currentColor; border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+  .ph-sw:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .pc-wrap { position: fixed; inset: 0; z-index: 4800; background: rgba(12,20,36,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; animation: seismoIn .2s ease-out; }
+  .pc-card { background: var(--surface); border-radius: 16px; width: min(980px, 100%); max-height: 100%; overflow: auto; padding: 24px 24px 20px; box-shadow: var(--shadow-lg); border-top: 5px solid #0B2E6B; }
+  .pc-title { font: 700 20px 'DM Sans', sans-serif; color: #13233d; margin-bottom: 16px; }
+  .pc-sub { font-size: 13.5px; color: var(--text2); margin: 4px 0 16px; }
+  .pc-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }   /* one row, in phase order */
+  @media (max-width: 820px) { .pc-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .pc-list { grid-template-columns: 1fr; } }
+  .pc-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 118px; text-align: left; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font: inherit; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .pc-opt:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(11,46,107,.12); border-color: #0B2E6B; }
+  .pc-opt:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .pc-name { font: 700 15px 'DM Sans', sans-serif; color: #13233d; }
+  .pc-desc { font-size: 12.5px; color: var(--text2); }
+  .pc-count { margin-top: auto; font: 700 12px 'DM Sans', sans-serif; color: var(--text3); font-variant-numeric: tabular-nums; }
   .saved-pop { position: absolute; inset: 0; z-index: 46; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(12,20,36,0.35); animation: seismoIn .2s ease-out; }
   .saved-pop.closing { opacity: 0; transition: opacity .2s; }
   .sp-card { background: #fff; border-radius: 14px; padding: 30px 26px 18px; overflow: hidden; width: min(360px, 100%); text-align: center; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -1261,6 +1294,7 @@
         County
       </button>
       <div id="active-filters" class="active-filters" role="region" aria-label="Active filters"></div>
+      <div id="phase-switch" class="phase-switch" role="group" aria-label="Edit phase" hidden></div>
     </div>
     <div class="filter-dropdown-wrap">
       <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
@@ -1381,6 +1415,7 @@ const CONFIG = {
   // an entry on every save. If the layer doesn't have it yet, the Notes tab shows
   // only "created" / "last edited" from editor tracking.
   historyField: 'EditHistory',
+  scoreCutoff: 2.0,                 // FEMA P-154 cut-off: "Yes, score less than the cut-off" only applies at or below this
   // Edit history table: one row per save. ParentGlobalId = the building's globalid on the parent layer
   // (CONFIG.reports.parentItemId), History = what changed, EditDate = when, Editor = who.
   editHistory: { itemId: '553d75fdf8df4ef29d9bc6ea2cb309ac', layerIndex: 0,
@@ -2958,6 +2993,7 @@ function getFiltered(skipPhase) {
 //  RENDER LIST
 // ════════════════════════════════════════════════════════════════
 function renderList() {
+  renderPhaseSwitcher(); updatePhaseChooserCounts();
   const phased = !!phaseCfg(), pb = document.getElementById('phase-filter-btn');
   if (pb) pb.hidden = phased;
   if (phased && MULTI_FILTERS.phase.active.size) { MULTI_FILTERS.phase.active.clear(); updateMultiBtns(); updateActiveFilterBar(); }
@@ -3351,6 +3387,56 @@ const EDIT_PHASE = (() => {
   } catch {}
   return 'field';
 })();
+// ── Choosing the edit phase ──
+// Opening the edit link (?edit=1) without a phase asks which phase to work in, then puts it in the
+// link (&phase=post / qaqc / engineer / complete). The colored bubbles at the right of the filter
+// row jump between phases at any time.
+const PHASE_CHOICES = [
+  { key: 'post',     name: 'Post Data Collection', pill: 'Post Data Collection', desc: 'Check the lookups and finish the screening data.' },
+  { key: 'qaqc',     name: 'QA/QC Review',                    pill: 'QA/QC',                desc: 'Quality check each screening before engineer review.' },
+  { key: 'engineer', name: 'Engineer Review',                 pill: 'Engineer Review',      desc: 'Supervising engineer review, notes and sign-off.' },
+  { key: 'complete', name: 'Completed',                       pill: 'Complete',             desc: 'Screenings that have finished every phase.' },
+];
+const sessionPhase = () => (EDIT_URL_ON && phaseCfg()) ? phaseKey() : null;
+const phaseCount = key => { const k = PHASE_FLOW.findIndex(p => p.key === key); return assets.filter(a => recordPhaseIndex(a) === k).length; };
+function setEditPhase(key) {
+  const c = PHASE_CHOICES.find(p => p.key === key); if (!c || key === sessionPhase()) { document.getElementById('phase-chooser')?.remove(); return; }
+  const go = () => {
+    if (EDIT.on) cancelEdit(true);
+    window.EDIT_PHASE_OVERRIDE = key;
+    try {
+      sessionStorage.setItem('rvs_edit_phase', key);
+      const u = new URL(location.href); u.searchParams.set('edit', '1'); u.searchParams.set('phase', key);
+      history.replaceState(history.state, '', u);                      // the link now carries the phase
+    } catch {}
+    document.getElementById('phase-chooser')?.remove();
+    if (selectedId != null || document.getElementById('detail-sheet')?.classList.contains('open')) closeDetail();
+    renderList(); if (typeof renderMarkers === 'function') renderMarkers(); renderPhaseSwitcher();
+  };
+  if (EDIT.on && userChanges().length) appConfirm('Discard your unsaved changes and switch phase?', 'Discard and switch').then(ok => { if (ok) go(); });
+  else go();
+}
+function renderPhaseSwitcher() {
+  const el = document.getElementById('phase-switch'); if (!el) return;
+  el.hidden = !EDIT_URL_ON; if (!EDIT_URL_ON) return;
+  const cur = sessionPhase();
+  el.innerHTML = PHASE_CHOICES.map(p => `<button type="button" class="ph-pill ph-pill-${p.key} ph-sw${p.key === cur ? ' on' : ''}" aria-pressed="${p.key === cur}"
+      title="${escHtml(p.name)}${p.key === cur ? ' (current)' : ' - switch to this phase'}" onclick="setEditPhase('${p.key}')">${escHtml(p.pill)}</button>`).join('');
+}
+function showPhaseChooser() {
+  if (!EDIT_URL_ON || sessionPhase() || document.getElementById('phase-chooser')) return;
+  const box = document.createElement('div'); box.id = 'phase-chooser'; box.className = 'pc-wrap';
+  box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pc-title');
+  box.innerHTML = `<div class="pc-card"><div class="pc-title" id="pc-title">Choose an edit phase</div>
+      <div class="pc-list">${PHASE_CHOICES.map(p => `<button type="button" class="pc-opt pc-${p.key}" onclick="setEditPhase('${p.key}')">
+          <span class="ph-pill ph-pill-${p.key}">${escHtml(p.pill)}</span>
+          <span class="pc-name">${escHtml(p.name)}</span>
+          <span class="pc-count" data-key="${p.key}">${phaseCount(p.key).toLocaleString()} screening${phaseCount(p.key) === 1 ? '' : 's'}</span></button>`).join('')}</div></div>`;
+  document.body.appendChild(box); box.querySelector('.pc-opt').focus();
+}
+function updatePhaseChooserCounts() {
+  document.querySelectorAll('#phase-chooser .pc-count').forEach(el => { const n = phaseCount(el.dataset.key); el.textContent = `${n.toLocaleString()} screening${n === 1 ? '' : 's'}`; });
+}
 // Colored bubble in the panel's title bar showing which edit phase this session is in
 function sessionPhasePill() {
   if (!EDIT_URL_ON) return '';
@@ -3399,7 +3485,7 @@ function setDefaultPhaseMove() {
   if (next !== cur) { EDIT.draft[FIELDS.phase] = phaseCode(next); EDIT.phaseAuto = true; }
 }
 // Unsaved changes the user made themselves (the automatic next-phase default doesn't count)
-function userChanges() { return editChanged().filter(f => !(f === FIELDS.phase && EDIT.phaseAuto)); }
+function userChanges() { return editChanged().filter(f => !(f === FIELDS.phase && EDIT.phaseAuto) && !(f === 'DetailedEvalRequired' && EDIT.autoLowVal !== undefined && _raw(EDIT.draft[f]) === _raw(EDIT.autoLowVal))); }
 function phaseMoveHTML() {
   const cur = phaseIndexOf(EDIT.orig[FIELDS.phase]), sel = phaseIndexOf(editVal(FIELDS.phase));
   const btns = PHASE_FLOW.map((p, k) => `<button type="button" class="ph-btn${k === sel ? ' on' : ''}" aria-pressed="${k === sel}" onclick="phaseMove(${k})">
@@ -3569,7 +3655,7 @@ function sketchUploadHTML(a) {
   if (!sketchOn() || !(EDIT.on && String(EDIT.id) === String(a.id))) return '';
   const size = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
   return `<div class="sk-up">${SKETCH_PENDING
-    ? `<div class="sk-pend"><div class="sk-pend-t"><b>New sketch</b> · ${escHtml(SKETCH_PENDING.name)} · ${size(SKETCH_PENDING.size)}</div><div class="sk-pend-s">Replaces the current sketch when you save</div>
+    ? `<div class="sk-pend"><div class="sk-pend-t"><b>New sketch</b> · ${escHtml(SKETCH_PENDING.name)} · ${size(SKETCH_PENDING.size)}</div>
         <button type="button" class="ie-x" onclick="sketchUnpick()">Remove</button></div>`
     : `<label class="sk-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Sketch
         <input type="file" accept="image/*" class="rp-file" onchange="sketchPick(this)"></label>`}
@@ -3785,6 +3871,7 @@ function editMulti(f, code, checked, el) {
   const orig = _raw(EDIT.orig[f]);
   const sep = orig.includes(',') || !orig.trim() ? ',' : ' ';          // keep the record's own separator (Survey123 uses commas)
   const set = multiCodes(editVal(f)); checked ? set.add(code) : set.delete(code);
+  if (f === 'DetailedEvalRequired') EDIT.autoLowVal = undefined;
   if (isRequired(f) && !set.size && el) { const host = el.closest('.ed-ms') || el.closest('.cb-checks'); const err = host && host.parentNode.querySelector('.ed-err'); if (err) { err.hidden = false; err.textContent = 'Required - pick at least one'; } }
   editSet(f, [...set].join(sep));
   // refresh the dropdown's summary text
@@ -3937,7 +4024,7 @@ async function wizardSave(btn) {
 
 // ── D · Combo: wizard steps across the top + each tab's own layout, with
 // editable rows highlighted and their boxes right in the row (no pencils) ──
-const COMBO_STEPS = [['overview', 'Facility Overview'], ['p154', 'P-154 Screening Details'], ['nonstruct', 'Nonstructural Review'], ['reports', 'Reports/Attachments'], ['notes', 'Notes'], ['review', 'Review & Save']];
+const COMBO_STEPS = [['overview', 'Facility Overview'], ['p154', 'P-154 Screening Details'], ['nonstruct', 'Nonstructural Review'], ['reports', 'Reports/Attachments'], ['review', 'Review & Save']];   // no Notes step while editing
 function comboRow(a, spec) {
   const [f, label, type] = spec;
   if (type === 'calc' || type === 'lock') {
@@ -4268,7 +4355,7 @@ function showSavedConfirm(n, movedTo, histErr) {
   const mini = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   const burst = [[-62, -24, 14, -18], [64, -20, 16, 20], [-52, 16, 12, 12], [56, 18, 13, -10], [-18, -44, 11, 8], [24, -46, 10, -14], [-88, -2, 10, 6], [90, 0, 11, -6]]
     .map(([x, y, sz, r], i) => `<span class="sp-mini" style="--x:${x}px;--y:${y}px;--s:${sz}px;--r:${r}deg;--d:${0.25 + i * 0.05}s">${mini}</span>`).join('');
-  box.innerHTML = `<div class="sp-card"><div class="sp-burst" aria-hidden="true">${burst}<div class="sp-check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline class="sp-tick" points="20 6 9 17 4 12"/></svg></div></div>
+  box.innerHTML = `<div class="sp-card"><div class="sp-burst" aria-hidden="true">${burst}<div class="sp-check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline class="sp-tick" points="4 12 9 17 20 6"/></svg></div></div>
     <div class="sp-title" id="sp-title">Submitted successfully</div>
     <div class="sp-sub">${n} change${n > 1 ? 's' : ''} saved${movedTo ? ` · moved to ${escHtml(movedTo)}` : ''}</div>
     ${histErr ? `<div class="sp-warn">The edit history wasn't recorded: ${escHtml(histErr)}</div>` : ''}
@@ -4334,6 +4421,7 @@ async function autoFillFromLookups(a) {
   } else failed.push('liquefaction');
   const changed = filled.filter((x, k, arr) => arr.indexOf(x) === k);
   EDIT.autoStatus = (changed.length ? `Filled in from the lookups: ${changed.join(', ')}.` : '') + (failed.length ? ` Couldn't run: ${failed.join(', ')}.` : '');
+  dropAutoLowScore(a);
   seismoPopDone(failed.length ? `Couldn't run: ${failed.join(', ')}. You can still edit these yourself.` : 'Seismicity, Soil Type and Liquefaction are filled in - check them in Review & Save.', !failed.length);
   const step = comboCurrent(); openDetail(a); comboGo(step); updateEditBar();
 }
@@ -4380,7 +4468,7 @@ function comboP154HTML(a) {
     <div class="ov-photos">
       <div class="ov-photo-slot" data-first="3"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
       ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-      <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+      <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
     </div></div>`;
 }
 function comboP154Main(a) {
@@ -4572,7 +4660,7 @@ function renderReports() {
     let shownEmpty = false;
     for (let k = 1; k <= n; k++) {
       const pend = REPORT_PENDING[k];
-      if (pend) { num++; const nm = (REPORT_NAMES[k] || '').trim();
+      if (pend) { num++; const nm = reportFullName(REPORT_NAMES[k]);
         html += `<div class="rp-row rp-pend"><span class="rp-n">${num}</span><div class="rp-pend-main">
           <span class="rp-name">${nm ? escHtml(nm) : '<span class="rp-fn-err">Needs a file name</span>'}</span>
           <div class="rp-pend-file">${escHtml(pend.name)} · ${size(pend.size)} · uploads on save</div></div>
@@ -4604,6 +4692,9 @@ function reportPick(k, input) {
 }
 // Pop-up: name the attachment (saved to FileName): P-154 Report, Nonstructural, or Other (type a name)
 const REPORT_NAME_CHOICES = ['P-154 Report', 'Nonstructural', 'Other'];
+// FileName = "<P-154 Report | Nonstructural | typed name>: <Facility Name>" (the name as edited, if it was changed)
+function reportFacility() { const a = currentRecord() || {}; const d = EDIT.draft || {}; return String((Object.prototype.hasOwnProperty.call(d, 'BuildingName') ? d.BuildingName : a.buildingName) || '').trim(); }
+function reportFullName(base) { base = String(base || '').trim(); const fac = reportFacility(); return base ? (fac ? `${base}: ${fac}` : base) : ''; }
 function reportNamePrompt(k, file) {
   const f = file || REPORT_PENDING[k]; if (!f) return;
   const cur = (REPORT_NAMES[k] || '').trim(), preset = REPORT_NAME_CHOICES.slice(0, -1).includes(cur) ? cur : (cur ? 'Other' : '');
@@ -4616,11 +4707,15 @@ function reportNamePrompt(k, file) {
       <div class="rpn-opts" role="radiogroup" aria-label="File name">${REPORT_NAME_CHOICES.map(c => `<label class="rpn-opt"><input type="radio" name="rpn" value="${escHtml(c)}" ${c === preset ? 'checked' : ''}><span>${escHtml(c)}</span></label>`).join('')}</div>
       <div class="rpn-other" ${preset === 'Other' ? '' : 'hidden'}><label class="rp-fn-k" for="rpn-text">File name <span class="ed-req-star" title="Required">*</span></label>
         <input id="rpn-text" class="ed-in" type="text" maxlength="255" value="${preset === 'Other' ? escHtml(cur) : ''}" placeholder="Type a file name"></div>
+      <div class="rpn-as" aria-live="polite"></div>
       <div class="ed-err rpn-err" hidden></div>
       <div class="ac-actions"><button class="ed-cancel ac-no">Cancel</button><button class="ed-save ac-yes">${REPORT_PENDING[k] ? 'Save name' : 'Add attachment'}</button></div></div>`;
   const other = box.querySelector('.rpn-other'), text = box.querySelector('#rpn-text'), err = box.querySelector('.rpn-err');
   const choice = () => (box.querySelector('input[name="rpn"]:checked') || {}).value || '';
-  box.querySelectorAll('input[name="rpn"]').forEach(r => r.addEventListener('change', () => { other.hidden = choice() !== 'Other'; err.hidden = true; if (!other.hidden) text.focus(); }));
+  const as = box.querySelector('.rpn-as');
+  const showAs = () => { const c = choice(), base = c === 'Other' ? text.value.trim() : c; as.innerHTML = base ? `Saved as: <b>${escHtml(reportFullName(base))}</b>` : ''; };
+  box.querySelectorAll('input[name="rpn"]').forEach(r => r.addEventListener('change', () => { other.hidden = choice() !== 'Other'; err.hidden = true; if (!other.hidden) text.focus(); showAs(); }));
+  text.addEventListener('input', showAs);
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey, true); };
   const ok = () => {
     const c = choice(), name = c === 'Other' ? text.value.trim() : c;
@@ -4631,11 +4726,11 @@ function reportNamePrompt(k, file) {
   const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); } else if (e.key === 'Enter' && box.contains(e.target) && e.target.tagName !== 'BUTTON') { e.preventDefault(); ok(); } };
   box.querySelector('.ac-no').onclick = close; box.querySelector('.ac-yes').onclick = ok;
   document.addEventListener('keydown', onKey, true);
-  host.appendChild(box); (box.querySelector('input[name="rpn"]:checked') || box.querySelector('input[name="rpn"]')).focus();
+  host.appendChild(box); showAs(); (box.querySelector('input[name="rpn"]:checked') || box.querySelector('input[name="rpn"]')).focus();
 }
 // The draft entry for a new attachment: "Name - file.ext"; blank name = needs fixing before Save
 function reportDraft(k) {
-  const f = REPORT_PENDING[k], nm = (REPORT_NAMES[k] || '').trim(); if (!f) return;
+  const f = REPORT_PENDING[k], nm = reportFullName(REPORT_NAMES[k]); if (!f) return;
   EDIT.draft['__att' + k] = nm ? `${nm} - ${f.name}` : f.name;
   EDIT.invalid = EDIT.invalid || {}; if (nm) delete EDIT.invalid['__att' + k]; else EDIT.invalid['__att' + k] = true;
 }
@@ -4673,7 +4768,7 @@ async function saveReports(a, changes) {
     const file = REPORT_PENDING[k], attrs = {};
     const put = (name, v) => { const f = layerField(info, name); if (!f || v === undefined || v === null || v === '') return; attrs[f.name] = (f.type === 'esriFieldTypeString' && f.length) ? String(v).slice(0, f.length) : v; };
     put(R.fields.parent, gid);
-    put(R.fields.fileName, (REPORT_NAMES[k] || '').trim() || file.name);
+    put(R.fields.fileName, reportFullName(REPORT_NAMES[k]) || file.name);
     put(R.fields.city, at.City ?? a.city); put(R.fields.state, at.State ?? a.state); put(R.fields.county, at.County ?? a.county);
     const sf = layerField(info, R.fields.slots[0] || ''); if (sf && sf.type === 'esriFieldTypeString') put(sf.name, file.name);
     const feature = { attributes: attrs };
@@ -4687,6 +4782,52 @@ async function saveReports(a, changes) {
   }
 }
 
+// ── "Yes, score less than the cut-off" ──
+// Records can arrive with it ticked because the survey worked it out while the score was still 0
+// (before the calculations ran). It should only stay ticked when the score really is at or below
+// the cut-off, or when the user ticks it themselves.
+function lowScoreCode() {
+  const ch = Object.assign({}, CHOICE_LABELS.DetailedEvalRequired || {}, DOMAIN_LABELS.DetailedEvalRequired || {});
+  const hit = Object.entries(ch).find(([c, l]) => /score|cut.?off|low/i.test(`${c} ${l}`));
+  return hit ? hit[0] : 'yes_low_score';
+}
+function liveScore(a, get) { const c = computeP154(get || (f => (a.attrs || {})[f])); return c.T ? c.final : a.level1Score; }
+const aboveCutoff = s => typeof s === 'number' && !isNaN(s) && s > (CONFIG.scoreCutoff ?? 2.0);
+// While editing: untick it if it came in with the record and the current score is above the cut-off
+function dropAutoLowScore(a) {
+  const f = 'DetailedEvalRequired';
+  if (Object.prototype.hasOwnProperty.call(EDIT.draft, f) && EDIT.autoLowVal === undefined) return;      // the user has set it
+  const orig = multiCodes(EDIT.orig[f]), code = lowScoreCode();
+  if (!orig.has(code)) return;
+  const s = liveScore(a, x => editCurrent(x) ?? (a.attrs || {})[x]);
+  if (!aboveCutoff(s)) { if (EDIT.autoLowVal !== undefined) { delete EDIT.draft[f]; EDIT.autoLowVal = undefined; } return; }
+  const sep = _raw(EDIT.orig[f]).includes(',') ? ',' : ' ';
+  EDIT.autoLowVal = [...orig].filter(c => c !== code).join(sep); EDIT.draft[f] = EDIT.autoLowVal;
+}
+// While editing, the photos open in a floating panel over the edit steps (close it to carry on editing);
+// otherwise the link just switches to the Photos tab.
+function viewAllPhotos() {
+  if (!(EDIT.on && EDIT.mode === 'combo')) return switchDetailTab('photos');
+  const sheet = document.getElementById('detail-content'), card = document.querySelector('#sheet-body .dtab-panel[data-panel="photos"] > .tab-card');
+  if (!sheet || !card || document.getElementById('pv-ov')) return;
+  const ov = document.createElement('div'); ov.id = 'pv-ov'; ov.className = 'pv-ov';
+  ov.innerHTML = `<div class="pv-card" role="dialog" aria-modal="true" aria-labelledby="pv-title">
+      <div class="pv-head"><div class="pv-title" id="pv-title">Photos and attachments</div>
+        <button type="button" class="pv-close" aria-label="Close and go back to editing" title="Close">×</button></div>
+      <div class="pv-body" data-panel="photos"></div></div>`;
+  const home = card.parentNode;
+  ov.querySelector('.pv-body').appendChild(card);                          // the Photos tab's own content, moved in
+  const prevOverflow = sheet.style.overflowY;
+  const close = () => { if (home.isConnected) home.appendChild(card); ov.remove(); sheet.style.overflowY = prevOverflow; document.removeEventListener('keydown', onKey, true); };
+  const onKey = e => { if (e.key === 'Escape' && (document.getElementById('lightbox') || {}).hidden !== false) { e.stopImmediatePropagation(); e.preventDefault(); close(); } };
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('.pv-close').onclick = close;
+  document.addEventListener('keydown', onKey, true);
+  ov.style.top = sheet.scrollTop + 'px'; ov.style.height = sheet.clientHeight + 'px';     // covers the panel as it's scrolled
+  sheet.style.overflowY = 'hidden';
+  sheet.appendChild(ov); ov.querySelector('.pv-close').focus();
+}
+function closePhotosOverlay() { const ov = document.getElementById('pv-ov'); if (ov) ov.querySelector('.pv-close').click(); }
 function startComboEdit() {
   const a = currentRecord(); if (!a || !canEditRecords()) return;
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
@@ -4694,7 +4835,7 @@ function startComboEdit() {
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
   if (typeof a.lat === 'number' && !(FIELDS.lat in EDIT.orig)) EDIT.orig[FIELDS.lat] = a.lat;
   if (typeof a.lng === 'number' && !(FIELDS.lng in EDIT.orig)) EDIT.orig[FIELDS.lng] = a.lng;
-  EDIT.autoStatus = ''; setDefaultPhaseMove();
+  EDIT.autoStatus = ''; EDIT.autoLowVal = undefined; setDefaultPhaseMove(); dropAutoLowScore(a);
   openDetail(a); comboGo('overview'); updateEditButton();
   if (phaseCfg() && phaseCfg().autoFill) autoFillFromLookups(a);
 }
@@ -4735,6 +4876,7 @@ function cancelEdit(skipConfirm, then) {
   }
   const a = assets.find(x => String(x.id) === String(EDIT.id));
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
+  closePhotosOverlay();
   EDIT.on = false; EDIT.mode = null; EDIT.id = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
   Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
   closeEditReview();
@@ -4881,9 +5023,9 @@ function engNotesBox(a, key) {
   const at = (a && a.attrs) || {}, v = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, 'EngineerNotes') ? EDIT.draft.EngineerNotes : String(at.EngineerNotes ?? '');
   const n = countWords(v);
   return `<div class="ed-row cb-bigbox${Object.prototype.hasOwnProperty.call(EDIT.draft || {}, 'EngineerNotes') && _raw(v) !== _raw(EDIT.orig.EngineerNotes) ? ' ed-changed' : ''}" data-f="EngineerNotes">
-    <textarea id="ed_EngineerNotes_${key}" class="ed-in ed-ta cb-allcm" rows="6" aria-label="Supervising Engineer Notes" aria-describedby="en_count_${key}"
+    <textarea id="ed_EngineerNotes_${key}" class="ed-in ed-ta cb-allcm" rows="6" aria-label="Supervising Engineer Notes (up to 1,000 words)"
       oninput="engNotesInput(this)" onchange="if (comboCurrent() === 'review') setTimeout(renderComboReview, 0)">${escHtml(v)}</textarea>
-    <div class="en-count${n >= ENG_NOTES_MAX_WORDS ? ' full' : ''}" id="en_count_${key}">${n.toLocaleString()} / ${ENG_NOTES_MAX_WORDS.toLocaleString()} words${n >= ENG_NOTES_MAX_WORDS ? ' - limit reached' : ''}</div></div>`;
+</div>`;   // no counter shown; the 1,000-word limit still applies
 }
 function engNotesInput(ta) {
   let v = ta.value;
@@ -5054,6 +5196,7 @@ DESKTOP_MQ.addEventListener('change', () => {
 });
 
 function openDetail(a) {
+  closePhotosOverlay();
   setTimeout(updateEditButton, 0);
   setTimeout(renderReports, 0);
   setTimeout(() => { enhanceCombo(); if (EDIT.on || EDIT.wizard) syncRelevance(); refreshHeaderScore(); }, 0);
@@ -5121,7 +5264,7 @@ function buildDetailHTML(a) {
   let detailedEvalText = '';
   if (a.detailedReq) {
     const v = a.detailedReq.toLowerCase();
-    if (v === 'yes' || v === 'y') detailedEvalText = 'Yes, score less than the cut-off';
+    if (v === 'yes' || v === 'y') detailedEvalText = aboveCutoff(liveScore(a)) ? 'No, score above the cut-off' : 'Yes, score less than the cut-off';
     else if (v === 'no' || v === 'n') detailedEvalText = 'No, score above the cut-off';
     else detailedEvalText = choiceLabel('DetailedEvalRequired', a.detailedReq);
   }
@@ -5271,7 +5414,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
       </div>
     </div>`;
 
@@ -5302,7 +5445,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
       </div>
     </div>`;
 
@@ -5344,7 +5487,9 @@ function buildDetailHTML(a) {
     if (!raw) return 'Not recorded';
     const one = t => /unknown/.test(t) ? 'Yes, unknown building type' : /other/.test(t) ? 'Yes, other hazards present'
       : (/low|score|cut/.test(t) || /^y(es)?$/.test(t)) ? 'Yes, score below cut-off' : /^n/.test(t) ? 'No' : choiceLabel('DetailedEvalRequired', t);
-    return [...new Set(raw.split(/[,\s]+/).filter(Boolean).map(one))].join('; ');
+    const high = aboveCutoff(liveScore(a));
+    const items = [...new Set(raw.split(/[,\s]+/).filter(Boolean).map(one))].filter(t => !(high && t === 'Yes, score below cut-off'));
+    return items.length ? items.join('; ') : 'Not recorded';
   })();
   const dseNS = (() => {
     const raw = String(attrs.DetailedEvalRecommended || '').trim().toLowerCase();
@@ -5459,7 +5604,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
       </div>
     </div>`;
   // ── Nonstructural Review tab (mockup; modeled on the individual building
@@ -5566,7 +5711,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="ns-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
-        <button class="view-all-link" onclick="switchDetailTab('photos')">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
       </div>
     </div>`;
   // ── Calculations tab (mockup): ASCE 41-17 vs ASCE 7-22 side by side ──
@@ -5981,6 +6126,7 @@ async function bootApp() {
   document.getElementById('app').hidden = false;
   initMap();
   buildFilterDropdown();
+  renderPhaseSwitcher(); showPhaseChooser();
   // Try cached data immediately for fast start
   const cached = loadCachedData();
   if (cached) {
