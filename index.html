@@ -771,7 +771,7 @@
   .pv-body > .tab-card { margin: 0; }
   .phase-switch { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .phase-switch[hidden] { display: none; }
-  .ph-pill-post { --pc: #f2c94c; } .ph-pill-qaqc { --pc: #a9c8ff; } .ph-pill-engineer { --pc: #cdb9ff; } .ph-pill-complete { --pc: #93dcab; } .ph-pill-all { --pc: #ffffff; }
+  .ph-pill-post { --pc: #f2c94c; } .ph-pill-qaqc { --pc: #a9c8ff; } .ph-pill-engineer { --pc: #cdb9ff; } .ph-pill-complete { --pc: #93dcab; } .ph-pill-all { --pc: #e53935; }
   .ph-sw { border: 1.5px solid transparent; cursor: pointer; gap: 6px; transition: background .15s, color .15s, border-color .15s; }
   .ph-sw:not(.on) { opacity: .8; }
   .ph-sw:not(.on):hover { opacity: 1; transform: translateY(-1px); }
@@ -1025,7 +1025,7 @@
   }
   .sr-title { min-width: 0; }
   .ph-pill { display: inline-flex; align-items: center; gap: 6px; font: 700 12.5px/1 'DM Sans', sans-serif; letter-spacing: 0.2px; padding: 6px 11px; border-radius: 999px; white-space: nowrap; }
-  .ph-pill-all      { background: #ffffff; color: #0B2E6B; }
+  .ph-pill-all      { background: #e53935; color: #ffffff; }
   .ph-pill-post     { background: #f2c94c; color: #3a2a00; }
   .ph-pill-qaqc     { background: #a9c8ff; color: #0b2350; }
   .ph-pill-engineer { background: #cdb9ff; color: #2b1660; }
@@ -3417,9 +3417,13 @@ const PHASE_CHOICES = [
   { key: 'complete', name: 'Completed',                       pill: 'Complete',             desc: 'Screenings that have finished every phase.' },
 ];
 const sessionPhase = () => (EDIT_URL_ON && phaseCfg()) ? phaseKey() : null;
+// "All Phases" (&phase=all): every screening in the list, editable whatever its phase
+const ALL_PHASES = { key: 'all', name: 'All Phases', pill: 'All Phases' };
+const isAllPhases = () => EDIT_URL_ON && !phaseCfg() && phaseKey() === 'all';
+const sessionChoice = () => sessionPhase() || (isAllPhases() ? 'all' : null);
 const phaseCount = key => { const k = PHASE_FLOW.findIndex(p => p.key === key); return assets.filter(a => recordPhaseIndex(a) === k).length; };
 function setEditPhase(key) {
-  const c = PHASE_CHOICES.find(p => p.key === key); if (!c || key === sessionPhase()) { document.getElementById('phase-chooser')?.remove(); return; }
+  const c = key === 'all' ? ALL_PHASES : PHASE_CHOICES.find(p => p.key === key); if (!c || key === sessionChoice()) { document.getElementById('phase-chooser')?.remove(); return; }
   const go = () => {
     if (EDIT.on) cancelEdit(true);
     window.EDIT_PHASE_OVERRIDE = key;
@@ -3438,12 +3442,12 @@ function setEditPhase(key) {
 function renderPhaseSwitcher() {
   const el = document.getElementById('phase-switch'); if (!el) return;
   el.hidden = !EDIT_URL_ON; if (!EDIT_URL_ON) return;
-  const cur = sessionPhase();
-  el.innerHTML = PHASE_CHOICES.map(p => `<button type="button" class="ph-pill ph-pill-${p.key} ph-sw${p.key === cur ? ' on' : ''}" aria-pressed="${p.key === cur}"
+  const cur = sessionChoice();
+  el.innerHTML = [ALL_PHASES, ...PHASE_CHOICES].map(p => `<button type="button" class="ph-pill ph-pill-${p.key} ph-sw${p.key === cur ? ' on' : ''}" aria-pressed="${p.key === cur}"
       title="${escHtml(p.name)}${p.key === cur ? ' (current)' : ' - switch to this phase'}" onclick="setEditPhase('${p.key}')">${escHtml(p.pill)}</button>`).join('');
 }
 function showPhaseChooser() {
-  if (!EDIT_URL_ON || sessionPhase() || document.getElementById('phase-chooser')) return;
+  if (!EDIT_URL_ON || sessionChoice() || document.getElementById('phase-chooser')) return;
   const box = document.createElement('div'); box.id = 'phase-chooser'; box.className = 'pc-wrap';
   box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pc-title');
   box.innerHTML = `<div class="pc-card"><div class="pc-title" id="pc-title">Choose an edit phase</div>
@@ -3459,7 +3463,7 @@ function updatePhaseChooserCounts() {
 // Colored bubble in the panel's title bar showing which edit phase this session is in
 function sessionPhasePill() {
   if (!EDIT_URL_ON) return '';
-  const k = phaseCfg() ? phaseKey() : 'all';            // plain ?edit=1 = All Phases
+  const k = phaseCfg() ? phaseKey() : 'all';            // &phase=all (or no phase yet) = All Phases
   const L = { all: 'All Phases', post: 'Post Data Collection', qaqc: 'QA/QC', engineer: 'Engineer Review', complete: 'Complete' };
   return `<span class="ph-pill ph-pill-${escHtml(k)}" title="You are in the ${escHtml(L[k] || k)} edit">${escHtml(L[k] || k)}</span>`;
 }
