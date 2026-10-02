@@ -364,6 +364,7 @@
   .ov-pair:has(> .cb-live)::before { background: var(--cusec-gold); }
   .ov-pair > .ov-half > .ov-v { min-height: 29px; display: flex; align-items: center; }
   .ov-pair > .ov-half > .ov-v.cb-cell { display: block; }
+  .pp-sub { font-size: 13.5px; color: var(--text2); margin: -6px 0 14px; line-height: 1.45; }
   .rp-acts { display: inline-flex; gap: 6px; }
   .rpn-card { width: min(420px, 100%); }
   .rpn-file { font-size: 12.5px; color: var(--text3); margin: -8px 0 12px; overflow-wrap: anywhere; }
@@ -1727,7 +1728,7 @@ function normSurveyType(raw) {
   return lbl;
 }
 function normFacility(raw) {
-  if (raw === null || raw === undefined || raw === '') return 'Other';
+  if (raw === null || raw === undefined || String(raw).trim() === '') return NO_FACILITY;
   if (typeof FACILITY_TYPES !== 'undefined' && FACILITY_TYPES[raw]) return raw;
   const lbl = choiceLabel(FIELDS.essentialFacility, raw);
   const keys = typeof FACILITY_KEYS !== 'undefined' ? FACILITY_KEYS : [];
@@ -1824,7 +1825,7 @@ const FACILITY_SINGULAR = {
   'Government Admin. Offices': 'Government Admin. Office', 'Emergency Operations Centers': 'Emergency Operations Center',
   'Medical Offices/Clinics': 'Medical Office/Clinic',
 };
-function singularFacility(t) { return FACILITY_SINGULAR[t] || t; }
+function singularFacility(t) { return t === NO_FACILITY ? '- None Selected -' : (FACILITY_SINGULAR[t] || t); }
 // ── Seismicity calculations (same formulas as the Survey123 XLSForm) ──
 // SeismicitySs: Ss ≥ 0.25 → 2, ≥ 0.5 → 3, ≥ 1.0 → 4, ≥ 1.5 → 5 (else '' = Low)
 // SeismicityS1: S1 ≥ 0.1 → 2, ≥ 0.2 → 3, ≥ 0.4 → 4, ≥ 0.6 → 5 (else '' = Low)
@@ -2132,7 +2133,12 @@ const SYMBOLS = {
   Utility_PubWorks: "data:image/png;base64,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",
 };
 
+const NO_FACILITY = 'No Facility Type';            // records with Facility Type left as "- None Selected -"
 const FACILITY_TYPES = {
+  [NO_FACILITY]: {
+    color: '#1e6fff',
+    icon: `<svg viewBox="0 0 42 42" style="width:42px;height:42px;display:block" role="img" aria-label="No facility type"><circle cx="21" cy="21" r="17" fill="#ffffff"/><circle cx="21" cy="21" r="11" fill="#1e6fff"/></svg>`,
+  },
   'Government Admin. Offices': {
     color: '#0078be',
     icon: `<img src="${SYMBOLS.GovtOffice}" style="width:42px;height:42px;object-fit:contain;display:block">`,
@@ -2178,7 +2184,7 @@ const FACILITY_TYPES = {
     icon: `<img src="${SYMBOLS.Universities}" style="width:42px;height:42px;object-fit:contain;display:block">`,
   },
 };
-const FACILITY_KEYS = Object.keys(FACILITY_TYPES);
+const FACILITY_KEYS = Object.keys(FACILITY_TYPES).filter(k => k !== NO_FACILITY).concat(NO_FACILITY);   // "No Facility Type" last in the filter
 
 // ── Score helpers ────────────────────────────────────────────────
 // Matches Arcade logic: ≤2.0 = red, >2.0 = green, Nonstructural = amber
@@ -2589,13 +2595,28 @@ function isRequired(f) {
 // Is this question asked right now (its relevant condition, using unsaved answers)?
 function isRelevant(f) { const ph = phaseCfg(); const r = (ph ? (ph.relevant || {}) : (CONFIG.relevantRules || {}))[f]; return relevantNow(r || '', editCurrent); }
 // Show / hide follow-up questions in every edit view as answers change
+// Follow-up questions only show while their lead question is Yes (generator → anchored / isolators,
+// natural gas → auto shut-off / flexible lines). Everything else stays visible; the form's other
+// relevant conditions are only used for "required".
+const DEPENDENT_QS = { OnsiteGenerator: /anchor|isolator/i, NaturalGas: /shut.?off|flexible/i };   // follow-up field names (whatever the layer calls them)
+const kidsOf = lead => { const re = DEPENDENT_QS[lead]; if (!re) return [];
+  const names = new Set([...Object.keys(EDIT.orig || {}), ...Object.keys(EDIT.draft || {}), ...[...document.querySelectorAll('#sheet-body .ed-row[data-f]')].map(r => r.dataset.f)]);
+  return [...names].filter(n => n !== lead && re.test(n) && !/comment|note|obs/i.test(n)); };
+const leadIsYes = f => { const v = editVal(f); return isYes(v) || isYes(choiceLabel(f, v)); };
 function syncRelevance() {
   const scope = [document.getElementById('sheet-body'), document.getElementById('ed-wizard')].filter(Boolean);
+  const hide = new Set(); Object.keys(DEPENDENT_QS).forEach(lead => { if (EDIT.on && !leadIsYes(lead)) kidsOf(lead).forEach(k => hide.add(k)); });
   scope.forEach(root => {
-    // Every question stays visible and editable. The form's relevant conditions
-    // are still used for "required" (e.g. Generator anchored is only required when
-    // there is a generator), but nothing is hidden or marked "Not asked".
-    root.querySelectorAll('.ed-row[data-f][hidden]').forEach(row => { row.hidden = false; });
+    root.querySelectorAll('.ed-row[data-f]').forEach(row => { row.hidden = hide.has(row.dataset.f); });
+  });
+}
+// Lead question set to No: its follow-ups are cleared (as the survey does); back to Yes restores them
+function syncDependentValues(f) {
+  if (!DEPENDENT_QS[f]) return; const kids = kidsOf(f);
+  const yes = leadIsYes(f);
+  kids.forEach(k => {
+    if (!yes && _raw(editVal(k)) !== '') { EDIT.draft[k] = ''; (EDIT.autoCleared = EDIT.autoCleared || {})[k] = true; if (EDIT.invalid) delete EDIT.invalid[k]; }
+    if (yes && EDIT.autoCleared && EDIT.autoCleared[k]) { delete EDIT.draft[k]; delete EDIT.autoCleared[k]; }
   });
 }
 // After an answer changes, refresh any question whose "required" depends on it
@@ -3750,7 +3771,7 @@ function EDIT_TABS(a) {
         ['WaterHeaters', 'Water Heaters', 'brace'], ['FireSuppression', 'Fire Suppression', 'brace'], ['DropCeilings', 'Drop Ceilings', 'brace'], ['LayInLightFixtures', 'Lay-In Light Fixtures', 'brace'],
         ['BoilersChillersHVACsystems', 'Boilers, Chillers, & HVAC', 'brace'], ['HeavyEquipment', 'Heavy Equipment', 'brace'], ['OtherMEPEquipment', 'Other MEP Equipment', 'brace'],
         ['FuelorPropaneTanks', 'Fuel/Propane/Oxygen Tanks', 'brace']]],
-      ['Comments', [['OtherNonstructural', 'Nonstructural screener comments', 'textarea']]],
+      ['Comments', [['OtherNonstructural', 'Nonstructural Observations', 'textarea']]],
     ],
   };
 }
@@ -3858,17 +3879,11 @@ function editSet(f, value, el) {
   }
   if (EDIT.invalid) delete EDIT.invalid[f];
   EDIT.draft[f] = (el && el.type === 'number' && value !== '') ? Number(value) : value;
-  // Pre-Code and Post-Benchmark can't both be Yes: choosing Yes for one sets the other to No
-  if ((f === 'PreCodeQ' || f === 'PostBenchmarkQ') && isYes(choiceLabel(f, EDIT.draft[f]) || EDIT.draft[f])) {
-    const o = f === 'PreCodeQ' ? 'PostBenchmarkQ' : 'PreCodeQ', ov = editVal(o);
-    if (isYes(choiceLabel(o, ov) || ov) || isYes(ov)) {
-      const no = codeForLabel(o, ['No'], 'no'); EDIT.draft[o] = no;
-      document.querySelectorAll(`#sheet-body [data-f="${o}"] select, #sheet-body #ed_${o}`).forEach(x => { if (x.tagName === 'SELECT') x.value = no; });
-      document.querySelectorAll(`#sheet-body .ed-row[data-f="${o}"]`).forEach(r => r.classList.toggle('ed-changed', _raw(no) !== _raw(EDIT.orig[o])));
-      showToast(`${o === 'PreCodeQ' ? 'Pre-Code' : 'Post-Benchmark'} set to No - Pre-Code and Post-Benchmark can't both be Yes`);
-    }
-  }
-  checkPrePost();
+  // Pre-Code and Post-Benchmark can't both be Yes: nothing is changed for the user - a pop-up
+  // explains it, and Save stays blocked until they set one of them to No themselves
+  const wasBoth = !!(EDIT.invalid && EDIT.invalid.__prepost);
+  checkPrePost(); syncDependentValues(f);
+  if ((f === 'PreCodeQ' || f === 'PostBenchmarkQ') && !wasBoth && EDIT.invalid.__prepost) prePostAlert();
   document.querySelectorAll(`textarea[data-f="${CSS.escape(f)}"]`).forEach(t => { if (t !== document.activeElement && t.value !== value) t.value = value; });
   syncRequired(); syncRelevance(); refreshScorePane();
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
@@ -3878,6 +3893,19 @@ function editSet(f, value, el) {
 }
 // Both Yes (it can come in that way from the survey) blocks saving until one is set to No
 function prePostBothYes() { const y = f => { const v = editVal(f); return isYes(v) || isYes(choiceLabel(f, v)); }; return y('PreCodeQ') && y('PostBenchmarkQ'); }
+function prePostAlert() {
+  const host = document.getElementById('detail-content') || document.body;
+  if (document.getElementById('pp-alert')) return;
+  const box = document.createElement('div'); box.id = 'pp-alert'; box.className = 'ac-wrap';
+  box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pp-title');
+  box.innerHTML = `<div class="ac-card"><div class="ac-msg" id="pp-title">Pre-Code and Post-Benchmark can't both be Yes</div>
+      <div class="pp-sub">A building can be Pre-Code or Post-Benchmark, not both. Set one of them to No to save your changes.</div>
+      <div class="ac-actions"><button class="ed-save ac-yes">OK</button></div></div>`;
+  const close = () => { box.remove(); document.removeEventListener('keydown', onKey, true); const sel = document.querySelector('#sheet-body [data-f="PreCodeQ"] select'); if (sel) sel.focus(); };
+  const onKey = e => { if (e.key === 'Escape' || e.key === 'Enter') { e.stopImmediatePropagation(); e.preventDefault(); close(); } };
+  box.querySelector('.ac-yes').onclick = close; document.addEventListener('keydown', onKey, true);
+  host.appendChild(box); box.querySelector('.ac-yes').focus();
+}
 function checkPrePost() {
   EDIT.invalid = EDIT.invalid || {};
   const both = prePostBothYes();
@@ -4857,7 +4885,7 @@ function startComboEdit() {
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
   if (typeof a.lat === 'number' && !(FIELDS.lat in EDIT.orig)) EDIT.orig[FIELDS.lat] = a.lat;
   if (typeof a.lng === 'number' && !(FIELDS.lng in EDIT.orig)) EDIT.orig[FIELDS.lng] = a.lng;
-  EDIT.autoStatus = ''; EDIT.autoLowVal = undefined; setDefaultPhaseMove(); dropAutoLowScore(a);
+  EDIT.autoStatus = ''; EDIT.autoLowVal = undefined; EDIT.autoCleared = {}; setDefaultPhaseMove(); dropAutoLowScore(a);
   openDetail(a); comboGo('overview'); checkPrePost(); updateEditButton(); updateEditBar();
   if (phaseCfg() && phaseCfg().autoFill) autoFillFromLookups(a);
 }
@@ -5696,10 +5724,10 @@ function buildDetailHTML(a) {
       ${efhRow('Heavy cladding / veneer', 'heavy_cladding')}
       ${efhRow('Appendages', 'appendages')}
     </div>`;
-  // Nonstructural screener comments (moved up from under the bracing chart)
-  const nsComments = [bracingObs, intObs].map(v => v ? String(v).trim() : '').filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k);
-  const commentsCard = `<div class="ov-card p2-card" data-ie="OtherNonstructural"><div class="ov-card-title">Nonstructural Screener Comments</div>
-      ${nsComments.length ? nsComments.map(c => `<div class="ns-cm">${escHtml(c)}</div>`).join('') : '<div class="p2-none">No nonstructural comments.</div>'}
+  // Nonstructural Observations: the OtherNonstructural field
+  const nsObsTxt = String(attrs.OtherNonstructural ?? '').trim();
+  const commentsCard = `<div class="ov-card p2-card" data-ie="OtherNonstructural"><div class="ov-card-title">Nonstructural Observations</div>
+      ${nsObsTxt ? `<div class="ns-cm">${escHtml(nsObsTxt)}</div>` : '<div class="p2-none">No nonstructural observations.</div>'}
     </div>`;
   // Bracing / restraint chart (page 2 of the building report)
   const BRACE = [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents'],
