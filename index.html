@@ -602,7 +602,11 @@
   .rp-wrap { padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
   .cb-rv-two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
   .cb-rv-two > .ov-card { margin: 0; }
-  @container (max-width: 760px) { .cb-rv-two { grid-template-columns: 1fr; } .cb-rv-two > .ov-card:last-child { order: -1; } }
+  @container (max-width: 760px) { .cb-rv-two { grid-template-columns: 1fr; } .cb-rv-two > .cb-rv-side { order: -1; } }
+  .cb-rv-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .cb-rv-side > .ov-card { margin: 0; }
+  .en-count { font-size: 12px; color: var(--text3); text-align: right; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .en-count.full { color: #b3261e; font-weight: 700; }
   .ph-note { font-size: 13px; color: var(--text2); margin: 2px 0 10px; }
   .ph-btns { display: flex; flex-direction: column; gap: 8px; }
   .ph-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; text-align: left; font: 600 14px 'DM Sans', sans-serif;
@@ -619,6 +623,7 @@
   .nt-c-k { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #4a5363; margin-bottom: 2px; }
   .nt-c-v { font-size: 13px; color: #13233d; line-height: 1.5; white-space: pre-line; }
   .nt-table { border: 1px solid #dfe3ea; font-size: 12.5px; }
+  #nt-hist-rows { display: contents; }
   .nt-tr { display: grid; grid-template-columns: 100px 90px minmax(0, 1fr) 130px; gap: 10px; padding: 8px 12px; border-top: 1px solid #e6e9ef; color: #13233d; }
   .nt-tr:first-child { border-top: none; }
   .nt-th { background: #f3f5f8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #3a4453; }
@@ -752,6 +757,28 @@
   .wiz-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 20px 0; text-align: center; }
   .wiz-foot { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: #fff; border-top: 1px solid var(--border); }
   .wiz-foot .ed-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+  .saved-pop { position: absolute; inset: 0; z-index: 46; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(12,20,36,0.35); animation: seismoIn .2s ease-out; }
+  .saved-pop.closing { opacity: 0; transition: opacity .2s; }
+  .sp-card { background: #fff; border-radius: 14px; padding: 30px 26px 18px; overflow: hidden; width: min(360px, 100%); text-align: center; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .sp-burst { position: relative; width: 60px; height: 60px; margin: 4px 0 6px; }
+  .sp-check { position: absolute; inset: 0; border-radius: 50%; background: #2e7d32; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 8px #e3f2e5; animation: spPop .35s cubic-bezier(.2,1.6,.4,1) both; }
+  .sp-check::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 3px solid #43a047; animation: spRing 1.2s ease-out .25s both; }
+  .sp-tick { stroke-dasharray: 26; stroke-dashoffset: 26; animation: spDraw .4s ease-out .2s forwards; }
+  .sp-mini { position: absolute; left: 50%; top: 50%; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); color: #2e7d32; opacity: 0;
+    animation: spMini 1.1s cubic-bezier(.2,.8,.3,1) var(--d) forwards; }
+  .sp-mini svg { width: 100%; height: 100%; display: block; }
+  @keyframes spPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes spDraw { to { stroke-dashoffset: 0; } }
+  @keyframes spRing { from { transform: scale(.9); opacity: .8; } to { transform: scale(1.6); opacity: 0; } }
+  @keyframes spMini { 0% { opacity: 0; transform: translate(0, 0) scale(.3) rotate(0); } 25% { opacity: 1; } 100% { opacity: .9; transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r)); } }
+  @media (prefers-reduced-motion: reduce) { .sp-check, .sp-check::after, .sp-mini { animation: none; } .sp-tick { animation: none; stroke-dashoffset: 0; } .sp-mini { opacity: .9; transform: translate(var(--x), var(--y)) rotate(var(--r)); } }
+  .sp-title { font: 700 18px 'DM Sans', sans-serif; color: #13233d; }
+  .sp-sub { font-size: 13px; color: var(--text2); }
+  .sp-warn { font-size: 12px; color: #8a4b00; background: #fff4e0; border-radius: 6px; padding: 6px 8px; margin-top: 4px; }
+  .sp-bar { width: 100%; height: 4px; border-radius: 4px; background: #e6e9ef; overflow: hidden; margin: 10px 0 6px; }
+  .sp-bar span { display: block; height: 100%; background: #2e7d32; animation: spBar 5s linear forwards; }
+  .sp-ok { min-width: 110px; }
+  @keyframes spBar { from { width: 100%; } to { width: 0; } }
   .seismo { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
   .seismo-cv { width: 120px; height: 120px; display: block; border-radius: 50%; box-shadow: 0 0 0 6px rgba(255,255,255,.85), 0 0 26px 10px rgba(242,201,76,.55), 0 4px 14px rgba(11,46,107,.25); }
   .seismo-t { font: 700 14px 'DM Sans', sans-serif; color: #13233d; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #fff; padding: 6px 14px; border-radius: 999px; box-shadow: 0 2px 10px rgba(11,46,107,.18); margin-top: 6px; }
@@ -1354,6 +1381,10 @@ const CONFIG = {
   // an entry on every save. If the layer doesn't have it yet, the Notes tab shows
   // only "created" / "last edited" from editor tracking.
   historyField: 'EditHistory',
+  // Edit history table: one row per save. ParentGlobalId = the building's globalid on the parent layer
+  // (CONFIG.reports.parentItemId), History = what changed, EditDate = when, Editor = who.
+  editHistory: { itemId: '553d75fdf8df4ef29d9bc6ea2cb309ac', layerIndex: 0,
+    fields: { parent: 'ParentGlobalId', history: 'History', date: 'EditDate', editor: 'Editor' } },
   // Reports / attachments tab: up to this many files, each up to this size
   reportSlots: 3, reportMaxBytes: 3 * 1024 * 1024,
   // Reports / attachments are kept on a separate related layer (one building →
@@ -1440,7 +1471,7 @@ const CONFIG = {
         VertIrregularitiesPresent: ['Vertical types', 'multi'], PlanIrregularitiesPresent: ['Plan types', 'multi'], PlanIrregularities: ['Plan irregularity', 'yesno'],
         ExtFallingHazards: ['Exterior falling hazards', 'multi'],
         // always editable: comments and the action questions
-        Level1Comments: ['Screener comments', 'textarea'], ReviewComments: ['Comments for engineer', 'textarea'], EngineerNotes: ['Engineer comments', 'textarea'],
+        Level1Comments: ['Screener comments', 'textarea'], ReviewComments: ['Comments for engineer', 'textarea'], EngineerNotes: ['Supervising Engineer Notes', 'textarea'],
         OtherHazards: ['Other hazards', 'multi'], DetailedEvalRequired: ['Detailed structural evaluation required', 'multi'],
         DetailedEvalRecommended: ['Detailed nonstructural evaluation recommended', 'select'],
       },
@@ -3050,14 +3081,15 @@ function initMap() {
   // Rotation (leaflet-rotate): right-click + drag, Shift + mouse wheel, two-finger twist, or drag the compass; click the compass to reset north
   const canRotate = typeof L.Map.prototype.setBearing === 'function';
   map = L.map('map', Object.assign({ zoomControl: false, attributionControl: true },
+    { maxZoom: 22 },   // zoom past the tiles' own detail (they're enlarged beyond level 19)
     canRotate ? { rotate: true, bearing: 0, touchRotate: true, shiftKeyRotate: true, rotateControl: { closeOnZeroBearing: false, position: 'bottomleft' } } : {})).setView([35.5, -89.5], 7);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
   if (canRotate) enableMouseRotate(map);
   basemapStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>', maxZoom: 19
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>', maxNativeZoom: 19, maxZoom: 22
   });
   basemapSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '© Esri', maxZoom: 19
+    attribution: '© Esri', maxNativeZoom: 19, maxZoom: 22
   });
   basemapStreet.addTo(map);
   markerCluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 50 });
@@ -3410,11 +3442,11 @@ function openLocPicker() {
   const start = isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0) ? [lat, lng] : (map ? [map.getCenter().lat, map.getCenter().lng] : [36.75, -90.4]);
   if (!LOC.map) {
     const rot = typeof L.Map.prototype.setBearing === 'function';
-    LOC.map = L.map('lp-map', Object.assign({ zoomControl: true, attributionControl: true },
+    LOC.map = L.map('lp-map', Object.assign({ zoomControl: true, attributionControl: true, maxZoom: 22 },
       rot ? { rotate: true, bearing: 0, touchRotate: true, shiftKeyRotate: true, rotateControl: { closeOnZeroBearing: false, position: 'topleft' } } : {})).setView(start, 18);
     if (rot) enableMouseRotate(LOC.map);
-    LOC.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 19 });
-    LOC.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
+    LOC.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxNativeZoom: 19, maxZoom: 22 });
+    LOC.street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxNativeZoom: 19, maxZoom: 22 });
     LOC.sat.addTo(LOC.map);
     const pin = L.divIcon({ className: 'lp-pin', iconSize: [30, 42], iconAnchor: [15, 41],
       html: '<svg width="30" height="42" viewBox="0 0 30 42" aria-hidden="true"><path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.3 15 41 15 41s14-15.7 14-26.1C29 7.2 22.7 1 15 1z" fill="#C8960C" stroke="#fff" stroke-width="2"/><circle cx="15" cy="15" r="5.5" fill="#fff"/></svg>' });
@@ -3480,6 +3512,7 @@ async function loadEditorAccess() {
     const me = await arcgisFetch(`https://www.arcgis.com/sharing/rest/community/self?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
     USER_GROUP_IDS = (me.groups || []).map(g => g.id);
     USER_DISPLAY = shortName(me.fullName || me.username || '');
+    USER_FULLNAME = [me.firstName, me.lastName].map(x => String(x || '').trim()).filter(Boolean).join(' ') || String(me.fullName || '').trim() || me.username || '';
     const priv = me.privileges || [];
     USER_CAN_EDIT = priv.some(p => /^features:user:(edit|fullEdit)$/.test(p)) || /admin|publisher/i.test(me.role || '');
   } catch (e) { console.warn('[RVS] could not check editing access', e); }
@@ -4177,7 +4210,8 @@ function renderComboReview() {
   el.innerHTML = missHtml + `<div class="cb-rv-two">` + (ch.length
     ? `<div class="ov-card p2-card"><div class="ov-card-title">Review your changes</div><div class="ed-rv-body"><div class="ed-rv-row ed-rv-head"><div>Field</div><div>Before</div><div>After</div></div>${ch.map(f =>
         `<div class="ed-rv-row"><div>${escHtml(editLabel(f))}</div><div class="ed-rv-old">${escHtml(editShow(f, EDIT.orig[f]))}</div><div class="ed-rv-new">${escHtml(editShow(f, EDIT.draft[f]))}</div></div>`).join('')}</div><div class="ed-rv-msg" role="alert"></div></div>`
-    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`) + phaseMoveHTML() + '</div>';
+    : `<div class="ov-card p2-card"><div class="wiz-empty">No changes yet. Go back to a step and change any highlighted box.</div></div>`)
+    + `<div class="cb-rv-side">${phaseMoveHTML()}<div class="ov-card p2-card"><div class="ov-card-title">Supervising Engineer Notes</div>${engNotesBox(currentRecord(), 'rv')}</div></div>` + '</div>';
 }
 async function comboSave(btn) {
   const a = currentRecord(); if (!a) return;
@@ -4202,6 +4236,8 @@ async function comboSave(btn) {
     list.push({ t: Date.now(), by: USER_DISPLAY || (TOKEN && TOKEN.username) || '', what: historySummary(changes) });
     attrs[CONFIG.historyField] = JSON.stringify(list);
   }
+  const summary = historySummary(changes);
+  const movedTo = changes.includes(FIELDS.phase) ? (PHASE_FLOW[phaseIndexOf(EDIT.draft[FIELDS.phase])] || {}).name || choiceLabel(FIELDS.phase, EDIT.draft[FIELDS.phase]) : '';
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     // a moved point: new geometry, and Latitude / Longitude only if the layer has those fields
@@ -4215,11 +4251,36 @@ async function comboSave(btn) {
     if (changes.includes('__sketch')) { await saveSketch(a); SKETCH_PENDING = null; }
     Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
     EDIT.on = false; EDIT.mode = null; EDIT.draft = {}; EDIT.orig = {}; EDIT.invalid = {};
+    let histErr = '';
+    try { await writeEditHistory(a, summary); } catch (e) { histErr = e.message || String(e); console.warn('[RVS] edit history not written', e); }
     applySavedEdits(a, attrs); updateEditButton();
     if (changes.some(f => f.startsWith('__'))) loadReports(a);
     if (changes.includes('__sketch')) loadAttachments(a.id);
-    showToast(`Saved ${changes.length} change${changes.length > 1 ? 's' : ''}`);
+    showSavedConfirm(changes.length, movedTo, histErr);
   } catch (e) { btn.disabled = false; btn.textContent = 'Save changes'; const m = document.querySelector('#cb-review .ed-rv-msg'); if (m) m.textContent = `Couldn't save: ${e.message || e}`; }
+}
+// "Submitted successfully" for 5 seconds (or until OK), then back to Facility Overview
+function showSavedConfirm(n, movedTo, histErr) {
+  const host = document.getElementById('detail-content') || document.body;
+  document.getElementById('saved-pop')?.remove();
+  const box = document.createElement('div'); box.id = 'saved-pop'; box.className = 'saved-pop'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-labelledby', 'sp-title');
+  // big check that draws itself, with small green checks bursting out around it
+  const mini = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const burst = [[-62, -24, 14, -18], [64, -20, 16, 20], [-52, 16, 12, 12], [56, 18, 13, -10], [-18, -44, 11, 8], [24, -46, 10, -14], [-88, -2, 10, 6], [90, 0, 11, -6]]
+    .map(([x, y, sz, r], i) => `<span class="sp-mini" style="--x:${x}px;--y:${y}px;--s:${sz}px;--r:${r}deg;--d:${0.25 + i * 0.05}s">${mini}</span>`).join('');
+  box.innerHTML = `<div class="sp-card"><div class="sp-burst" aria-hidden="true">${burst}<div class="sp-check"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline class="sp-tick" points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="sp-title" id="sp-title">Submitted successfully</div>
+    <div class="sp-sub">${n} change${n > 1 ? 's' : ''} saved${movedTo ? ` · moved to ${escHtml(movedTo)}` : ''}</div>
+    ${histErr ? `<div class="sp-warn">The edit history wasn't recorded: ${escHtml(histErr)}</div>` : ''}
+    <div class="sp-bar"><span></span></div>
+    <button type="button" class="ed-save sp-ok">OK</button></div>`;
+  host.appendChild(box);
+  switchDetailTab('overview');                         // Facility Overview waits behind the confirmation
+  let done = false;
+  const finish = () => { if (done) return; done = true; clearTimeout(timer); box.classList.add('closing'); setTimeout(() => box.remove(), 220);
+    switchDetailTab('overview'); const c = document.getElementById('detail-content'); if (c) c.scrollTop = 0; };
+  const timer = setTimeout(finish, 5000);
+  box.querySelector('.sp-ok').onclick = finish; box.querySelector('.sp-ok').focus();
 }
 // ── Auto-fill from the functions.js lookups (post-processing phase) ──
 function codeForLabel(f, wanted, fallback) {
@@ -4286,27 +4347,29 @@ function restartComboEdit() {
   if (!userChanges().length) return go();
   appConfirm('Discard your changes and start again from step 1?', 'Discard changes', 'Keep editing').then(ok => { if (ok) go(); });
 }
+function histRowsHTML(a) {
+  const fmtT = t => { const d = new Date(typeof t === 'number' ? t : Date.parse(t)); return isNaN(d) ? ['', ''] : [d.toLocaleDateString(), d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })]; };
+  const rows = historyRows(a), h = HIST[a.id] || {};
+  return `<div id="nt-hist-rows">${rows.length ? rows.map(r => { const [d, t] = fmtT(r.t); return `<div class="nt-tr" role="row"><div>${escHtml(d)}</div><div>${escHtml(t)}</div><div>${escHtml(r.what || '')}</div><div>${escHtml(r.by || '')}</div></div>`; }).join('')
+    : '<div class="nt-tr"><div class="nt-na" style="grid-column:1/-1">No edits recorded yet.</div></div>'}${h.state === 'loading' ? '<div class="nt-note">Loading the edit history…</div>' : h.state === 'error' ? `<div class="nt-note">Couldn't load the edit history: ${escHtml(h.msg || '')}</div>` : ''}</div>`;
+}
 // ── Notes tab (editors only): comments + edit history ──
 function notesTabHTML(a) {
   const at = a.attrs || {};
   const fmtT = t => { const d = new Date(typeof t === 'number' ? t : Date.parse(t)); return isNaN(d) ? ['', ''] : [d.toLocaleDateString(), d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })]; };
-  const rows = historyRows(a);
-  const noHist = !(CONFIG.historyField in at) && !(LAYER_FIELD_TYPES || {})[CONFIG.historyField];
   const editing = EDIT.on && String(EDIT.id) === String(a.id) && EDIT.mode === 'combo';
   return `<div class="rp-wrap">
     <div class="nt-two">
       <div class="ov-card p2-card"><div class="ov-card-title">Screener Comments for Engineer</div>${editing
-        ? comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Screener comments for engineer') : commentBlock(screenerForEngineer(at))}</div>
-      <div class="ov-card p2-card"><div class="ov-card-title">Engineer Comments</div>${editing
-        ? comboTextBox(a, 'EngineerNotes', String(at.EngineerNotes ?? '').trim(), 'Engineer comments') : commentBlock([['Final review', String(at.EngineerNotes ?? '').trim()]])}</div>
+        ? comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Screener comments for engineer') : (joinedEngineerComments(at) ? `<div class="nt-c"><div class="nt-c-v">${escHtml(joinedEngineerComments(at))}</div></div>` : '<div class="nt-na">N/A</div>')}</div>
+      <div class="ov-card p2-card"><div class="ov-card-title">Supervising Engineer Notes</div>${editing
+        ? engNotesBox(a, 'nt') : (String(at.EngineerNotes ?? '').trim() ? `<div class="nt-c"><div class="nt-c-v">${escHtml(String(at.EngineerNotes).trim())}</div></div>` : '<div class="nt-na">N/A</div>')}</div>
     </div>
     <div class="ov-card p2-card nt-hist"><div class="ov-card-title">Edit History</div>
       <div class="nt-table" role="table">
         <div class="nt-tr nt-th" role="row"><div>Date</div><div>Time</div><div>Change</div><div>By</div></div>
-        ${rows.length ? rows.map(r => { const [d, t] = fmtT(r.t); return `<div class="nt-tr" role="row"><div>${escHtml(d)}</div><div>${escHtml(t)}</div><div>${escHtml(r.what || '')}</div><div>${escHtml(r.by || '')}</div></div>`; }).join('')
-          : '<div class="nt-tr"><div class="nt-na" style="grid-column:1/-1">No edits recorded yet.</div></div>'}
+        ${histRowsHTML(a)}
       </div>
-      ${noHist ? `<div class="nt-note">Only "created" and "last edited" can be shown: add a text field named <b>${escHtml(CONFIG.historyField)}</b> to the layer to keep the full history of edits made in this app.</div>` : ''}
     </div>
   </div>`;
 }
@@ -4685,7 +4748,7 @@ function editLabel(f) {
   if (/^__att\d$/.test(f)) return `Attachment ${f.slice(5)}`;
   if (/^__del\d+$/.test(f)) return 'Remove attachment';
   if (f === '__sketch') return 'Sketch (Sketch1)';
-  const extra = { OtherHazards: 'Other hazards (trigger a detailed evaluation)', Level1Comments: 'Screener comments', ReviewComments: 'Comments for engineer', EngineerNotes: 'Engineer comments', SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
+  const extra = { OtherHazards: 'Other hazards (trigger a detailed evaluation)', Level1Comments: 'Screener comments', ReviewComments: 'Comments for engineer', EngineerNotes: 'Supervising Engineer Notes', SeismicitySource: 'Seismicity source', SsSpectralAcc: 'Ss (g)', S1SpectralAcc: 'S1 (g)', SeismicitySs: 'Seismicity from Ss', SeismicityS1: 'Seismicity from S1' };
   if (extra[f]) return extra[f];
   const ph = phaseCfg(); if (ph && ph.editable && ph.editable[f]) return ph.editable[f][0];
   for (const groups of Object.values(EDIT_TABS(a))) for (const [, fields] of groups) { const hit = fields.find(x => x[0] === f); if (hit) return hit[1]; }
@@ -4811,6 +4874,29 @@ function comboTextBox(a, field, joined, label) {
   return `<div class="ed-row cb-bigbox" data-f="${escHtml(field)}"><textarea id="ed_${escHtml(field)}" data-f="${escHtml(field)}" class="ed-in ed-ta cb-allcm" rows="5" maxlength="8000"
     aria-label="${escHtml(label)}" oninput="editSet('${escHtml(field)}', this.value)">${escHtml(v)}</textarea><div class="ed-err" hidden></div></div>`;
 }
+// Supervising Engineer Notes (EngineerNotes): one box, limited to 1000 words
+const ENG_NOTES_MAX_WORDS = 1000;
+const countWords = t => (String(t || '').trim().match(/\S+/g) || []).length;
+function engNotesBox(a, key) {
+  const at = (a && a.attrs) || {}, v = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, 'EngineerNotes') ? EDIT.draft.EngineerNotes : String(at.EngineerNotes ?? '');
+  const n = countWords(v);
+  return `<div class="ed-row cb-bigbox${Object.prototype.hasOwnProperty.call(EDIT.draft || {}, 'EngineerNotes') && _raw(v) !== _raw(EDIT.orig.EngineerNotes) ? ' ed-changed' : ''}" data-f="EngineerNotes">
+    <textarea id="ed_EngineerNotes_${key}" class="ed-in ed-ta cb-allcm" rows="6" aria-label="Supervising Engineer Notes" aria-describedby="en_count_${key}"
+      oninput="engNotesInput(this)" onchange="if (comboCurrent() === 'review') setTimeout(renderComboReview, 0)">${escHtml(v)}</textarea>
+    <div class="en-count${n >= ENG_NOTES_MAX_WORDS ? ' full' : ''}" id="en_count_${key}">${n.toLocaleString()} / ${ENG_NOTES_MAX_WORDS.toLocaleString()} words${n >= ENG_NOTES_MAX_WORDS ? ' - limit reached' : ''}</div></div>`;
+}
+function engNotesInput(ta) {
+  let v = ta.value;
+  if (countWords(v) > ENG_NOTES_MAX_WORDS) {                       // keep only the first 1000 words
+    const m = v.match(new RegExp(`^\\s*(?:\\S+\\s+){${ENG_NOTES_MAX_WORDS - 1}}\\S+`));
+    if (m) { v = m[0]; ta.value = v; }
+  }
+  editSet('EngineerNotes', v);
+  document.querySelectorAll('#sheet-body textarea[id^="ed_EngineerNotes_"], #sheet-body #ed_EngineerNotes').forEach(o => { if (o !== ta) { o.value = v; const oc = o.parentNode.querySelector('.en-count'); if (oc) oc.textContent = `${countWords(v).toLocaleString()} / ${ENG_NOTES_MAX_WORDS.toLocaleString()} words`; } });   // Notes tab + Review keep in step
+  const n = countWords(v), c = ta.parentNode.querySelector('.en-count');
+  if (c) { c.textContent = `${n.toLocaleString()} / ${ENG_NOTES_MAX_WORDS.toLocaleString()} words${n >= ENG_NOTES_MAX_WORDS ? ' - limit reached' : ''}`; c.classList.toggle('full', n >= ENG_NOTES_MAX_WORDS); }
+  ta.closest('.ed-row').classList.toggle('ed-changed', _raw(v) !== _raw(EDIT.orig.EngineerNotes));
+}
 function joinedEngineerComments(at) { return screenerForEngineer(at).map(([, v]) => v).filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k).join('\n\n'); }
 function joinedScreenerComments(at) {
   return [at.Level1Comments, at.ScreenerCommentsBuilding, at.ScreenerCommentsExterior, at.ScreenerCommentsInterior]
@@ -4821,6 +4907,47 @@ function commentBlock(items) {
 }
 // ── Edit history ──
 let USER_DISPLAY = '';
+let USER_FULLNAME = '';                            // "First Last" from the ArcGIS profile (Editor in the Edit_History table)
+const HIST = {};                                   // record id → { state, rows: [{ t, by, what }] } from the Edit_History table
+async function histTableUrl() {
+  const H = CONFIG.editHistory; if (!H || !H.itemId) return null;
+  const data = await arcgisFetch(`${CONFIG.itemInfoUrl}/${H.itemId}?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+  if (!data.url) throw new Error('the edit history item has no service URL');
+  let url = String(data.url).replace(/\/+$/, ''); if (!/\/\d+$/.test(url)) url += `/${H.layerIndex || 0}`;
+  return url;
+}
+let _HIST_URL = null;
+const histUrl = async () => _HIST_URL || (_HIST_URL = await histTableUrl());
+async function loadEditHistory(a) {
+  const H = CONFIG.editHistory; if (!H || !TOKEN || !a) return;
+  HIST[a.id] = Object.assign(HIST[a.id] || { rows: [] }, { state: 'loading' });
+  try {
+    const url = await histUrl(), info = await layerInfoOf(url), F = H.fields;
+    const gid = await reportParentGid(a), bare = gid.replace(/[{}]/g, '');
+    const pf = (layerField(info, F.parent) || {}).name || F.parent;
+    const vals = [...new Set([`{${bare.toUpperCase()}}`, `{${bare.toLowerCase()}}`, bare.toUpperCase(), bare.toLowerCase()])].map(v => `'${v}'`).join(',');
+    const j = await arcgisFetch(`${url}/query?where=${encodeURIComponent(`${pf} IN (${vals})`)}&outFields=*&returnGeometry=false&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+    const g = (at, n) => { const f = layerField(info, n); return f ? at[f.name] : undefined; };
+    HIST[a.id] = { state: 'ok', rows: (j.features || []).map(ft => ({ t: g(ft.attributes, F.date), by: g(ft.attributes, F.editor) || '', what: g(ft.attributes, F.history) || '' })) };
+  } catch (e) { console.warn('[RVS] edit history', e); HIST[a.id] = { state: 'error', msg: e.message || String(e), rows: [] }; }
+  refreshHistTable(a);
+}
+function refreshHistTable(a) {
+  const el = document.getElementById('nt-hist-rows'); const cur = currentRecord();
+  if (el && cur && String(cur.id) === String(a.id)) el.outerHTML = histRowsHTML(a);
+}
+// Add a row to the Edit_History table for this save
+async function writeEditHistory(a, what) {
+  const H = CONFIG.editHistory; if (!H) return;
+  const url = await histUrl(), info = await layerInfoOf(url), F = H.fields, attrs = {};
+  const put = (n, v) => { const f = layerField(info, n); if (!f || v === undefined || v === null || v === '') return; attrs[f.name] = (f.type === 'esriFieldTypeString' && f.length && String(v).length > f.length) ? String(v).slice(0, f.length - 1) + '…' : v; };
+  put(F.parent, await reportParentGid(a)); put(F.history, what); put(F.date, Date.now()); put(F.editor, USER_FULLNAME || USER_DISPLAY || (TOKEN && TOKEN.username) || '');
+  const j = await (await fetch(`${url}/applyEdits`, { method: 'POST', body: new URLSearchParams({ f: 'json', token: TOKEN.accessToken, adds: JSON.stringify([{ attributes: attrs }]) }) })).json();
+  const r = (j.addResults || [])[0];
+  if (j.error || !r || !r.success) throw new Error((j.error && j.error.message) || (r && r.error && r.error.description) || 'the history row was not added');
+  const rows = (HIST[a.id] && HIST[a.id].rows) || [];
+  HIST[a.id] = { state: 'ok', rows: rows.concat([{ t: attrs[(layerField(info, F.date) || {}).name] || Date.now(), by: attrs[(layerField(info, F.editor) || {}).name] || '', what }]) };
+}
 function shortName(full) { const p = String(full || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : (p[0] || ''); }
 function readHistory(a) {
   const at = a.attrs || {}, raw = at[CONFIG.historyField];
@@ -4834,8 +4961,8 @@ function readHistory(a) {
   return list;
 }
 function historyRows(a) {
-  const list = readHistory(a), at = a.attrs || {}, efi = LAYER_EFI || {};
-  if (!(CONFIG.historyField in at) && !(LAYER_FIELD_TYPES || {})[CONFIG.historyField]) {
+  const list = readHistory(a).concat(((HIST[a.id] || {}).rows) || []), at = a.attrs || {}, efi = LAYER_EFI || {};
+  if (!(CONFIG.historyField in at) && !(LAYER_FIELD_TYPES || {})[CONFIG.historyField] && !((HIST[a.id] || {}).rows || []).length) {
     const eDate = at[efi.editDateField || 'EditDate'], eBy = at[efi.editorField || 'Editor'];
     if (eDate) list.push({ t: eDate, by: eBy ? shortName(eBy) : '', what: 'Last edited' });
   }
@@ -4940,6 +5067,7 @@ function openDetail(a) {
   // Load attachments (photos from the record, reports from the related layer)
   loadAttachments(a.id);
   loadReports(a);
+  if (EDIT_URL_ON && canEditRecords()) loadEditHistory(a);
 }
 function closeDetail() {
   if (EDIT.on && !cancelEdit(false, closeDetail)) return;
