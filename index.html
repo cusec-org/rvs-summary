@@ -829,7 +829,7 @@
   .seismo-pop.done .seismo-cv { opacity: .55; transition: opacity .3s; }
   @keyframes seismoIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .seismo-pop { animation: none; } }
-  .ac-wrap { position: absolute; inset: 0; z-index: 40; background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .ac-wrap { position: absolute; inset: 0; z-index: 70;   /* above the floating photos panel (60) */ background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
   .ac-card { background: #fff; border-radius: 12px; padding: 18px 20px; width: min(380px, 100%); box-shadow: var(--shadow-lg); }
   .ac-msg { font-size: 15px; font-weight: 700; color: #13233d; margin-bottom: 14px; }
   .ac-actions { display: flex; justify-content: flex-end; gap: 10px; }
@@ -845,6 +845,26 @@
   .calc-src { margin-top: 6px; font-size: 11.5px; font-weight: 700; display: inline-block; padding: 2px 8px; border-radius: 999px; }
   .calc-src.live { background: #e3f2e5; color: #1e6b2a; }
   .calc-src.saved { background: #fff4e0; color: #8a4b00; font-weight: 600; }
+  .sec-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .sec-head-row .sec-label { margin: 0; }
+  .ph-add { position: relative; padding: 6px 12px !important; }
+  .attachment-tile.ph-editable { position: relative; }
+  .ph-acts { position: absolute; left: 6px; right: 6px; top: 6px; display: flex; justify-content: flex-end; gap: 6px; opacity: 0; transition: opacity .15s; z-index: 2; }
+  .attachment-tile.ph-editable:hover .ph-acts, .attachment-tile.ph-editable:focus-within .ph-acts { opacity: 1; }
+  @media (hover: none) { .ph-acts { opacity: 1; } }
+  .ph-act { position: relative; font: 700 11.5px 'DM Sans', sans-serif; padding: 4px 9px; border-radius: 6px; border: 0; background: rgba(255,255,255,.95); color: #0B2E6B; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .ph-act.ph-del { color: #b3261e; }
+  .ph-act:hover { background: #fff; }
+  .pa-card { width: min(560px, 100%); }
+  .pa-sub { font-size: 13px; color: var(--text2); margin: -6px 0 12px; line-height: 1.45; }
+  .pa-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 50vh; overflow: auto; }
+  .pa-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; align-items: center; }
+  .pa-file { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pa-err { margin: -4px 0 10px; }
+  .pd-in { margin-bottom: 14px; letter-spacing: 1px; }
+  .ph-dlg { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 14px; }
+  .ph-files { font-size: 12.5px; color: var(--text2); margin: -4px 0 14px; overflow-wrap: anywhere; }
+  .ph-dlg .ph-files { margin: 4px 0 0; }
   .calc-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .calc-save:not(:disabled) { background: #0B2E6B; color: #fff; }
   .calc-save:not(:disabled):hover { background: #13408f; }
@@ -6081,7 +6101,7 @@ function buildDetailHTML(a) {
       ${combo ? `<div class="dtab-panel" data-panel="review" role="tabpanel" hidden><div class="cb-wrap" id="cb-review"></div></div>` : ''}
       <div class="dtab-panel" data-panel="calc" role="tabpanel" hidden>${calcHTML}</div>
       <div class="dtab-panel tab-stack" data-panel="photos" role="tabpanel" hidden>
-        <div class="ov-card tab-card"><div class="sec"><div class="sec-label">Photos &amp; Attachments</div>
+        <div class="ov-card tab-card"><div class="sec"><div class="sec-head-row"><div class="sec-label">Photos &amp; Attachments</div><div id="photo-tools"></div></div>
           <div id="attachment-area"><div class="attachment-tile loading" style="aspect-ratio:unset;height:44px;border-radius:8px;width:100%"></div></div>
         </div></div>
       </div>
@@ -6169,6 +6189,137 @@ function toggleRelatedPhotos(btn) {
   btn.setAttribute('aria-label', lbl); btn.title = lbl;
 }
 
+// ── Photos tab: add / replace / delete photos (edit and phase links, editors only) ──
+// Changes go straight to the record's attachments on the editable layer, each after a confirmation,
+// and are noted in the Edit_History table. Only while the record is being edited (pencil) in an edit or phase link;
+// the photos open from "View all photos and attachments" in the edit steps.
+// The survey's photo questions (image questions in RVS_Major_Revision_2026.xlsx), in form order. Each
+// holds one photo; a photo's attachment keyword is the question name. "Add photos" offers the ones not in use yet.
+const PHOTO_SLOTS = [
+  ['BuildingPhoto', 'Building Photo'],
+  ['Sketch1', 'Sketch 1'], ['Sketch2', 'Sketch 2'], ['Sketch3', 'Sketch 3'], ['Sketch4', 'Sketch 4'],
+  ['Document1', 'Document 1'], ['Document2', 'Document 2'],
+  ['GeneratorPhoto', 'Generator Photo'], ['GasMeterPhoto', 'Gas Meter Photo'],
+  ['ExteriorReviewPhoto1', 'Exterior Review Photo 1'], ['ExteriorReviewPhoto2', 'Exterior Review Photo 2'],
+  ['ExteriorEngineerPhoto1', 'Exterior Photo for Engineer Review 1'], ['ExteriorEngineerPhoto2', 'Exterior Photo for Engineer Review 2'],
+  ['IrrEngineerPhoto1', 'Irregularities Photo for Engineer Review 1'], ['IrrEngineerPhoto2', 'Irregularities Photo for Engineer Review 2'],
+  ['DrawingPhoto1', 'Drawing 1'], ['DrawingPhoto2', 'Drawing 2'], ['DrawingPhoto3', 'Drawing 3'],
+  ['StructuralFramePhoto1', 'Structural Frame Photo 1'], ['StructuralFramePhoto2', 'Structural Frame Photo 2'],
+  ['InteriorEngineerPhoto1', 'Building Type/Interior Photo for Engineer Review 1'], ['InteriorEngineerPhoto2', 'Building Type/Interior Photo for Engineer Review 2'],
+  ['NonstructuralPhoto1', 'Nonstructural Observation Photo 1'], ['NonstructuralPhoto2', 'Nonstructural Observation Photo 2'], ['NonstructuralPhoto3', 'Nonstructural Observation Photo 3'],
+  ['NonstructuralPhoto4', 'Nonstructural Observation Photo 4'], ['NonstructuralPhoto5', 'Nonstructural Observation Photo 5'],
+];
+const photoSlotLabel = kw => (PHOTO_SLOTS.find(p => p[0].toLowerCase() === String(kw || '').toLowerCase()) || [, kw || 'Other'])[1];
+function freePhotoSlots() {
+  const used = new Set((LAST_ATTACH.infos || []).map(i => String(i.keywords || '').trim().toLowerCase()).filter(Boolean));
+  return PHOTO_SLOTS.filter(([k]) => !used.has(k.toLowerCase()));
+}
+// Add dialog: one row per chosen file, each with its own photo question (open ones only, no two the same)
+function photoAddDialog(files, slots) {
+  return new Promise(resolve => {
+    const host = document.getElementById('detail-content') || document.body;
+    const box = document.createElement('div'); box.className = 'ac-wrap'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pa-title');
+    const opts = sel => slots.map(([k, l]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${escHtml(l)}</option>`).join('');
+    box.innerHTML = `<div class="ac-card pa-card"><div class="ac-msg" id="pa-title">Add ${files.length} photo${files.length > 1 ? 's' : ''} to this record</div>
+        <div class="pa-sub">Choose which survey photo each one is. Only photos that aren't on the record yet are listed.</div>
+        <div class="pa-rows">${files.map((f, k) => `<div class="pa-row"><div class="pa-file" title="${escHtml(f.name)}">${escHtml(f.name)}</div>
+          <select class="ed-in pa-sel" aria-label="Photo for ${escHtml(f.name)}">${opts(slots[k] ? slots[k][0] : '')}</select></div>`).join('')}</div>
+        <div class="ed-err pa-err" hidden></div>
+        <div class="ac-actions"><button class="ed-cancel ac-no">Cancel</button><button class="ed-save ac-yes">Add</button></div></div>`;
+    const done = v => { box.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); done(null); } };
+    box.querySelector('.ac-no').onclick = () => done(null);
+    box.querySelector('.ac-yes').onclick = () => {
+      const picks = [...box.querySelectorAll('.pa-sel')].map(x => x.value);
+      if (new Set(picks).size !== picks.length) { const er = box.querySelector('.pa-err'); er.hidden = false; er.textContent = 'Each photo needs a different survey photo.'; return; }
+      done(picks);
+    };
+    document.addEventListener('keydown', onKey, true);
+    host.appendChild(box); box.querySelector('.pa-sel').focus();
+  });
+}
+// Delete confirmation: the user has to type DELETE
+function photoDeleteDialog(name) {
+  return new Promise(resolve => {
+    const host = document.getElementById('detail-content') || document.body;
+    const box = document.createElement('div'); box.className = 'ac-wrap'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'pd-title');
+    box.innerHTML = `<div class="ac-card"><div class="ac-msg" id="pd-title">Delete ${escHtml(name)}?</div>
+        <div class="pa-sub">This removes the photo from the record and can't be undone. Type <b>DELETE</b> to confirm.</div>
+        <input type="text" class="ed-in pd-in" autocomplete="off" spellcheck="false" aria-label="Type DELETE to confirm" placeholder="DELETE">
+        <div class="ac-actions"><button class="ed-cancel ac-no">Cancel</button><button class="ed-save ac-yes pd-yes" disabled>Delete photo</button></div></div>`;
+    const inp = box.querySelector('.pd-in'), yes = box.querySelector('.pd-yes');
+    const done = v => { box.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); done(false); } else if (e.key === 'Enter' && !yes.disabled && box.contains(e.target)) { e.preventDefault(); done(true); } };
+    inp.addEventListener('input', () => { yes.disabled = inp.value.trim() !== 'DELETE'; });
+    box.querySelector('.ac-no').onclick = () => done(false); yes.onclick = () => done(true);
+    document.addEventListener('keydown', onKey, true);
+    host.appendChild(box); inp.focus();
+  });
+}
+const PHOTO_MAX = 10 * 1024 * 1024;
+function photosEditable(a) { return !!a && EDIT_URL_ON && EDIT.on && String(EDIT.id) === String(a.id) && !EDIT_LAYER_DENIED && canEditRecords(); }   // only while the record is being edited
+function addPhotoControls(objectId, infos) {
+  const a = assets.find(x => String(x.id) === String(objectId));
+  const tools = document.getElementById('photo-tools'); if (!tools) return;
+  if (!photosEditable(a)) { tools.innerHTML = ''; return; }
+  tools.innerHTML = `<label class="calc-recalc ph-add"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add photos
+      <input type="file" accept="image/*" multiple class="rp-file" onchange="photoAdd(this)"></label>`;
+  const tiles = document.querySelectorAll('#attachment-area .attachment-grid > .attachment-tile');
+  infos.forEach((info, k) => {
+    const t = tiles[k]; if (!t) return;
+    t.classList.add('ph-editable');
+    t.insertAdjacentHTML('beforeend', `<div class="ph-acts" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+        <label class="ph-act" title="Replace this photo">Replace<input type="file" accept="image/*" class="rp-file" onchange="photoReplace(${Number(info.id)}, this)"></label>
+        <button type="button" class="ph-act ph-del" title="Delete this photo" onclick="photoDelete(${Number(info.id)})">Delete</button></div>`);
+  });
+}
+async function photoUpload(objectId, file, keyword) {
+  const fd = new FormData(); fd.append('attachment', file, file.name); fd.append('keywords', keyword || ''); fd.append('f', 'json'); fd.append('token', TOKEN.accessToken);
+  const j = await (await fetch(`${CONFIG.serviceUrl}/${objectId}/addAttachment`, { method: 'POST', body: fd })).json();
+  if (j.error || !(j.addAttachmentResult && j.addAttachmentResult.success)) throw new Error((j.error && j.error.message) || `${file.name} was not uploaded`);
+}
+async function photoRemove(objectId, ids) {
+  const j = await (await fetch(`${CONFIG.serviceUrl}/${objectId}/deleteAttachments`, { method: 'POST', body: new URLSearchParams({ f: 'json', token: TOKEN.accessToken, attachmentIds: ids.join(',') }) })).json();
+  const bad = j.error || (j.deleteAttachmentResults || []).some(r => !r.success);
+  if (bad) throw new Error((j.error && j.error.message) || 'the photo was not deleted');
+}
+const photoCheck = f => !/^image\//.test(f.type || '') ? `${f.name} isn't an image.` : f.size > PHOTO_MAX ? `${f.name} is ${(f.size / 1048576).toFixed(1)} MB - the limit is 10 MB.` : '';
+async function photoDone(a, what, msg) {
+  try { await writeEditHistory(a, what); } catch (e) { console.warn('[RVS] edit history not written', e); }
+  await loadAttachments(a.id); showToast(msg);
+}
+async function photoAdd(input) {
+  const a = currentRecord(); const files = [...(input.files || [])]; input.value = '';
+  if (!files.length || !photosEditable(a)) return;
+  const bad = files.map(photoCheck).filter(Boolean); if (bad.length) { showToast(bad[0]); return; }
+  const slots = freePhotoSlots();
+  if (!slots.length) { showToast('Every survey photo is already on this record - replace one instead.'); return; }
+  if (files.length > slots.length) { showToast(`Only ${slots.length} survey photo${slots.length > 1 ? 's are' : ' is'} still open - pick fewer files.`); return; }
+  const picks = await photoAddDialog(files, slots); if (!picks) return;
+  showToast('Uploading…');
+  try { for (let k = 0; k < files.length; k++) await photoUpload(a.id, files[k], picks[k]); }
+  catch (e) { showToast(`Couldn't add: ${e.message || e}`); await loadAttachments(a.id); return; }
+  await photoDone(a, `Photo${files.length > 1 ? 's' : ''} added: ${files.map((f, k) => `${photoSlotLabel(picks[k])} (${f.name})`).join(', ')}`, `Added ${files.length} photo${files.length > 1 ? 's' : ''}`);
+}
+async function photoReplace(attId, input) {
+  const a = currentRecord(); const f = input.files && input.files[0]; input.value = '';
+  if (!f || !photosEditable(a)) return;
+  const bad = photoCheck(f); if (bad) { showToast(bad); return; }
+  const old = (LAST_ATTACH.infos || []).find(i => Number(i.id) === Number(attId)); if (!old) return;
+  if (!await appConfirm(`Replace ${old.name} with ${f.name}?`, 'Replace', 'Cancel', '<div class="ph-files">The old photo is deleted once the new one is uploaded.</div>')) return;
+  showToast('Uploading…');
+  try { await photoUpload(a.id, f, old.keywords || ''); await photoRemove(a.id, [attId]); }
+  catch (e) { showToast(`Couldn't replace: ${e.message || e}`); await loadAttachments(a.id); return; }
+  await photoDone(a, `Photo replaced: ${old.name} → ${f.name}`, 'Photo replaced');
+}
+async function photoDelete(attId) {
+  const a = currentRecord(); if (!photosEditable(a)) return;
+  const old = (LAST_ATTACH.infos || []).find(i => Number(i.id) === Number(attId)); if (!old) return;
+  if (!await photoDeleteDialog(old.name)) return;
+  try { await photoRemove(a.id, [attId]); }
+  catch (e) { showToast(`Couldn't delete: ${e.message || e}`); return; }
+  await photoDone(a, `Photo deleted: ${old.name}`, 'Photo deleted');
+}
 async function loadAttachments(objectId) {
   const area = document.getElementById('attachment-area');
   const slots = [...document.querySelectorAll('#sheet-body .ov-photo-slot')];
@@ -6177,6 +6328,7 @@ async function loadAttachments(objectId) {
   LAST_ATTACH = { id: objectId, infos: result.state === 'error' ? [] : result.infos }; renderReports();
   if (result.state === 'error' || !result.infos.length) {
     area.innerHTML = `<div style="font-size:12px;color:var(--text3);font-style:italic">No attachments</div>`;
+    addPhotoControls(objectId, []);
     const pe = document.getElementById('p154-photos'); if (pe) pe.innerHTML = '';
     slots.forEach(el => { el.innerHTML = `<div class="ov-nophoto">No photos</div>`; });
     return;
@@ -6202,6 +6354,7 @@ async function loadAttachments(objectId) {
   LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
   // Photos tab: everything, Building Photo + Sketch first
   area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
+  addPhotoControls(objectId, [...featured, ...rest]);
   // P-154 tab photos, in this order (skipping any that don't exist):
   // main building photo, exterior 1-2, structural 1-2, irregularity
   // (Photo 10-11 vertical, 12-13 plan), structural frame 1-2, drawings 1-2.
