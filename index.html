@@ -3136,7 +3136,11 @@ function fitStatsLabels() {
 if (window.ResizeObserver) document.addEventListener('DOMContentLoaded', () => { const b = document.getElementById('stats-bar'); if (b) new ResizeObserver(() => fitStatsLabels()).observe(b); });
 // Phased edits (post / qaqc / engineer / complete): the list, map and filter counts only
 // hold screenings currently in that phase. Field collection and the read-only view show all.
-function inSessionPhase(a) { return !(typeof phaseCfg === 'function' && phaseCfg()) || recordPhaseIndex(a) === queuePhaseIndex(); }
+function inSessionPhase(a) {
+  // The plain read-only link only shows finished screenings (Phase = Complete)
+  if (!EDIT_URL_ON) return recordPhaseIndex(a) === PHASE_FLOW.findIndex(p => p.key === 'complete');
+  return !(typeof phaseCfg === 'function' && phaseCfg()) || recordPhaseIndex(a) === queuePhaseIndex();
+}
 function getFiltered(skipPhase) {
   let list = assets.filter(a => {
     if (!inSessionPhase(a)) return false;
@@ -3176,8 +3180,8 @@ function renderList() {
   renderPhaseSwitcher(); updatePhaseChooserCounts();
   try { refreshFilterCounts(); } catch (e) { console.warn('[RVS] filter counts', e); }
   const phased = !!phaseCfg(), pb = document.getElementById('phase-filter-btn');
-  if (pb) pb.hidden = phased;
-  if (phased && MULTI_FILTERS.phase.active.size) { MULTI_FILTERS.phase.active.clear(); updateMultiBtns(); updateActiveFilterBar(); }
+  if (pb) pb.hidden = phased || !EDIT_URL_ON;          // no Phase filter on the read-only link (it's Complete only)
+  if ((phased || !EDIT_URL_ON) && MULTI_FILTERS.phase.active.size) { MULTI_FILTERS.phase.active.clear(); updateMultiBtns(); updateActiveFilterBar(); }
   const filtered = getFiltered();
   const el = document.getElementById('asset-list');
   const countEl = document.getElementById('list-count');
@@ -3190,7 +3194,7 @@ function renderList() {
     const total = filtered.length;
     const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
     const phases = [...activePhases];
-    const totalLabel = phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
+    const totalLabel = !EDIT_URL_ON ? 'Screenings Complete' : phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
                      : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
