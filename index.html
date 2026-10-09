@@ -275,6 +275,8 @@
   .card-action.primary { color: var(--cusec-blue); }
 
   /* ── Empty/status ── */
+  .err-said { display: block; margin-top: 8px; font-size: 12px; color: var(--text3); }
+  .empty-state code { font-size: 12px; background: var(--surface2); padding: 1px 4px; border-radius: 4px; }
   .empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
   .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; line-height: 1.5; }
@@ -2495,13 +2497,30 @@ async function arcgisFetch(url, _retried) {
     if (data.error.code === 498 || data.error.code === 499) {
       const err = new Error('Session expired'); err.tokenExpired = true; throw err;
     }
-    throw new Error(data.error.message || 'ArcGIS error');
+    const err = new Error(data.error.message || (data.error.details || []).join(' ') || `ArcGIS error ${data.error.code || ''}`.trim());
+    err.code = data.error.code; err.messageCode = data.error.messageCode; err.arcgis = true;
+    throw err;
   }
   return data;
 }
+// "Your account can't open this item" (not shared with the user, wrong org, item deleted / moved)
+function isAccessError(e) {
+  return !!e && (e.code === 403 || /GWM_0003|CONT_0001/.test(e.messageCode || '') || /HTTP 403/.test(e.message || '')
+    || /permission|not authorized|not shared|does not exist or is inaccessible|access denied/i.test(e.message || ''));
+}
+// Plain explanation shown in the list when the records can't be loaded
+function loadErrorHTML(err) {
+  const who = (TOKEN && TOKEN.username) || USER_DISPLAY || 'your account';
+  const item = activeItemId(), which = item === CONFIG.editItemId ? 'editable RVS layer (used by ?edit=1 links)' : 'RVS screenings layer';
+  const said = escHtml(err && err.message ? err.message : 'Failed to load data.') + (err && err.code ? ` (code ${escHtml(String(err.code))}${err.messageCode ? ', ' + escHtml(err.messageCode) : ''})` : '');
+  if (isAccessError(err)) return `<b>No access to the screenings.</b><br>Signed in as <b>${escHtml(who)}</b>, which can't open the ${which}.<br>
+      Ask the layer owner to share item <code>${escHtml(item)}</code> with this account or a group it's in, then press Retry.<br><span class="err-said">ArcGIS said: ${said}</span>`;
+  return `<b>The screenings couldn't be loaded.</b><br><span class="err-said">ArcGIS said: ${said}</span>`;
+}
 
 // Which layer this session uses: the editable layer with ?edit=1, else the read-only one
-function activeItemId() { return (EDIT_URL_ON && CONFIG.editItemId) ? CONFIG.editItemId : CONFIG.targetItemId; }
+let EDIT_LAYER_DENIED = false;   // the account can't open the editable layer: show the read-only records instead
+function activeItemId() { return (EDIT_URL_ON && CONFIG.editItemId && !EDIT_LAYER_DENIED) ? CONFIG.editItemId : CONFIG.targetItemId; }
 // Looks up the hosted FeatureServer URL from the active item
 // (same approach as RVS-Side-by-Side's resolveServiceUrls()).
 async function resolveServiceUrl() {
@@ -2707,6 +2726,12 @@ async function fetchAssets() {
     updateLastRefreshed(false);
   } catch (err) {
     if (err.tokenExpired) { showLoginScreen(); return; }
+    console.warn('[RVS] loading records failed', err);
+    if (isAccessError(err) && EDIT_URL_ON && activeItemId() === CONFIG.editItemId && CONFIG.targetItemId) {
+      EDIT_LAYER_DENIED = true; CONFIG.serviceUrl = null;
+      showToast("Your account can't open the editable layer, so you're seeing the read-only records.");
+      setLoadingState(false); return fetchAssets();
+    }
     // Try cache
     const cached = loadCachedData();
     if (cached) {
@@ -2717,7 +2742,7 @@ async function fetchAssets() {
       setOfflineBanner(true);
       updateLastRefreshed(true, cached.ts);
     } else {
-      showError(err.message || 'Failed to load data.');
+      showError(loadErrorHTML(err));
     }
   } finally {
     setLoadingState(false);
