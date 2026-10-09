@@ -3194,7 +3194,7 @@ function renderList() {
     const total = filtered.length;
     const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
     const phases = [...activePhases];
-    const totalLabel = !EDIT_URL_ON ? 'Screenings Complete' : phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
+    const totalLabel = !EDIT_URL_ON ? 'Screenings' : phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
                      : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
     const statsBar = document.getElementById('stats-bar');
     statsBar.removeAttribute('hidden');
