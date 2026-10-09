@@ -2137,6 +2137,7 @@ async function saveCalcToRecord() {
 }
 // Calculations tab "Recalculate": run the ASCE 7-22, soil type and liquefaction lookups again for this record
 function recalcLookups() {
+  if (!EDIT_URL_ON) return;                            // read-only link never recalculates
   const a = assets.find(x => String(x.id) === String(selectedId)); if (!a) return;
   const key = calcKey(a); if (!key) return;
   delete CALC_STATE[key];
@@ -2891,7 +2892,7 @@ function buildFilterDropdown() {
     return `<div class="fdd-item" data-key="${key}" role="option" aria-selected="false">
       <div class="fdd-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" style="display:none"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="fdd-icon">${iconHtml}</div>
-      <span>${key}</span>
+      <span>${key}</span><span class="fdd-count">0</span>
     </div>`;
   }).join('');
   dd.querySelectorAll('.fdd-item').forEach(item => {
@@ -2980,6 +2981,27 @@ const MULTI_FILTERS = {
             name: k => { if (k === NO_VALUE) return 'No County'; const [c, st] = k.split('|'); return st ? `${choiceLabel(FIELDS.county, c)}, ${choiceLabel(FIELDS.state, st)}` : choiceLabel(FIELDS.county, c); },
             scope: a => MULTI_FILTERS.state.active.size === 0 || MULTI_FILTERS.state.active.has(MULTI_FILTERS.state.get(a)) },
 };
+// Passes every active filter except `skip` ('facility' or a MULTI_FILTERS key). Each filter list's counts
+// use this, so they always reflect the other filters (and the search) currently applied.
+function passesAllExcept(a, skip) {
+  if (!inSessionPhase(a)) return false;
+  if (!Object.entries(MULTI_FILTERS).every(([k, f]) => k === skip || f.active.size === 0 || f.active.has(f.get(a)))) return false;
+  if (skip !== 'facility' && activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
+  if (activeScoreFilter !== 'all') {
+    const sc = a.level1Score;
+    if (activeScoreFilter === 'green'  && !(sc !== null && sc >= 2.0)) return false;
+    if (activeScoreFilter === 'orange' && !(sc !== null && sc >= 1.0 && sc < 2.0)) return false;
+    if (activeScoreFilter === 'red'    && !(sc !== null && sc < 1.0)) return false;
+  }
+  if (searchTerm) { const h = `${a.buildingName} ${a.address} ${a.city} ${a.county} ${a.screener} ${a.facilityType}`.toLowerCase(); if (!h.includes(searchTerm)) return false; }
+  return true;
+}
+// Refresh the counts in every filter list (called whenever the list is redrawn)
+function refreshFilterCounts() {
+  Object.keys(MULTI_FILTERS).forEach(k => { const dd = document.getElementById(MULTI_FILTERS[k].dd); if (dd) buildMultiDropdown(k); });
+  const fc = {}; assets.forEach(a => { if (passesAllExcept(a, 'facility')) fc[a.facilityType] = (fc[a.facilityType] || 0) + 1; });
+  document.querySelectorAll('#filter-dropdown .fdd-item').forEach(item => { const c = item.querySelector('.fdd-count'); if (c) c.textContent = (fc[item.dataset.key] || 0).toLocaleString(); });
+}
 function passesMultiFilters(a, skipPhase) {
   return Object.entries(MULTI_FILTERS).every(([k, f]) => (skipPhase && k === 'phase') || f.active.size === 0 || f.active.has(f.get(a)));
 }
@@ -2994,7 +3016,8 @@ function buildMultiDropdown(key) {
   const f = MULTI_FILTERS[key];
   const dd = document.getElementById(f.dd);
   const counts = new Map();
-  assets.filter(a => inSessionPhase(a) && (!f.scope || f.scope(a))).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
+  assets.filter(a => inSessionPhase(a) && (!f.scope || f.scope(a))).forEach(a => counts.set(f.get(a), 0));   // every choice stays listed (0 when filtered out)
+  assets.filter(a => passesAllExcept(a, key) && (!f.scope || f.scope(a))).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
   f.active.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
   (f.options || []).forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
   if (key === 'phase') [...counts.keys()].forEach(k => { if (/^field/.test(_norm(k))) counts.delete(k); });   // Field isn't offered as a phase
@@ -3120,6 +3143,7 @@ function getFiltered(skipPhase) {
 // ════════════════════════════════════════════════════════════════
 function renderList() {
   renderPhaseSwitcher(); updatePhaseChooserCounts();
+  try { refreshFilterCounts(); } catch (e) { console.warn('[RVS] filter counts', e); }
   const phased = !!phaseCfg(), pb = document.getElementById('phase-filter-btn');
   if (pb) pb.hidden = phased;
   if (phased && MULTI_FILTERS.phase.active.size) { MULTI_FILTERS.phase.active.clear(); updateMultiBtns(); updateActiveFilterBar(); }
@@ -5918,7 +5942,7 @@ function buildDetailHTML(a) {
       <div class="calc-row"><div class="calc-k">Seismicity calculated from S<sub>1</sub></div><div class="calc-v calc-lvl">${escHtml(lvl(seisFromS1(d.s1)))}</div></div>`
       : `<div class="calc-pending">${
           d.status === 'loading' || d.status === 'idle' ? `Looking up ${title} values from USGS…`
-          : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}. <button class="calc-retry" onclick="retryCalc()">Try again</button>`
+          : d.status === 'error' ? `Couldn't get ${title} values from USGS${d.error ? ` (${escHtml(d.error)})` : ''}.${EDIT_URL_ON ? ' <button class="calc-retry" onclick="retryCalc()">Try again</button>' : ''}`
           : d.status === 'notsaved' ? `No ${title} values are saved on this record yet. They'll appear here once the ${title} fields are filled in (Survey123 form or backfill notebook).`
           : d.status === 'nolocation' ? `This record has no location, so ${title} values can't be looked up.`
           : `No ${title} values recorded.`}</div>`}
@@ -5935,7 +5959,7 @@ function buildDetailHTML(a) {
       </div>
       ${state ? `<div class="calc-pending">${state}</div>` : rows.map(([k, v]) => `<div class="calc-row"><div class="calc-k">${k}</div><div class="calc-v">${escHtml(v)}</div></div>`).join('')}
     </div>`;
-  const retry = ' <button class="calc-retry" onclick="retryCalc()">Try again</button>';
+  const retry = EDIT_URL_ON ? ' <button class="calc-retry" onclick="retryCalc()">Try again</button>' : '';   // read-only link: no buttons
   const dbSoil = fieldValue('SoilType'), dbSoilLetter = (String(dbSoil).match(/^([A-F])\b/i) || [])[1];
   const soilCard = (() => {
     const r = LS.soil || {};
@@ -5991,13 +6015,13 @@ function buildDetailHTML(a) {
     </div>`;
   const calcRunning = (LS.status === 'loading');
   const calcHTML = `<div class="calc-wrap">
-      <div class="calc-tools"><button type="button" class="calc-recalc" onclick="recalcLookups()"${calcRunning || !calcKey(a) ? ' disabled' : ''}>
+      ${EDIT_URL_ON ? `<div class="calc-tools"><button type="button" class="calc-recalc" onclick="recalcLookups()"${calcRunning || !calcKey(a) ? ' disabled' : ''}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
         ${calcRunning ? 'Recalculating…' : 'Recalculate'}</button>
         ${calcSaveAllowed(a) ? (() => { const ch = !calcRunning && calcSaveChanges(a); const n = ch ? ch.changed.length : 0;
           return `<button type="button" class="calc-recalc calc-save" onclick="saveCalcToRecord()"${n ? '' : ' disabled'} title="${n ? 'Write the ASCE 7-22 values and seismicity region to the record' : 'The record already matches these values'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            ${n ? 'Save to record' : 'Record is up to date'}</button>`; })() : ''}</div>
+            ${n ? 'Save to record' : 'Record is up to date'}</button>`; })() : ''}</div>` : ''}
       ${dbRibbon}
       <div class="ov-cards calc-cols">
         ${colCard('ASCE 7-22', 'Mapped S<sub>S</sub> / S<sub>1</sub> · USGS Design Maps', CI.asce722, '')}
