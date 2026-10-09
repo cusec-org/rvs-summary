@@ -842,6 +842,9 @@
   #ed-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 7000; background: #13233d; color: #fff; font: 700 13px 'DM Sans', sans-serif; padding: 10px 18px; border-radius: 999px; opacity: 0; transition: all 0.25s; pointer-events: none; }
   #ed-toast.show { opacity: 1; transform: translate(-50%, 0); }
   /* Calculations tab */
+  .calc-src { margin-top: 6px; font-size: 11.5px; font-weight: 700; display: inline-block; padding: 2px 8px; border-radius: 999px; }
+  .calc-src.live { background: #e3f2e5; color: #1e6b2a; }
+  .calc-src.saved { background: #fff4e0; color: #8a4b00; font-weight: 600; }
   .calc-tools { display: flex; justify-content: flex-end; margin-bottom: 10px; }
   .calc-recalc { display: inline-flex; align-items: center; gap: 7px; font: 700 13px 'DM Sans', sans-serif; color: #0B2E6B; background: #fff; border: 1.5px solid #0B2E6B; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
   .calc-recalc:hover:not(:disabled) { background: #eef3ff; }
@@ -2115,8 +2118,8 @@ function getCalcInputs(a) {
     if (!st.status || st.status === 'loading') return { ss: null, s1: null, status: 'loading' };
     const ss = st[ssK] && st[ssK].val !== undefined ? st[ssK].val : null, s1 = st[s1K] && st[s1K].val !== undefined ? st[s1K].val : null;
     if (ss !== null || s1 !== null) return { ss, s1, status: 'ok', source: 'live' };
-    if (hasSaved) return { ...saved, status: 'ok', source: 'saved' };        // live failed: fall back to saved
     const err = (st[ssK] && st[ssK].err) || (st[s1K] && st[s1K].err) || '';
+    if (hasSaved) return { ...saved, status: 'ok', source: 'saved', error: err };   // live failed: fall back to saved
     return { ss: null, s1: null, status: !CONFIG.seismicProxyUrl && /could not reach/.test(err) ? 'notsaved' : 'error', error: err };
   };
   return { asce722: col('asce722', 'ss722', 's1722') };   // ASCE 7-22 only
@@ -5842,7 +5845,9 @@ function buildDetailHTML(a) {
     const has = d.ss !== null || d.s1 !== null;
     return `<div class="ov-card p2-card calc-card">
       <div class="calc-head">
-        <div><div class="ov-card-title">${title}</div><div class="calc-sub">${sub}</div></div>
+        <div><div class="ov-card-title">${title}</div><div class="calc-sub">${sub}</div>
+          ${d.source === 'live' ? '<div class="calc-src live">Live from USGS (lookup service)</div>'
+            : d.source === 'saved' ? `<div class="calc-src saved">Values saved on this record${d.error ? ` - the live lookup failed (${escHtml(d.error)})` : ''}</div>` : ''}</div>
         <div class="calc-region"><div class="calc-region-k">Seismicity Region</div><div class="calc-region-v">${rl ? escHtml(SEIS_NAMES[rl]) : '-'}</div>
           ${bubble ? `<div class="calc-why">${bubble}</div>` : ''}</div>
       </div>
