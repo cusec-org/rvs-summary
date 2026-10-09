@@ -2907,11 +2907,12 @@ function buildFilterDropdown() {
 }
 
 function updateDropdownUI() {
-  document.querySelectorAll('.fdd-item').forEach(item => {
+  // only the Facility Type list (the State / County / Phase / Score lists use the same item style)
+  document.querySelectorAll('#filter-dropdown .fdd-item').forEach(item => {
     const sel = activeFilters.has(item.dataset.key);
     item.classList.toggle('selected', sel);
     item.setAttribute('aria-selected', sel);
-    item.querySelector('.fdd-check svg').style.display = sel ? '' : 'none';
+    const tick = item.querySelector('.fdd-check svg'); if (tick) tick.style.display = sel ? '' : 'none';
   });
   const btn = document.getElementById('filter-toggle-btn');
   btn.classList.toggle('has-filter', activeFilters.size > 0);
