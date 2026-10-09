@@ -870,6 +870,7 @@
   .ph-dlg { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 14px; }
   .ph-files { font-size: 12.5px; color: var(--text2); margin: -4px 0 14px; overflow-wrap: anywhere; }
   .ph-dlg .ph-files { margin: 4px 0 0; }
+  .p2-stats .ov-stat[data-ie="CodeYear"] .ov-stat-label { white-space: normal; overflow: visible; text-overflow: clip; }   /* "Year Built / Code Year" in full */
   .calc-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .calc-save:not(:disabled) { background: #0B2E6B; color: #fff; }
   .calc-save:not(:disabled):hover { background: #13408f; }
@@ -4064,7 +4065,7 @@ function editSet(f, value, el) {
   // Pre-Code and Post-Benchmark can't both be Yes: nothing is changed for the user - a pop-up
   // explains it, and Save stays blocked until they set one of them to No themselves
   const wasBoth = !!(EDIT.invalid && EDIT.invalid.__prepost);
-  checkPrePost(); syncDependentValues(f);
+  checkPrePost(); syncDependentValues(f); if (f === 'YearBuilt' || f === 'CodeYear') refreshYbcy();
   if ((f === 'PreCodeQ' || f === 'PostBenchmarkQ') && !wasBoth && EDIT.invalid.__prepost) prePostAlert();
   document.querySelectorAll(`textarea[data-f="${CSS.escape(f)}"]`).forEach(t => { if (t !== document.activeElement && t.value !== value) t.value = value; });
   syncRequired(); syncRelevance(); refreshScorePane();
@@ -4508,6 +4509,7 @@ function comboGo(id) {
   switchDetailTab(id);
   document.querySelectorAll('#sheet-body .cb-step').forEach(b => { const k = COMBO_STEPS.findIndex(s => s[0] === b.dataset.tab), cur = COMBO_STEPS.findIndex(s => s[0] === id); b.classList.toggle('done', k < cur); });
   if (id === 'review') renderComboReview();   // (moving between steps keeps every unsaved change)
+  if (id === 'p154') refreshYbcy();
   const idx = COMBO_STEPS.findIndex(s => s[0] === id), bar = document.getElementById('ed-bar');
   if (bar) {
     bar.querySelector('.cb-back').disabled = idx === 0;
@@ -4706,6 +4708,16 @@ function comboP154HTML(a) {
       <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
     </div></div>`;
 }
+// Read-only "Year Built / Code Year" at the top of the P-154 edit step (both are edited on Facility Overview)
+function ybcyText() {
+  const v = f => { const x = editVal(f); return String(x ?? '').trim(); };
+  const cy = v('CodeYear');
+  return `${v('YearBuilt') || 'Unknown'} / ${cy ? String(choiceLabel('CodeYear', cy)) : 'Unknown'}`;
+}
+function ybcyRowHTML() {
+  return `<div class="ed-row" data-f="__ybcy"><label class="ed-k">Year Built / Code Year</label><div class="ed-v"><div class="ed-locked" id="ed-ybcy" title="View only - edit these on Facility Overview">${escHtml(ybcyText())}</div></div></div>`;
+}
+function refreshYbcy() { const el = document.getElementById('ed-ybcy'); if (el && EDIT.on) el.textContent = ybcyText(); }
 function comboP154Main(a) {
   const at = a.attrs || {};
   const field = (spec) => editControl(a, spec);
@@ -4719,6 +4731,7 @@ function comboP154Main(a) {
     <div class="nt-two cb-p154-main">
       <div class="cb-col">
         <div class="ov-card p2-card"><div class="ov-card-title">Building Characteristics</div>
+          ${ybcyRowHTML()}
           ${field(['FEMABuildingType', 'FEMA Building Type', 'select'])}
           ${field(['VertIrregularitiesPresent', 'Vertical irregularities', 'multi'])}
           ${field(['PlanIrregularitiesPresent', 'Plan irregularities', 'multi'])}
@@ -5742,11 +5755,12 @@ function buildDetailHTML(a) {
   // Code Year box: the recorded code (e.g. "2018 IBC") or "Unknown";
   // under it, Pre-Code / Post-Benchmark when the record says so.
   const codeYearTxt = (attrs.CodeYear !== undefined && attrs.CodeYear !== null && String(attrs.CodeYear).trim() !== '') ? String(choiceLabel('CodeYear', attrs.CodeYear)) : 'Unknown';
+  const ybTxt = String(attrs.YearBuilt ?? '').trim() || 'Unknown';   // shown with the code year: "1966 / 2006 IBC"
   const codeEra = [isYes(attrs.PreCodeQ) ? 'Pre-Code' : '', isYes(attrs.PostBenchmarkQ) ? 'Post-Benchmark' : ''].filter(Boolean).join(', ');
   const boxes = `<div class="ov-stats p2-stats">
       ${statCard('Type of Screening', isNS ? 'Nonstructural Only' : 'P-154 L1', isNS ? '' : 'Rapid Visual Screening', '', 'SurveyType')}
       ${statCard('FEMA Building Type', femaLbl, constructionType, '', 'FEMABuildingType')}
-      ${statCard('Code Year', codeYearTxt, codeEra, '', 'CodeYear')}
+      ${statCard('Year Built', ybTxt, codeEra, '', 'YearBuilt')}
       <div class="ov-card ov-stat"><div class="ov-stat-label">Detailed Eval. Required?</div>
         <div class="p2-dse" data-ie="DetailedEvalRequired"><span class="p2-dse-k">Structural:</span> ${escHtml(dseStruct)}</div>
         <div class="p2-dse" data-ie="DetailedEvalRecommended"><span class="p2-dse-k">Nonstructural:</span> ${escHtml(dseNS)}</div></div>
@@ -6231,6 +6245,17 @@ const PHOTO_SLOTS = [
   ['NonstructuralPhoto1', 'Nonstructural Observation Photo 1'], ['NonstructuralPhoto2', 'Nonstructural Observation Photo 2'], ['NonstructuralPhoto3', 'Nonstructural Observation Photo 3'],
   ['NonstructuralPhoto4', 'Nonstructural Observation Photo 4'], ['NonstructuralPhoto5', 'Nonstructural Observation Photo 5'],
 ];
+// Name shown on a photo: its photo question from the XLS form ("Generator Photo", "Sketch 2"…).
+// Older keywords fall back to a tidied keyword; never the file name.
+function photoLabelOf(info) {
+  const kw = String((info && info.keywords) || '').trim();
+  const slot = PHOTO_SLOTS.find(p => p[0].toLowerCase() === kw.toLowerCase());
+  if (slot) return slot[1];
+  const k = kw.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (/sketch/.test(k)) return 'Sketch';
+  if (/buildingphoto|bldgphoto|photobuilding|buildingimage/.test(k)) return 'Building Photo';
+  return kw ? kw.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) : 'Photo';
+}
 const photoSlotLabel = kw => (PHOTO_SLOTS.find(p => p[0].toLowerCase() === String(kw || '').toLowerCase()) || [, kw || 'Other'])[1];
 function freePhotoSlots() {
   const used = new Set((LAST_ATTACH.infos || []).map(i => String(i.keywords || '').trim().toLowerCase()).filter(Boolean));
@@ -6362,16 +6387,7 @@ async function loadAttachments(objectId) {
     if (/buildingphoto|bldgphoto|photobuilding|buildingimage/.test(k)) return 'Building Photo';
     return '';
   };
-  // Every photo gets a label: its survey photo question ("Generator Photo", "Sketch 2"…), else a
-  // tidied-up keyword or file name
-  const label = info => {
-    const kw = String(info.keywords || '').trim();
-    const slot = PHOTO_SLOTS.find(p => p[0].toLowerCase() === kw.toLowerCase());
-    if (slot) return slot[1];
-    if (kind(info)) return kind(info);
-    const base = kw || String(info.name || '').replace(/\.[a-z0-9]+$/i, '');
-    return base.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Photo';
-  };
+  const label = photoLabelOf;
   const tile = info => {
     const tag = info.isImage ? label(info) : '';
     const tagHtml = tag ? `<div class="attachment-tag">${tag}</div>` : '';
@@ -6415,11 +6431,12 @@ async function loadAttachments(objectId) {
     const key = i => `${i.keywords || ''} ${i.name || ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
     const used = new Set(), groups = [];
     const take = (pred, max) => imgs.filter(i => !used.has(i) && pred(i)).slice(0, max).map(i => (used.add(i), i));
-    take(i => /generator/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Generator ${n + 1}` : 'Generator', '']));
-    take(i => /gasmeter|meter|gasshutoff|shutoff/.test(key(i)), 2).forEach((i, n) => groups.push([i, n ? `Gas Meter ${n + 1}` : 'Gas Meter', '']));
-    // Nonstructural photos: only Photo 6, Photo 7, and Photo 16, in that order
+    take(i => /generator/.test(key(i)), 2).forEach(i => groups.push([i, photoLabelOf(i), '']));
+    take(i => /gasmeter|meter|gasshutoff|shutoff/.test(key(i)), 2).forEach(i => groups.push([i, photoLabelOf(i), '']));
+    // Nonstructural Observation Photos 1-5 (form order), then any older "Photo 6 / 7 / 16" ones
+    [1, 2, 3, 4, 5].forEach(n => take(i => key(i).startsWith('nonstructuralphoto' + n), 1).forEach(i => groups.push([i, photoLabelOf(i), ''])));
     const numOf = i => { const m = `${i.keywords || ''} ${i.name || ''}`.match(/\bphoto[\s_-]*(\d{1,3})(?!\d)/i); return m ? Number(m[1]) : null; };
-    [6, 7, 16].forEach(n => take(i => numOf(i) === n, 1).forEach(i => groups.push([i, '', `Photo ${n}`])));  // no caption bar on these
+    [6, 7, 16].forEach(n => take(i => numOf(i) === n, 1).forEach(i => groups.push([i, photoLabelOf(i), ''])));
     nsEl.innerHTML = photoColumn(groups, 'No nonstructural photos');
   }
   // Facility Overview: Building Photo and Sketch (or the first two photos if neither is tagged)
@@ -6461,8 +6478,8 @@ function showLightboxItem() {
   const item = LB_ITEMS[LB_INDEX];
   const img = document.getElementById('lightbox-img');
   img.src = item.url;
-  img.alt = item.tag || item.name || 'Photo';
-  document.getElementById('lightbox-caption').textContent = item.name || '';
+  img.alt = item.tag || 'Photo';
+  document.getElementById('lightbox-caption').textContent = '';
   const tg = document.getElementById('lb-tag'); if (tg) { tg.textContent = item.tag || ''; tg.hidden = true; }
   img.onload = placeLbTag; if (img.complete) placeLbTag();
   const multi = LB_ITEMS.length > 1;
