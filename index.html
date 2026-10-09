@@ -826,9 +826,12 @@
   .seismo-card { position: relative; padding: 12px; }
   .seismo-hide { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(11,46,107,.25); font: 700 16px/1 'DM Sans', sans-serif; color: #4a5363; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .seismo-hide:hover { color: #0B2E6B; }
-  .seismo-pop.done .seismo-cv { opacity: .55; transition: opacity .3s; }
   .seismo { position: relative; }
   .sd-burst { position: absolute; left: 50%; top: 60px; width: 56px; height: 56px; margin: -28px 0 0 -28px; pointer-events: none; z-index: 2; }
+  /* "Data fetched": solid checks (no fade) with a white edge so they stand out over the dimmed panel */
+  .sd-burst .sp-mini { animation-name: sdMini; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+  @keyframes sdMini { 0% { opacity: 0; transform: translate(0, 0) scale(.3) rotate(0); } 25% { opacity: 1; } 100% { opacity: 1; transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r)); } }
+  @media (prefers-reduced-motion: reduce) { .sd-burst .sp-mini { animation: none; opacity: 1; } }
   @keyframes seismoIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .seismo-pop { animation: none; } }
   .ac-wrap { position: absolute; inset: 0; z-index: 70;   /* above the floating photos panel (60) */ background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -1156,7 +1159,9 @@
   #lightbox { position: fixed; inset: 0; z-index: 5500; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 24px; }
   #lightbox[hidden] { display: none; }
   #lightbox { flex-direction: column; gap: 12px; }
-  .lb-stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+  .lb-stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+  .lb-tag { position: absolute; font-size: 14px; padding: 7px 10px; border-radius: 0 0 4px 4px; pointer-events: none; }
+  .lb-tag[hidden] { display: none; }
   #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none; }
   .lb-bar { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; text-align: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
   .lb-caption { font-size: 13px; font-weight: 700; }
@@ -1395,7 +1400,7 @@
 
 <!-- LIGHTBOX -->
 <div id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo viewer" tabindex="-1">
-  <div class="lb-stage"><img id="lightbox-img" src="" alt=""></div>
+  <div class="lb-stage"><img id="lightbox-img" src="" alt=""><div id="lb-tag" class="attachment-tag lb-tag" hidden></div></div>
   <div class="lb-bar">
     <div id="lightbox-caption" class="lb-caption"></div>
     <div id="lightbox-count" class="lb-count" aria-live="polite"></div>
@@ -2059,7 +2064,7 @@ function seismoPopDone(msg, ok) {
     const dial = box.querySelector('.seismo-cv');
     if (dial) {
       const mini = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-      const burst = [[-92, -40, 14, -18], [94, -34, 16, 20], [-86, 38, 12, 12], [90, 44, 13, -10], [-30, -88, 11, 8], [36, -86, 10, -14], [-104, 2, 10, 6], [106, 4, 11, -6]]
+      const burst = [[-92, -40, 18, -18], [94, -34, 20, 20], [-86, 38, 16, 12], [90, 44, 17, -10], [-30, -88, 15, 8], [36, -86, 14, -14], [-104, 2, 14, 6], [106, 4, 15, -6]]
         .map(([x, y, sz, r], i) => `<span class="sp-mini" style="--x:${x}px;--y:${y}px;--s:${sz}px;--r:${r}deg;--d:${0.15 + i * 0.05}s">${mini}</span>`).join('');
       dial.insertAdjacentHTML('afterend', `<div class="sd-burst" aria-hidden="true">${burst}<div class="sp-check sd-check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline class="sp-tick" points="4 12 9 17 20 6"/></svg></div></div>`);
     }
@@ -6357,8 +6362,18 @@ async function loadAttachments(objectId) {
     if (/buildingphoto|bldgphoto|photobuilding|buildingimage/.test(k)) return 'Building Photo';
     return '';
   };
+  // Every photo gets a label: its survey photo question ("Generator Photo", "Sketch 2"…), else a
+  // tidied-up keyword or file name
+  const label = info => {
+    const kw = String(info.keywords || '').trim();
+    const slot = PHOTO_SLOTS.find(p => p[0].toLowerCase() === kw.toLowerCase());
+    if (slot) return slot[1];
+    if (kind(info)) return kind(info);
+    const base = kw || String(info.name || '').replace(/\.[a-z0-9]+$/i, '');
+    return base.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase()) || 'Photo';
+  };
   const tile = info => {
-    const tag = kind(info);
+    const tag = info.isImage ? label(info) : '';
     const tagHtml = tag ? `<div class="attachment-tag">${tag}</div>` : '';
     if (info.isImage) return `<div class="attachment-tile loading" role="button" tabindex="0" onclick="openLightboxAt(${LB_ITEMS.findIndex(x => x.url === info.url)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" data-url="${escHtml(info.url)}"><img src="${escHtml(info.url)}" alt="${escHtml(tag || info.name)}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading');this.remove()">${tagHtml}</div>`;
     return `<div class="attachment-tile" onclick="window.open('${escHtml(info.url)}','_blank')"><div class="fileinfo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><br>${escHtml(info.name)}</div>${tagHtml}</div>`;
@@ -6368,7 +6383,7 @@ async function loadAttachments(objectId) {
   const rest = result.infos.filter(i => !kind(i));
   // Photo viewer walks through every image for this record: Building Photo,
   // Sketch, then the rest (including ones hidden behind "Show all").
-  LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: kind(i) }));
+  LB_ITEMS = [...featured, ...rest].filter(i => i.isImage).map(i => ({ url: i.url, name: i.name, tag: label(i) }));
   // Photos tab: everything, Building Photo + Sketch first
   area.innerHTML = `<div class="attachment-grid">${[...featured, ...rest].map(tile).join('')}</div>`;
   addPhotoControls(objectId, [...featured, ...rest]);
@@ -6433,12 +6448,23 @@ function openLightbox(url, alt) {
   if (idx < 0) { LB_ITEMS = [{ url, name: alt || '', tag: '' }]; idx = 0; }
   openLightboxAt(idx);
 }
+// Sit the label bar along the bottom edge of the photo as it's shown (it's scaled to fit the screen)
+function placeLbTag() {
+  const img = document.getElementById('lightbox-img'), tg = document.getElementById('lb-tag'); if (!img || !tg) return;
+  if (!tg.textContent || !img.naturalWidth) { tg.hidden = true; return; }
+  const st = img.parentNode.getBoundingClientRect(), r = img.getBoundingClientRect();
+  tg.hidden = false;
+  Object.assign(tg.style, { left: (r.left - st.left) + 'px', width: r.width + 'px', top: (r.bottom - st.top - tg.offsetHeight) + 'px', bottom: 'auto', right: 'auto' });
+}
+window.addEventListener('resize', () => { const lb = document.getElementById('lightbox'); if (lb && !lb.hidden) placeLbTag(); });
 function showLightboxItem() {
   const item = LB_ITEMS[LB_INDEX];
   const img = document.getElementById('lightbox-img');
   img.src = item.url;
   img.alt = item.tag || item.name || 'Photo';
-  document.getElementById('lightbox-caption').textContent = item.tag || '';
+  document.getElementById('lightbox-caption').textContent = item.name || '';
+  const tg = document.getElementById('lb-tag'); if (tg) { tg.textContent = item.tag || ''; tg.hidden = true; }
+  img.onload = placeLbTag; if (img.complete) placeLbTag();
   const multi = LB_ITEMS.length > 1;
   document.getElementById('lightbox-count').textContent = multi ? `${LB_INDEX + 1} / ${LB_ITEMS.length}` : '';
   document.getElementById('lb-prev').hidden = !multi;
