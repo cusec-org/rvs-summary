@@ -842,6 +842,11 @@
   #ed-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 7000; background: #13233d; color: #fff; font: 700 13px 'DM Sans', sans-serif; padding: 10px 18px; border-radius: 999px; opacity: 0; transition: all 0.25s; pointer-events: none; }
   #ed-toast.show { opacity: 1; transform: translate(-50%, 0); }
   /* Calculations tab */
+  .calc-tools { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .calc-recalc { display: inline-flex; align-items: center; gap: 7px; font: 700 13px 'DM Sans', sans-serif; color: #0B2E6B; background: #fff; border: 1.5px solid #0B2E6B; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  .calc-recalc:hover:not(:disabled) { background: #eef3ff; }
+  .calc-recalc:disabled { opacity: .55; cursor: default; }
+  .calc-recalc:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
   .calc-wrap { padding: 18px 20px 22px; }
   .calc-ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; background: #0B2E6B; color: #fff; border-radius: 10px; padding: 12px 18px; }
   .calc-rb-title { font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; opacity: 0.85; margin-right: 4px; }
@@ -1402,9 +1407,8 @@ const CONFIG = {
   // "Upload Sketch" (next to Open Sketch Tool, while editing): the captured sketch is saved as
   // the record's attachment for the survey's Sketch1 question on the editable layer, replacing the old one
   sketchUpload: { itemId: '307585a0e7ed4c59aa94cb3c08c9ccfb', keyword: 'Sketch1', maxBytes: 10 * 1024 * 1024 },
-  // AWS Lambda that does the USGS seismic lookups (see rvs-seismic-lambda/).
-  // Paste its Function URL here to pull ASCE 41-17 and 7-22 live on the
-  // Calculations tab. Leave blank to use the values saved on each record.
+  // AWS Lambda that does the USGS seismic lookup - ASCE 7-22 only (see rvs-seismic-lambda/).
+  // Leave blank to use the values saved on each record.
   seismicProxyUrl: 'https://47nvhyuseuymzpynornkktrgre0kwwjn.lambda-url.us-east-2.on.aws/',
   // Editing (only when the page is opened with ?edit=1). Who gets the pencil is
   // decided by ArcGIS Online sharing: the layer must allow updates and the
@@ -1849,7 +1853,7 @@ const FUNCTIONS_JS = "function findBSE2N(responseJSON){\n    // The ASCE 41-17 e
 const CALC_WORKER_SRC = FUNCTIONS_JS + `
 self.onmessage = function (e) {
   var d = e.data, out = {};
-  var calls = [['ss41', 'returnSs'], ['s141', 'returnS1'], ['ss722', 'returnSs_ASCE7_22'], ['s1722', 'returnS1_ASCE7_22']];
+  var calls = [['ss722', 'returnSs_ASCE7_22'], ['s1722', 'returnS1_ASCE7_22']];   // ASCE 7-22 only
   for (var n = 0; n < calls.length; n++) {
     var k = calls[n][0], fn = calls[n][1];
     try {
@@ -1875,7 +1879,7 @@ function runFunctionsJs(location) {
   return new Promise(resolve => { const id = ++CALC_REQ; CALC_PENDING[id] = resolve; calcWorker().postMessage({ id, location }); });
 }
 const CALC_CACHE_KEY = 'rvs_calc_live_v1';
-const CALC_STATE = {};   // "lat,lng" → { status: 'loading' | 'done', ss41, s141, ss722, s1722 (each {val} or {err}) }
+const CALC_STATE = {};   // "lat,lng" → { status: 'loading' | 'done', ss722, s1722 (each {val} or {err}), soil, liq }
 try { Object.assign(CALC_STATE, JSON.parse(localStorage.getItem(CALC_CACHE_KEY) || '{}')); } catch {}
 function calcKey(a) { return (typeof a.lat === 'number' && typeof a.lng === 'number') ? `${a.lat.toFixed(6)},${a.lng.toFixed(6)}` : null; }
 // Soil type from the USGS global Vs30 image service (returnSoilType in
@@ -2038,14 +2042,17 @@ async function loadCalcLive(a, force) {
       clearTimeout(t);
       if (!res.ok) throw new Error(`lookup service returned HTTP ${res.status}`);
       const j = await res.json(), E = j.errors || {};
-      const cell = (grp, k, errKey) => (j[grp] && j[grp][k] !== null && j[grp][k] !== undefined) ? { val: Number(j[grp][k]) } : { err: E[errKey] || 'No value returned from USGS' };
-      out = { ss41: cell('asce41', 'ss', 'asce41'), s141: cell('asce41', 's1', 'asce41'), ss722: cell('asce722', 'ss', 'asce722'), s1722: cell('asce722', 's1', 'asce722') };
+      const src = j.asce722 || j.asce7_22 || j.data || j;
+      const num = (...ks) => { for (const k of ks) { const v = src && src[k]; if (v !== null && v !== undefined && v !== '' && isFinite(Number(v))) return Number(v); } return null; };
+      const why = E.asce722 || E.asce7_22 || j.error || 'No value returned from USGS';
+      const ss = num('ss', 'sms', 'Ss'), s1 = num('s1', 'sm1', 'S1');
+      out = { ss722: ss !== null ? { val: ss } : { err: why }, s1722: s1 !== null ? { val: s1 } : { err: why } };
     } catch (e) {
       const err = { err: e.name === 'AbortError' ? 'The lookup service took too long to respond' : (e instanceof TypeError ? 'the browser could not reach the lookup service (check the Lambda URL and its allowed sites)' : (e.message || String(e))) };
-      out = { ss41: err, s141: err, ss722: err, s1722: err };
+      out = { ss722: err, s1722: err };
     }
   } else try { out = await Promise.race([runFunctionsJs(`${a.lat} ${a.lng}`), new Promise((_, rej) => setTimeout(() => rej(new Error('The USGS service took too long to respond')), 60000))]); }
-  catch (e) { const err = { err: e.message || String(e) }; out = { ss41: err, s141: err, ss722: err, s1722: err }; }
+  catch (e) { const err = { err: e.message || String(e) }; out = { ss722: err, s1722: err }; }
   // Soil type + liquefaction lookups run alongside
   const [soil, liq] = await Promise.all([
     lookupSoilVs30(a).then(v => ({ ok: v }), e => ({ err: (e instanceof TypeError) ? "couldn't reach the Vs30 service" : (e.message || String(e)) })),
@@ -2067,13 +2074,21 @@ function refreshCalcPanel(a) {
   const fresh = tmp.querySelector('.dtab-panel[data-panel="calc"]'); if (fresh) panel.innerHTML = fresh.innerHTML;
 }
 function retryCalc() { const a = assets.find(x => String(x.id) === String(selectedId)); if (a) calcWithPopup(a, true); }
+// Calculations tab "Recalculate": run the ASCE 7-22, soil type and liquefaction lookups again for this record
+function recalcLookups() {
+  const a = assets.find(x => String(x.id) === String(selectedId)); if (!a) return;
+  const key = calcKey(a); if (!key) return;
+  delete CALC_STATE[key];
+  try { const c = JSON.parse(localStorage.getItem(CALC_CACHE_KEY) || '{}'); delete c[key]; localStorage.setItem(CALC_CACHE_KEY, JSON.stringify(c)); } catch {}
+  calcWithPopup(a, true);
+}
 // Calculations tab: run the lookups with the "Fetching Data" pop-up over the panel (only when something actually runs)
 async function calcWithPopup(a, force) {
   loadCalcLive(a, force);
   if ((CALC_STATE[calcKey(a)] || {}).status !== 'loading' || document.getElementById('seismo-pop')) return;
   seismoPopShow();
   const st = await waitForCalc(a);
-  const bad = [!(st.ss722 && st.ss722.val !== undefined) && 'ASCE 7-22', !(st.ss41 && st.ss41.val !== undefined) && 'ASCE 41-17', !(st.soil && st.soil.ok) && 'soil type', !(st.liq && st.liq.ok) && 'liquefaction'].filter(Boolean);
+  const bad = [!(st.ss722 && st.ss722.val !== undefined) && 'ASCE 7-22', !(st.soil && st.soil.ok) && 'soil type', !(st.liq && st.liq.ok) && 'liquefaction'].filter(Boolean);
   seismoPopDone(bad.length ? `Couldn't run: ${bad.join(', ')}.` : '', !bad.length);
 }
 
@@ -2082,13 +2097,12 @@ async function calcWithPopup(a, force) {
 // form or the backfill notebook). Only a column with nothing saved tries the
 // live functions.js lookup — USGS blocks those requests from web pages, so
 // that usually ends in the "not saved yet" message.
-const CALC_FIELDS = { asce41: ['SsSpectralAcc', 'S1SpectralAcc'], asce722: ['Ss_ASCE7_22', 'S1_ASCE7_22'] };
+const CALC_FIELDS = { asce722: ['Ss_ASCE7_22', 'S1_ASCE7_22'] };
 function calcSaved(a, which) {
   const at = a.attrs || {}, n = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) ? null : Number(v);
   const [fs, f1] = CALC_FIELDS[which];
   const pick = (exact, re) => { if (n(at[exact]) !== null) return n(at[exact]); const k = Object.keys(at).find(x => re.test(x)); return k ? n(at[k]) : null; };
-  return which === 'asce41' ? { ss: n(at[fs]), s1: n(at[f1]) }
-    : { ss: pick(fs, /^ss.*(7_?22|asce7)/i), s1: pick(f1, /^s1.*(7_?22|asce7)/i) };
+  return { ss: pick(fs, /^ss.*(7_?22|asce7)/i), s1: pick(f1, /^s1.*(7_?22|asce7)/i) };
 }
 function calcNeedsLive(a) { return true; }   // soil type + liquefaction are always looked up live (7-22 too when the Lambda is set)
 function getCalcInputs(a) {
@@ -2105,7 +2119,7 @@ function getCalcInputs(a) {
     const err = (st[ssK] && st[ssK].err) || (st[s1K] && st[s1K].err) || '';
     return { ss: null, s1: null, status: !CONFIG.seismicProxyUrl && /could not reach/.test(err) ? 'notsaved' : 'error', error: err };
   };
-  return { asce41: col('asce41', 'ss41', 's141'), asce722: col('asce722', 'ss722', 's1722') };
+  return { asce722: col('asce722', 'ss722', 's1722') };   // ASCE 7-22 only
 }
 
 function switchDetailTab(tab) {
@@ -3671,7 +3685,7 @@ async function loadEditorAccess() {
 // Pencil = ?edit=1 + the layer allows updates + this account can edit
 // (+ in one of CONFIG.editorGroupIds, if any are listed)
 function canEditRecords() {
-  if (!EDIT_URL_ON || !LAYER_CAN_UPDATE || !USER_CAN_EDIT) return false;
+  if (!EDIT_URL_ON || EDIT_LAYER_DENIED || !LAYER_CAN_UPDATE || !USER_CAN_EDIT) return false;   // read-only fallback never edits
   const lim = CONFIG.editorGroupIds || [];
   return !lim.length || (USER_GROUP_IDS || []).some(id => lim.includes(id));
 }
@@ -5583,9 +5597,11 @@ function buildDetailHTML(a) {
   const dseNS = (() => {
     const raw = String(attrs.DetailedEvalRecommended || '').trim().toLowerCase();
     if (!raw) return 'Not recorded';
+    // same style as Structural: short, readable versions of the survey's answers
     if (/do_?not_?know|dnk|unknown/.test(raw)) return 'Do not know';
-    if (/not_?needed|not_?required|hazards_?exist/.test(raw)) return 'No, hazards exist, but detailed eval. not required';
-    if (/^y/.test(raw)) return 'Yes';
+    if (/not_?needed|not_?required|not_?necessary|hazards_?exist|mitigat/.test(raw)) return 'No, hazards exist, but detailed eval. not necessary';
+    if (/no_?(nonstructural_?)?hazards|none_?identified|no_?no/.test(raw)) return 'No, no nonstructural hazards identified';
+    if (/^y/.test(raw)) return 'Yes, nonstructural hazards identified';
     if (/^n/.test(raw)) return 'No';
     return choiceLabel('DetailedEvalRecommended', raw);
   })();
@@ -5803,7 +5819,7 @@ function buildDetailHTML(a) {
         <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
       </div>
     </div>`;
-  // ── Calculations tab (mockup): ASCE 41-17 vs ASCE 7-22 side by side ──
+  // ── Calculations tab: ASCE 7-22 seismicity, soil type and liquefaction (live lookups) ──
   const CI = getCalcInputs(a);
   const g = v => v === null ? '-' : `${Number(v.toFixed(3))} g`;
   const lvl = L => L === null ? '-' : `${L} · ${SEIS_NAMES[L]}`;
@@ -5838,8 +5854,6 @@ function buildDetailHTML(a) {
           : `No ${title} values recorded.`}</div>`}
     </div>`;
   };
-  const r41 = seisRegionLevel(CI.asce41.ss, CI.asce41.s1), r722 = seisRegionLevel(CI.asce722.ss, CI.asce722.s1);
-  const cmpTxt = (r41 && r722) ? (r722 > r41 ? 'Higher under ASCE 7-22' : r722 < r41 ? 'Lower under ASCE 7-22' : 'Same region') : '';
   const diff = (x, y) => (x === null || y === null) ? '-' : `${y - x >= 0 ? '+' : '-'}${Math.abs(y - x).toFixed(3)} g${x ? ` (${y - x >= 0 ? '+' : '-'}${Math.abs((y - x) / x * 100).toFixed(0)}%)` : ''}`;
   // Soil Type + Liquefaction cards (live lookups, compared with the database)
   const LS = (calcKey(a) && CALC_STATE[calcKey(a)]) || {};
@@ -5905,7 +5919,11 @@ function buildDetailHTML(a) {
       <div class="calc-rb-item"><span class="calc-rb-k">Seismicity Region</span><span class="calc-rb-v">${escHtml(fieldValue('Seismicity') || '-')}</span></div>
       <div class="calc-rb-item"><span class="calc-rb-k">Source</span><span class="calc-rb-v">${escHtml(dbSource)}</span></div>
     </div>`;
+  const calcRunning = (LS.status === 'loading');
   const calcHTML = `<div class="calc-wrap">
+      <div class="calc-tools"><button type="button" class="calc-recalc" onclick="recalcLookups()"${calcRunning || !calcKey(a) ? ' disabled' : ''}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        ${calcRunning ? 'Recalculating…' : 'Recalculate'}</button></div>
       ${dbRibbon}
       <div class="ov-cards calc-cols">
         ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, '')}
