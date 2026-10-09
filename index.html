@@ -2045,7 +2045,7 @@ async function loadCalcLive(a, force) {
       const src = j.asce722 || j.asce7_22 || j.data || j;
       const num = (...ks) => { for (const k of ks) { const v = src && src[k]; if (v !== null && v !== undefined && v !== '' && isFinite(Number(v))) return Number(v); } return null; };
       const why = E.asce722 || E.asce7_22 || j.error || 'No value returned from USGS';
-      const ss = num('ss', 'sms', 'Ss'), s1 = num('s1', 'sm1', 'S1');
+      const ss = num('ss', 'Ss'), s1 = num('s1', 'S1');                     // mapped Ss / S1 (not SMS / SM1)
       out = { ss722: ss !== null ? { val: ss } : { err: why }, s1722: s1 !== null ? { val: s1 } : { err: why } };
     } catch (e) {
       const err = { err: e.name === 'AbortError' ? 'The lookup service took too long to respond' : (e instanceof TypeError ? 'the browser could not reach the lookup service (check the Lambda URL and its allowed sites)' : (e.message || String(e))) };
@@ -2448,6 +2448,7 @@ function featureToAsset(feature) {
     dateStr:       screenMs !== null ? new Date(screenMs).toLocaleDateString() : '',
     // Sort key for "Most recent": screening date → created → last edited
     editDate:      screenMs ?? createdMs ?? editedMs ?? null,
+    lastEditMs:    editedMs ?? createdMs ?? null,     // last edited (falls back to created) - list order in the edit links
     use:           p[FIELDS.use]            || '',
     occupancy:     p[FIELDS.occupancy]      || '',
     storiesAbove:  p[FIELDS.storiesAbove],
@@ -3042,7 +3043,9 @@ function getFiltered(skipPhase) {
   // timestamp can never push an undated record above a dated screening.
   // Most recent = SurveyDate, newest first. Records with no SurveyDate go to
   // the bottom (newest record first among those).
-  if (sortMode === 'recent') list.sort((a,b) => ((b.hasScreenDate ? 1 : 0) - (a.hasScreenDate ? 1 : 0))
+  // Edit links (every phase, and All Phases): most recently edited first
+  if (EDIT_URL_ON) list.sort((a, b) => ((b.lastEditMs ?? -Infinity) - (a.lastEditMs ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
+  else if (sortMode === 'recent') list.sort((a,b) => ((b.hasScreenDate ? 1 : 0) - (a.hasScreenDate ? 1 : 0))
     || ((b.dateRaw ?? -Infinity) - (a.dateRaw ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
   else if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
   else if (sortMode === 'score') list.sort((a,b) => (a.level1Score??Infinity)-(b.level1Score??Infinity));
@@ -4060,6 +4063,8 @@ async function inlineSave(f, btn) {
 function applySavedEdits(a, attrs) {
   const merged = Object.assign({}, a.attrs, attrs);
   const fresh = featureToAsset({ attributes: merged, geometry: (typeof a.lng === 'number') ? { x: a.lng, y: a.lat } : null });
+  fresh.lastEditMs = Date.now();                       // just edited: moves to the top of the list
+  if (LAYER_DATES.editField) fresh.attrs[LAYER_DATES.editField] = fresh.lastEditMs;
   const i = assets.findIndex(x => x.id === a.id); if (i >= 0) assets[i] = fresh;
   try { cacheData(assets); } catch {}
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
@@ -5926,7 +5931,7 @@ function buildDetailHTML(a) {
         ${calcRunning ? 'Recalculating…' : 'Recalculate'}</button></div>
       ${dbRibbon}
       <div class="ov-cards calc-cols">
-        ${colCard('ASCE 7-22', 'MCE<sub>R</sub> · USGS Design Maps', CI.asce722, '')}
+        ${colCard('ASCE 7-22', 'Mapped S<sub>S</sub> / S<sub>1</sub> · USGS Design Maps', CI.asce722, '')}
         ${soilCard}
         ${liqCard}
       </div>
