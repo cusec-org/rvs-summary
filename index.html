@@ -1327,10 +1327,6 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="1.5"/><path d="M8.5 7h2M13.5 7h2M8.5 11h2M13.5 11h2M8.5 15h2M13.5 15h2"/><path d="M10.5 21.5v-3h3v3"/></svg>
         Facility Type
       </button>
-      <button class="filter-btn" id="score-filter-btn" onclick="toggleMultiDropdown(event,'score')" aria-expanded="false" aria-controls="score-dropdown" title="Filter by L1 score">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Score
-      </button>
       <button class="filter-btn" id="phase-filter-btn" onclick="toggleMultiDropdown(event,'phase')" aria-expanded="false" aria-controls="phase-dropdown" title="Filter by phase">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Phase
@@ -1343,15 +1339,19 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         County
       </button>
+      <button class="filter-btn" id="other-filter-btn" onclick="toggleMultiDropdown(event,'other')" aria-expanded="false" aria-controls="other-dropdown" title="Other filters: score, URM, shelter">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+        Other
+      </button>
       <div id="active-filters" class="active-filters" role="region" aria-label="Active filters"></div>
       <div id="phase-switch" class="phase-switch" role="group" aria-label="Edit phase" hidden></div>
     </div>
     <div class="filter-dropdown-wrap">
       <div id="filter-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by facility type"></div>
-      <div id="score-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by L1 score"></div>
       <div id="phase-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by phase"></div>
       <div id="state-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by state"></div>
       <div id="county-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Filter by county"></div>
+      <div id="other-dropdown" class="multi-dropdown" role="listbox" aria-multiselectable="true" aria-label="Other filters"></div>
     </div>
     <div id="loading-bar" aria-hidden="true"></div>
   </header>
@@ -2997,7 +2997,7 @@ function clearFacilityFilter() {
   updateActiveFilterBar();
   renderList();
 }
-function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById('score-filter-btn').classList.remove('has-filter'); updateActiveFilterBar(); renderList(); }
+function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById('score-filter-btn')?.classList.remove('has-filter'); updateActiveFilterBar(); renderList(); }
 
 // ── Phase / State / County filters ──────────────────────────────
 // Each lists the values present in the data (with counts). Nothing checked
@@ -3005,13 +3005,6 @@ function clearScoreFilter() { activeScoreFilter = 'all'; document.getElementById
 // kept per state so "Washington, MO" and "Washington, AR" stay separate.
 const NO_VALUE = '__none__';
 const MULTI_FILTERS = {
-  // L1 Score: two fixed choices. Exactly 2.0 counts as "≤ 2.0" (at or below
-  // the cut-off), matching the "L1 SCORE ≤2.0" tile in the stats bar.
-  score:  { btn: 'score-filter-btn', dd: 'score-dropdown', label: 'L1 Score', active: new Set(),
-            options: ['le2', 'gt2'],
-            get: a => (a.level1Score === null || a.level1Score === undefined || a.surveyType === 'Nonstructural Screening') ? NO_VALUE
-                      : (a.level1Score <= 2.0 ? 'le2' : 'gt2'),
-            name: k => k === 'le2' ? '≤ 2.0' : k === 'gt2' ? '> 2.0' : 'No score' },
   phase:  { btn: 'phase-filter-btn',  dd: 'phase-dropdown',  label: 'Phase',  active: activePhases,
             get: a => a.phase || NO_VALUE,
             name: k => k === NO_VALUE ? 'No Phase' : k },
@@ -3022,12 +3015,28 @@ const MULTI_FILTERS = {
             get: a => String(a.county || '').trim() ? `${String(a.county).trim()}|${String(a.state || '').trim()}` : NO_VALUE,
             name: k => { if (k === NO_VALUE) return 'No County'; const [c, st] = k.split('|'); return st ? `${choiceLabel(FIELDS.county, c)}, ${choiceLabel(FIELDS.state, st)}` : choiceLabel(FIELDS.county, c); },
             scope: a => MULTI_FILTERS.state.active.size === 0 || MULTI_FILTERS.state.active.has(MULTI_FILTERS.state.get(a)) },
+  // Other: tags a screening can have; picking several shows screenings that have all of them
+  other:  { btn: 'other-filter-btn', dd: 'other-dropdown', label: 'Other', active: new Set(),
+            options: ['le2', 'urm', 'shelter'],
+            tags: a => {
+              const at = a.attrs || {}, t = [];
+              if (a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score !== undefined && a.level1Score <= 2.0) t.push('le2');
+              const ft = String(at.FEMABuildingType ?? '').trim();
+              if (/^urm\b/i.test(ft) || /^urm\b/i.test(String(choiceLabel('FEMABuildingType', ft) || ''))) t.push('urm');
+              const occ = `${at.Occupancy ?? ''} ${at.OccupancyOthers ?? ''} ${choiceLabel('OccupancyOthers', at.OccupancyOthers) || ''}`;
+              if (isYes(at.IsShelter) || /shelter/i.test(occ)) t.push('shelter');
+              return t;
+            },
+            match: (a, active) => { const t = MULTI_FILTERS.other.tags(a); return [...active].every(k => t.includes(k)); },
+            name: k => ({ le2: 'Score Below Cutoff', urm: 'URM', shelter: 'Shelter' })[k] || k },
 };
+// Does a record pass one filter's current picks (most: any pick matches; Other: has every pick)
+const filterMatch = (f, a) => f.active.size === 0 || (f.match ? f.match(a, f.active) : f.active.has(f.get(a)));
 // Passes every active filter except `skip` ('facility' or a MULTI_FILTERS key). Each filter list's counts
 // use this, so they always reflect the other filters (and the search) currently applied.
 function passesAllExcept(a, skip) {
   if (!inSessionPhase(a)) return false;
-  if (!Object.entries(MULTI_FILTERS).every(([k, f]) => k === skip || f.active.size === 0 || f.active.has(f.get(a)))) return false;
+  if (!Object.entries(MULTI_FILTERS).every(([k, f]) => k === skip || filterMatch(f, a))) return false;
   if (skip !== 'facility' && activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
   if (activeScoreFilter !== 'all') {
     const sc = a.level1Score;
@@ -3045,7 +3054,7 @@ function refreshFilterCounts() {
   document.querySelectorAll('#filter-dropdown .fdd-item').forEach(item => { const c = item.querySelector('.fdd-count'); if (c) c.textContent = (fc[item.dataset.key] || 0).toLocaleString(); });
 }
 function passesMultiFilters(a, skipPhase) {
-  return Object.entries(MULTI_FILTERS).every(([k, f]) => (skipPhase && k === 'phase') || f.active.size === 0 || f.active.has(f.get(a)));
+  return Object.entries(MULTI_FILTERS).every(([k, f]) => (skipPhase && k === 'phase') || filterMatch(f, a));
 }
 function closeMultiDropdowns(except) {
   Object.entries(MULTI_FILTERS).forEach(([key, f]) => {
@@ -3058,8 +3067,14 @@ function buildMultiDropdown(key) {
   const f = MULTI_FILTERS[key];
   const dd = document.getElementById(f.dd);
   const counts = new Map();
+  if (f.tags) {
+    f.options.forEach(k => counts.set(k, 0));
+    assets.filter(a => passesAllExcept(a, key)).forEach(a => { const t = f.tags(a);
+      f.options.forEach(k => { if (t.includes(k) && [...f.active].every(x => x === k || t.includes(x))) counts.set(k, counts.get(k) + 1); }); });
+  } else {
   assets.filter(a => inSessionPhase(a) && (!f.scope || f.scope(a))).forEach(a => counts.set(f.get(a), 0));   // every choice stays listed (0 when filtered out)
   assets.filter(a => passesAllExcept(a, key) && (!f.scope || f.scope(a))).forEach(a => { const k = f.get(a); counts.set(k, (counts.get(k) || 0) + 1); });
+  }
   f.active.forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
   (f.options || []).forEach(k => { if (!counts.has(k)) counts.set(k, 0); });
   if (key === 'phase') [...counts.keys()].forEach(k => { if (/^field/.test(_norm(k))) counts.delete(k); });   // Field isn't offered as a phase
