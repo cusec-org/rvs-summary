@@ -3126,9 +3126,9 @@ function enableMouseRotate(m) {
 }
 // Building symbols (the screenings layer) on / off from the Layers panel
 const BLDG_KEY = 'rvs_bldg_symbols_v1';
-let SHOW_BLDGS = true; try { SHOW_BLDGS = localStorage.getItem(BLDG_KEY) !== '0'; } catch {}
+let SHOW_BLDGS = true;                     // Facilities always start on when someone signs in / opens the app
 function setBuildingSymbols(on) {
-  SHOW_BLDGS = !!on; try { localStorage.setItem(BLDG_KEY, on ? '1' : '0'); } catch {}
+  SHOW_BLDGS = !!on;
   if (map && markerCluster) { if (on && !map.hasLayer(markerCluster)) map.addLayer(markerCluster); if (!on && map.hasLayer(markerCluster)) map.removeLayer(markerCluster); }
   renderLayersPanel();
 }
@@ -3295,6 +3295,16 @@ function renderMarkers() {
     markerCluster.addLayer(marker);
     markerMap[a.id] = marker;
   });
+  if (!MAP_FITTED && !selectedId) fitToFacilities();
+}
+// Zoom the map to show every facility in the list (once when the data arrives, and after a phase switch)
+let MAP_FITTED = false;
+function fitToFacilities() {
+  const pts = getFiltered().filter(a => typeof a.lat === 'number' && typeof a.lng === 'number').map(a => [a.lat, a.lng]);
+  if (!pts.length || !map) return;
+  MAP_FITTED = true;
+  if (pts.length === 1) map.setView(pts[0], 14);
+  else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 14 });
 }
 
 // Zoom the map to a record. Waits for the detail panel to finish sliding
@@ -3426,7 +3436,7 @@ function setEditPhase(key) {
   const c = key === 'all' ? ALL_PHASES : PHASE_CHOICES.find(p => p.key === key); if (!c || key === sessionChoice()) { document.getElementById('phase-chooser')?.remove(); return; }
   const go = () => {
     if (EDIT.on) cancelEdit(true);
-    window.EDIT_PHASE_OVERRIDE = key;
+    window.EDIT_PHASE_OVERRIDE = key; MAP_FITTED = false;
     try {
       sessionStorage.setItem('rvs_edit_phase', key);
       const u = new URL(location.href); u.searchParams.set('edit', '1'); u.searchParams.set('phase', key);
