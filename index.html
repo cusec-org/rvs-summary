@@ -827,6 +827,8 @@
   .seismo-hide { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(11,46,107,.25); font: 700 16px/1 'DM Sans', sans-serif; color: #4a5363; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .seismo-hide:hover { color: #0B2E6B; }
   .seismo-pop.done .seismo-cv { opacity: .55; transition: opacity .3s; }
+  .seismo { position: relative; }
+  .sd-burst { position: absolute; left: 50%; top: 60px; width: 56px; height: 56px; margin: -28px 0 0 -28px; pointer-events: none; z-index: 2; }
   @keyframes seismoIn { from { opacity: 0; } to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .seismo-pop { animation: none; } }
   .ac-wrap { position: absolute; inset: 0; z-index: 70;   /* above the floating photos panel (60) */ background: rgba(12,20,36,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -2053,7 +2055,16 @@ function seismoPopDone(msg, ok) {
   const t = box.querySelector('.seismo-t'), s = box.querySelector('.seismo-s');
   if (t) t.innerHTML = ok ? '<span class="seismo-ok" aria-hidden="true">✓</span> Data fetched' : 'Some lookups didn\'t finish';
   if (!ok && msg && t) t.insertAdjacentHTML('afterend', `<div class="seismo-s">${escHtml(msg)}</div>`);
-  box.classList.add('done'); setTimeout(seismoPopHide, ok ? 1100 : 4000);
+  if (ok) {   // the same green check + little-check burst as "Submitted successfully", over the dial
+    const dial = box.querySelector('.seismo-cv');
+    if (dial) {
+      const mini = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      const burst = [[-92, -40, 14, -18], [94, -34, 16, 20], [-86, 38, 12, 12], [90, 44, 13, -10], [-30, -88, 11, 8], [36, -86, 10, -14], [-104, 2, 10, 6], [106, 4, 11, -6]]
+        .map(([x, y, sz, r], i) => `<span class="sp-mini" style="--x:${x}px;--y:${y}px;--s:${sz}px;--r:${r}deg;--d:${0.15 + i * 0.05}s">${mini}</span>`).join('');
+      dial.insertAdjacentHTML('afterend', `<div class="sd-burst" aria-hidden="true">${burst}<div class="sp-check sd-check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline class="sp-tick" points="4 12 9 17 20 6"/></svg></div></div>`);
+    }
+  }
+  box.classList.add('done'); setTimeout(seismoPopHide, ok ? 1900 : 4000);
 }
 function seismoPopHide() { const box = document.getElementById('seismo-pop'); if (box) { box.classList.add('closing'); setTimeout(() => box.remove(), 220); } }
 async function loadCalcLive(a, force) {
@@ -4683,7 +4694,7 @@ function comboP154HTML(a) {
     <div class="ov-photos">
       <div class="ov-photo-slot" data-first="3"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
       ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-      <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
+      <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
     </div></div>`;
 }
 function comboP154Main(a) {
@@ -5021,6 +5032,8 @@ function dropAutoLowScore(a) {
 }
 // While editing, the photos open in a floating panel over the edit steps (close it to carry on editing);
 // otherwise the link just switches to the Photos tab.
+// While editing (where photos can be added / replaced / deleted) the link says so
+function photoLinkLabel() { return (EDIT.on && EDIT_URL_ON && canEditRecords()) ? 'View/edit photos and attachments' : 'View all photos and attachments'; }
 function viewAllPhotos() {
   if (!(EDIT.on && EDIT.mode === 'combo')) return switchDetailTab('photos');
   const sheet = document.getElementById('detail-content'), card = document.querySelector('#sheet-body .dtab-panel[data-panel="photos"] > .tab-card');
@@ -5629,7 +5642,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
       </div>
     </div>`;
 
@@ -5660,7 +5673,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div id="overview-photos" class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
       </div>
     </div>`;
 
@@ -5821,7 +5834,7 @@ function buildDetailHTML(a) {
       <div class="ov-photos">
         <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
         ${sketchLinkHTML(a)}${sketchUploadHTML(a)}
-        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
       </div>
     </div>`;
   // ── Nonstructural Review tab (mockup; modeled on the individual building
@@ -5928,7 +5941,7 @@ function buildDetailHTML(a) {
       </div>
       <div class="ov-photos">
         <div id="ns-photos"><div class="attachment-tile loading" style="aspect-ratio:4/3"></div></div>
-        <button class="view-all-link" onclick="viewAllPhotos()">View all photos and attachments</button>
+        <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
       </div>
     </div>`;
   // ── Calculations tab: ASCE 7-22 seismicity, soil type and liquefaction (live lookups) ──
