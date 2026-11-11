@@ -4902,7 +4902,8 @@ async function loadReports(a) {
             let u = i.url || `${url}/${rid}/attachments/${i.id}`;
             if (!/^(data|blob):/.test(u) && !/[?&]token=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN.accessToken);
             const rec = (rows.find(x => String(x.attributes[oidF]) === String(rid)) || {}).attributes || {}, fnF = (layerField(info, R.fields.fileName) || {}).name;
-            const title = g.attachmentInfos.length === 1 && fnF && String(rec[fnF] ?? '').trim() ? String(rec[fnF]).trim() : '';
+            // older records saved the Nonstructural preset as "Nonstructural: <Facility>" - show them under the current name
+            const title = (g.attachmentInfos.length === 1 && fnF && String(rec[fnF] ?? '').trim() ? String(rec[fnF]).trim() : '').replace(/^Nonstructural(?=\s*:)/, 'Nonstructural Hazards Report');
             files.push({ rid, attId: i.id, slot, name: i.name, title, size: i.size, contentType: i.contentType, url: u });
           });
       });
@@ -4966,9 +4967,9 @@ function reportPick(k, input) {
   if (input && 'value' in input) input.value = '';
   reportNamePrompt(k, f);
 }
-// Pop-up: name the attachment (saved to FileName): P-154 Report, Nonstructural, or Other (type a name)
-const REPORT_NAME_CHOICES = ['P-154 Report', 'Nonstructural', 'Other'];
-// FileName = "<P-154 Report | Nonstructural | typed name>: <Facility Name>" (the name as edited, if it was changed)
+// Pop-up: name the attachment (saved to FileName): P-154 Report, Nonstructural Hazards Report, or Other (type a name)
+const REPORT_NAME_CHOICES = ['P-154 Report', 'Nonstructural Hazards Report', 'Other'];
+// FileName = "<P-154 Report | Nonstructural Hazards Report | typed name>: <Facility Name>" (the name as edited, if it was changed)
 function reportFacility() { const a = currentRecord() || {}; const d = EDIT.draft || {}; return String((Object.prototype.hasOwnProperty.call(d, 'BuildingName') ? d.BuildingName : a.buildingName) || '').trim(); }
 function reportFullName(base) { base = String(base || '').trim(); const fac = reportFacility(); return base ? (fac ? `${base}: ${fac}` : base) : ''; }
 function reportNamePrompt(k, file) {
@@ -4995,7 +4996,7 @@ function reportNamePrompt(k, file) {
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey, true); };
   const ok = () => {
     const c = choice(), name = c === 'Other' ? text.value.trim() : c;
-    if (!c) { err.hidden = false; err.textContent = 'Choose P-154 Report, Nonstructural or Other.'; return; }
+    if (!c) { err.hidden = false; err.textContent = 'Choose P-154 Report, Nonstructural Hazards Report or Other.'; return; }
     if (!name) { err.hidden = false; err.textContent = 'Type a file name for Other.'; text.focus(); return; }
     REPORT_PENDING[k] = f; REPORT_NAMES[k] = name; reportDraft(k); close(); renderReports(); updateEditBar();
   };
