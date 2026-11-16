@@ -2150,6 +2150,7 @@ function calcSaveChanges(a) {
     if (has('BasicScore')) attrs.BasicScore = c.T.basic;
     if (has('VL1')) attrs.VL1 = c.vl1 || null; if (has('PL1')) attrs.PL1 = c.pl1 || null;   // no modifier = left blank
     if (has('Level1Score')) attrs.Level1Score = c.final; if (has('FinalSL1Score')) attrs.FinalSL1Score = c.final;
+    Object.assign(attrs, p154RowAttrs(c, has));
   }
   const changed = Object.keys(attrs).filter(f => _raw(attrs[f]) !== _raw(at[f]));
   return { attrs: Object.fromEntries(changed.map(f => [f, attrs[f]])), changed };
@@ -4571,6 +4572,7 @@ async function comboSave(btn) {
       if (has('PL1')) attrs.PL1 = c.pl1;
       if (has('Level1Score')) attrs.Level1Score = c.final;
       if (has('FinalSL1Score')) attrs.FinalSL1Score = c.final;
+      Object.assign(attrs, p154RowAttrs(c, has));
     }
   }
   // edit history entry
@@ -4803,6 +4805,22 @@ function computeP154(get) {
   const sum = T.basic + vl1 + pl1 + (pre ? v('pre') : 0) + (post ? v('post') : 0) + (soilKey ? v(soilKey) : 0);
   const final = Math.max(T.smin ?? 0, Math.round(sum * 10) / 10);
   return { T, region, tcode, severe, moderate, plan, pre, post, soilKey, soilL, vl1, pl1, final };
+}
+// The per-row Level 1 fields the Survey123 form calculates (and the P-154 report's score column reads).
+// Like the form: a modifier that doesn't apply, or is NA for the type, is stored as 0.
+function p154RowAttrs(c, has) {
+  const out = {}; if (!c || !c.T) return out;
+  const v = k => (c.T[k] === null || c.T[k] === undefined) ? 0 : c.T[k];
+  const rows = {
+    SevereVertIrr: c.severe ? v('sevV') : 0, ModerateVertIrr: c.moderate ? v('modV') : 0,
+    PlanIrr: c.plan ? v('plan') : 0, PreCode: c.pre ? v('pre') : 0, PostBenchmark: c.post ? v('post') : 0,
+    SoilTypeAB: c.soilKey === 'soilAB' ? v('soilAB') : 0, SoilTypeE13: c.soilKey === 'soilE13' ? v('soilE13') : 0,
+    SoilTypeE4: c.soilKey === 'soilE4' ? v('soilE4') : 0,
+  };
+  const addMods = Math.round(Object.values(rows).reduce((s, x) => s + x, 0) * 10) / 10;
+  Object.assign(rows, { AddMods: addMods, BasicScoreMinusMODS: Math.round((c.T.basic + addMods) * 10) / 10, Smin: v('smin') });
+  for (const [f, x] of Object.entries(rows)) if (has(f)) out[f] = x;
+  return out;
 }
 function p154ScorePane(a) {
   const c = computeP154(f => editCurrent(f) ?? (a.attrs || {})[f]);
