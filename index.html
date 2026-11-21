@@ -1436,6 +1436,12 @@ const CONFIG = {
   // Editable layer used when the page is opened with ?edit=1 — records are
   // loaded from AND saved to this layer, so edits always match what's shown
   editItemId:   '307585a0e7ed4c59aa94cb3c08c9ccfb',
+  // Who sees which records (set up in the RVS Access Admin page, https://cusec-org.github.io/rvs-admin/).
+  // Members of allGroupIds (CUSEC RVS Management) see every record, as before. Everyone else sees
+  // only the read-only views of the RVS layer shared with their groups (tagged recordsTag), so a
+  // State never sees a private client's buildings. ArcGIS enforces each view's filter.
+  access: { allGroupIds: ['47c04ff75e3d4635a9be3b10fd5f6897'], orgId: 'mQsIDpmRUmYltsYD',
+    recordsTag: 'RVS Records', reportsTag: 'RVS Reports' },
   // Header report links. Leave blank to have the link open the matching tab.
   // Or set a URL; {objectid} and {globalid} are filled in per record, e.g.
   // 'https://survey123.arcgis.com/...?objectId={objectid}'
@@ -2519,6 +2525,9 @@ async function silentRefresh() {
 
 function signOut() {
   clearStoredToken();
+  // the next person to sign in gets their own access check and records
+  ACCESS = null; CONFIG.serviceUrl = null; EDIT_LAYER_DENIED = false; USER_GROUP_IDS = null; USER_DISPLAY = '';
+  try { assets = []; renderList(); renderMarkers(); } catch {}
   if (refreshTimer) clearInterval(refreshTimer);
   try { fetch(CONFIG.signOutUrl + '?redirect_uri=' + encodeURIComponent(CONFIG.redirectUri)); } catch {}
   showLoginScreen();
@@ -2644,6 +2653,13 @@ function loadErrorHTML(err) {
   const who = (TOKEN && TOKEN.username) || USER_DISPLAY || 'your account';
   const item = activeItemId(), which = item === CONFIG.editItemId ? 'editable RVS layer (used by ?edit=1 links)' : 'RVS screenings layer';
   const said = escHtml(err && err.message ? err.message : 'Failed to load data.') + (err && err.code ? ` (code ${escHtml(String(err.code))}${err.messageCode ? ', ' + escHtml(err.messageCode) : ''})` : '');
+  // Not a CUSEC admin and no audience view shared with this account
+  if (isAccessError(err) && ACCESS && ACCESS.mode === 'fallback')
+    return `<b>Your account isn't set up to see any RVS records yet.</b><br>Signed in as <b>${escHtml(who)}</b>.<br>
+      Please contact CUSEC to be added to your state, county or organization's RVS group, then press Retry.<br><span class="err-said">ArcGIS said: ${said}</span>`;
+  if (isAccessError(err) && ACCESS && ACCESS.mode === 'views')
+    return `<b>Your RVS records couldn't be opened.</b><br>Signed in as <b>${escHtml(who)}</b>.<br>
+      Please contact CUSEC and mention: ${escHtml(ACCESS.views.map(v => v.title).join(', '))}.<br><span class="err-said">ArcGIS said: ${said}</span>`;
   if (isAccessError(err)) return `<b>No access to the screenings.</b><br>Signed in as <b>${escHtml(who)}</b>, which can't open the ${which}.<br>
       Ask the layer owner to share item <code>${escHtml(item)}</code> with this account or a group it's in, then press Retry.<br><span class="err-said">ArcGIS said: ${said}</span>`;
   return `<b>The screenings couldn't be loaded.</b><br><span class="err-said">ArcGIS said: ${said}</span>`;
@@ -2652,6 +2668,59 @@ function loadErrorHTML(err) {
 // Which layer this session uses: the editable layer with ?edit=1, else the read-only one
 let EDIT_LAYER_DENIED = false;   // the account can't open the editable layer: show the read-only records instead
 function activeItemId() { return (EDIT_URL_ON && CONFIG.editItemId && !EDIT_LAYER_DENIED) ? CONFIG.editItemId : CONFIG.targetItemId; }
+
+// ── Who sees which records (checked once per sign-in) ──
+// 'all'      CUSEC RVS Management members (and org admins): the full layers, exactly as before.
+// 'views'    everyone else with an audience set up: only the read-only views of the RVS layer
+//            shared with their group(s), tagged CONFIG.access.recordsTag by the RVS Access Admin page.
+//            Someone in several audiences gets all their views, each record shown once.
+// 'fallback' no view shared with this account yet: the read-only layer as before (works only while
+//            it's still shared with them), with private clients' records left out of the list.
+// Editing (?edit=1) is only for 'all'; everyone else gets their records read-only.
+let ACCESS = null;
+async function resolveAccess() {
+  if (ACCESS) return ACCESS;
+  const A = CONFIG.access || {}, tok = encodeURIComponent(TOKEN.accessToken);
+  const me = await arcgisFetch(`https://www.arcgis.com/sharing/rest/community/self?f=json&token=${tok}`);
+  const gids = (me.groups || []).map(g => g.id);
+  if (!USER_DISPLAY) USER_DISPLAY = shortName(me.fullName || me.username || '');
+  if ((A.allGroupIds || []).some(id => gids.includes(id)) || me.role === 'org_admin')
+    return (ACCESS = { mode: 'all', username: me.username, views: [], reports: [] });
+  const full = new Set([CONFIG.targetItemId, CONFIG.editItemId, CONFIG.reports && CONFIG.reports.parentItemId,
+    CONFIG.reports && CONFIG.reports.viewItemId, CONFIG.reports && CONFIG.reports.editItemId].filter(Boolean));
+  // Only items this account can open come back from a search, so these are exactly its views
+  const find = async tag => {
+    if (!tag) return [];
+    const q = `tags:"${tag}" AND type:"Feature Service"` + (A.orgId ? ` AND orgid:${A.orgId}` : '');
+    const j = await arcgisFetch(`https://www.arcgis.com/sharing/rest/search?q=${encodeURIComponent(q)}&num=100&f=json&token=${tok}`);
+    return (j.results || [])
+      .filter(it => it.url && !full.has(it.id) && (it.typeKeywords || []).includes('View Service')
+        && (it.tags || []).some(t => String(t).toLowerCase() === tag.toLowerCase()))
+      .map(it => { let url = String(it.url).replace(/\/+$/, ''); if (!/\/\d+$/.test(url)) url += `/${CONFIG.layerIndex || 0}`;
+        return { itemId: it.id, title: it.title, url }; });
+  };
+  let views = [], reports = [];
+  try { views = await find(A.recordsTag); } catch (e) { console.warn('[RVS] looking up your RVS views failed', e); }
+  try { reports = await find(A.reportsTag); } catch (e) { console.warn('[RVS] looking up your reports views failed', e); }
+  ACCESS = { mode: views.length ? 'views' : 'fallback', username: me.username, views, reports };
+  console.info('[RVS] access:', ACCESS.mode, views.map(v => v.title));
+  return ACCESS;
+}
+// Which layer a record came from (only differs when someone has several views)
+function svcFor(objectId) {
+  const a = (assets || []).find(x => String(x.id) === String(objectId));
+  return (a && a.svc) || CONFIG.serviceUrl;
+}
+// Every record on one layer, 1000 at a time
+async function queryAllFeatures(url) {
+  const pageSize = 1000; let offset = 0, out = [];
+  for (;;) {
+    const data = await arcgisFetch(`${url}/query?where=1%3D1&outFields=*&returnGeometry=true&resultOffset=${offset}&resultRecordCount=${pageSize}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`);
+    const batch = data.features || []; out = out.concat(batch);
+    if (batch.length < pageSize || data.exceededTransferLimit === false) return out;
+    offset += pageSize;
+  }
+}
 // Looks up the hosted FeatureServer URL from the active item
 // (same approach as RVS-Side-by-Side's resolveServiceUrls()).
 async function resolveServiceUrl() {
@@ -2833,26 +2902,38 @@ async function fetchAssets() {
   if (!TOKEN) return;
   setLoadingState(true);
   try {
-    await resolveServiceUrl();
+    const acc = await resolveAccess();
+    if (acc.mode !== 'all' && !EDIT_LAYER_DENIED) {
+      EDIT_LAYER_DENIED = true;   // views are read-only: no editing outside CUSEC RVS Management
+      if (EDIT_URL_ON) showToast('Editing is for CUSEC RVS Management members, so you are seeing your records read-only.');
+    }
+    let sources;
+    if (acc.mode === 'views') {
+      if (!CONFIG.serviceUrl) { CONFIG.serviceUrl = acc.views[0].url; await loadDomainLabels(); }
+      sources = acc.views.map(v => v.url);
+    } else {
+      await resolveServiceUrl();
+      sources = [CONFIG.serviceUrl];
+    }
     if (USER_GROUP_IDS === null) loadEditorAccess();
-    // Paginate through all records (service caps at 1000 per request)
-    const pageSize = 1000;
-    let offset = 0;
-    let allFeatures = [];
-    let keepGoing = true;
-    while (keepGoing) {
-      const url = `${CONFIG.serviceUrl}/query?where=1%3D1&outFields=*&returnGeometry=true&resultOffset=${offset}&resultRecordCount=${pageSize}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`;
-      const data = await arcgisFetch(url);
-      const batch = data.features || [];
-      allFeatures = allFeatures.concat(batch);
-      // Stop if we got fewer than pageSize (last page) or service says no more
-      if (batch.length < pageSize || data.exceededTransferLimit === false) {
-        keepGoing = false;
-      } else {
-        offset += pageSize;
+    // Every record from each source; views of the same layer share object IDs, so a record
+    // in two of someone's views is shown once
+    const seen = new Set(), several = sources.length > 1;
+    let list = [], okCount = 0, firstErr = null;
+    for (const src of sources) {
+      let feats;
+      try { feats = await queryAllFeatures(src); okCount++; }
+      catch (e) { if (!several || e.tokenExpired) throw e; firstErr = firstErr || e; console.warn('[RVS] could not load', src, e); continue; }
+      for (const f of feats) {
+        const a = featureToAsset(f);
+        if (seen.has(String(a.id))) continue;
+        seen.add(String(a.id)); if (several) a.svc = src; list.push(a);
       }
     }
-    const list = allFeatures.map(featureToAsset).filter(a => !isExcludedPhase(a));
+    if (!okCount && firstErr) throw firstErr;
+    list = list.filter(a => !isExcludedPhase(a));
+    // No view set up yet: the old shared layer still works, but leave out private clients' records
+    if (acc.mode === 'fallback') list = list.filter(a => !String((a.attrs || {}).ClientId ?? '').trim());
     assets = list;
     computeDistances();
     renderList();
@@ -2867,7 +2948,15 @@ async function fetchAssets() {
       showToast("Your account can't open the editable layer, so you're seeing the read-only records.");
       setLoadingState(false); return fetchAssets();
     }
-    // Try cache
+    // ArcGIS refused (access removed or never given): don't show the saved copy, and drop it
+    if (isAccessError(err)) {
+      try { const k = userCacheKey(); if (k) localStorage.removeItem(k); } catch {}
+      assets = []; renderList(); renderMarkers(); setOfflineBanner(false);
+      const sb = document.getElementById('stats-bar'); if (sb) { sb.hidden = true; sb.style.display = 'none'; }
+      const lr = document.getElementById('last-refreshed'); if (lr) lr.innerHTML = '';
+      showError(loadErrorHTML(err)); return;
+    }
+    // Try cache (offline / network trouble)
     const cached = loadCachedData();
     if (cached) {
       assets = cached.assets.filter(a => !isExcludedPhase(a));
@@ -2888,9 +2977,10 @@ async function fetchAttachments(objectId) {
   if (!TOKEN) return { state: 'error', infos: [] };
   // queryAttachments first: it returns each photo's `keywords` (the Survey123
   // question it was taken for), which is how Building Photo / Sketch are found.
+  const svc = svcFor(objectId);
   const urls = [
-    `${CONFIG.serviceUrl}/queryAttachments?objectIds=${objectId}&returnMetadata=true&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
-    `${CONFIG.serviceUrl}/${objectId}/attachments?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
+    `${svc}/queryAttachments?objectIds=${objectId}&returnMetadata=true&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
+    `${svc}/${objectId}/attachments?f=json&token=${encodeURIComponent(TOKEN.accessToken)}`,
   ];
   for (const url of urls) {
     try {
@@ -2898,7 +2988,7 @@ async function fetchAttachments(objectId) {
       const raw = data.attachmentInfos || (data.attachmentGroups && data.attachmentGroups[0] && data.attachmentGroups[0].attachmentInfos) || [];
       if (!raw.length) return { state: 'ok', infos: [] };
       const infos = raw.map(a => {
-        let attUrl = a.url || `${CONFIG.serviceUrl}/${objectId}/attachments/${a.id}`;
+        let attUrl = a.url || `${svc}/${objectId}/attachments/${a.id}`;
         if (!/[?&]token=/.test(attUrl)) attUrl += (attUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(TOKEN.accessToken);
         return { id: a.id, name: a.name, keywords: a.keywords || '', contentType: a.contentType, size: a.size, url: attUrl, isImage: (a.contentType||'').startsWith('image/') };
       });
@@ -2908,8 +2998,15 @@ async function fetchAttachments(objectId) {
   return { state: 'error', message: 'Could not load attachments.', infos: [] };
 }
 
-function cacheData(list) { try { localStorage.setItem(CONFIG.cacheKey, JSON.stringify({ ts: Date.now(), assets: list })); } catch {} }
-function loadCachedData() { try { const r = localStorage.getItem(CONFIG.cacheKey); return r ? JSON.parse(r) : null; } catch { return null; } }
+// The offline copy is kept per account, so on a shared computer the next person never sees
+// the last person's records (e.g. a CUSEC admin's full list) before their own load.
+function userCacheKey() { const u = TOKEN && TOKEN.username; return u ? `${CONFIG.cacheKey}:${String(u).toLowerCase()}` : null; }
+function cacheData(list) { const k = userCacheKey(); if (!k) return; try { localStorage.setItem(k, JSON.stringify({ ts: Date.now(), assets: list })); } catch {} }
+function loadCachedData() {
+  try { localStorage.removeItem(CONFIG.cacheKey); } catch {}   // older shared copy (not per account)
+  const k = userCacheKey(); if (!k) return null;
+  try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; }
+}
 
 function setLoadingState(loading) {
   document.getElementById('loading-bar').style.display = loading ? 'block' : 'none';
@@ -3232,6 +3329,7 @@ function renderList() {
 
   // Stats bar
   // Stats bar - counts follow the current filters (including Phase)
+  if (!assets.length) { const sb = document.getElementById('stats-bar'); if (sb) { sb.hidden = true; sb.style.display = 'none'; } }
   if (assets.length) {
     const total = filtered.length;
     const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
@@ -4733,6 +4831,9 @@ function notesTabHTML(a) {
       <div class="ov-card p2-card"><div class="ov-card-title">Supervising Engineer Notes</div>${editing
         ? engNotesBox(a, 'nt') : (String(at.EngineerNotes ?? '').trim() ? `<div class="nt-c"><div class="nt-c-v">${escHtml(String(at.EngineerNotes).trim())}</div></div>` : '<div class="nt-na">N/A</div>')}</div>
     </div>
+    ${String(at.upload_notes ?? '').trim() ? `<div class="ov-card p2-card"><div class="ov-card-title">Upload Notes</div>
+      <div class="nt-c"><div class="nt-c-v" style="white-space:pre-line">${escHtml(String(at.upload_notes).trim())}</div></div>
+      <div class="nt-note">Saved by the RVS L1/L2 spreadsheet upload: things to check on this record. Replaced each time it's uploaded again.</div></div>` : ''}
     <div class="ov-card p2-card nt-hist"><div class="ov-card-title">Edit History</div>
       <div class="nt-table" role="table">
         <div class="nt-tr nt-th" role="row"><div>Date</div><div>Time</div><div>Change</div><div>By</div></div>
@@ -4922,11 +5023,22 @@ async function loadReports(a) {
   if (String(REPORTS.id) !== String(a.id) || REPORTS.src !== src) Object.assign(REPORTS, { id: a.id, src, state: 'loading', msg: '', rows: [], files: [] });
   renderReports();
   try {
-    const url = await itemLayerUrl(src === 'edit' ? R.editItemId : R.viewItemId), info = await layerInfoOf(url);
+    // Viewing: CUSEC admins read the reports view; everyone else reads the reports view(s) shared with
+    // their group(s) (tagged CONFIG.access.reportsTag), falling back to the reports view while none exist
+    const viewUrls = (ACCESS && ACCESS.mode !== 'all' && ACCESS.reports && ACCESS.reports.length) ? ACCESS.reports.map(v => v.url) : null;
+    const cands = src === 'edit' ? [await itemLayerUrl(R.editItemId)] : (viewUrls || [await itemLayerUrl(R.viewItemId)]);
     const gid = await reportParentGid(a), bare = gid.replace(/[{}]/g, '');
-    const pf = (layerField(info, R.fields.parent) || {}).name || R.fields.parent, oidF = info.objectIdField || 'objectid';
     const vals = [...new Set([`{${bare.toUpperCase()}}`, `{${bare.toLowerCase()}}`, bare.toUpperCase(), bare.toLowerCase()])].map(_sqlq).join(',');
-    const rows = (await arcgisFetch(`${url}/query?where=${encodeURIComponent(`${pf} IN (${vals})`)}&outFields=*&returnGeometry=false&orderByFields=${encodeURIComponent(oidF)}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`)).features || [];
+    let url, info, pf, oidF, rows = [], lastErr = null;
+    for (const cu of cands) {   // the first view that has this building's reports
+      try {
+        const ci = await layerInfoOf(cu), cpf = (layerField(ci, R.fields.parent) || {}).name || R.fields.parent, coid = ci.objectIdField || 'objectid';
+        const got = (await arcgisFetch(`${cu}/query?where=${encodeURIComponent(`${cpf} IN (${vals})`)}&outFields=*&returnGeometry=false&orderByFields=${encodeURIComponent(coid)}&f=json&token=${encodeURIComponent(TOKEN.accessToken)}`)).features || [];
+        if (!url || got.length) { url = cu; info = ci; pf = cpf; oidF = coid; rows = got; }
+        if (got.length) break;
+      } catch (e) { if (cands.length === 1) throw e; lastErr = e; console.warn('[RVS] reports view', cu, e); }
+    }
+    if (!url) throw lastErr || new Error('no reports layer could be opened');
     const files = [];
     if (rows.length) {
       const ids = rows.map(r => r.attributes[oidF]);
@@ -4962,7 +5074,9 @@ function renderReports() {
   const n = CONFIG.reportSlots || 3, maxMB = ((CONFIG.reportMaxBytes || 3e6) / 1048576).toFixed(0);
   const size = b => b ? (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB') : '';
   if (!mine || REPORTS.state === 'loading' || REPORTS.state === 'idle') { el.innerHTML = '<div class="nt-na">Loading attachments…</div>'; return; }
-  if (REPORTS.state === 'error') { el.innerHTML = `<div class="nt-na">Couldn't load the attachments: ${escHtml(REPORTS.msg)}</div>`; return; }
+  if (REPORTS.state === 'error') { el.innerHTML = /permission|not authorized|not shared|inaccessible|access denied/i.test(REPORTS.msg || '')
+    ? `<div class="nt-na">Reports and attachments aren't available for your account yet. Please contact CUSEC.</div>`
+    : `<div class="nt-na">Couldn't load the attachments: ${escHtml(REPORTS.msg)}</div>`; return; }
   let html = '', num = 0;
   REPORTS.files.forEach(x => {
     const removing = Object.prototype.hasOwnProperty.call(EDIT.draft || {}, '__del' + x.attId);
