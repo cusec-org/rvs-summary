@@ -1514,6 +1514,10 @@ const CONFIG = {
     OnsiteGenerator:               "${SurveyType}!='Did Not Screen'",
     Anchored:                      "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
     Isolators:                     "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    GeneratorFuelType:             "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    GeneratorFuelOther:            "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes' and ${GeneratorFuelType}='other'",
+    GeneratorFlexLines:            "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes' and (${GeneratorFuelType}='natural_gas' or ${GeneratorFuelType}='propane')",
+    GeneratorSize:                 "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
     NaturalGas:                    "${SurveyType}!='Did Not Screen'",
     GasShutoff:                    "${SurveyType}!='Did Not Screen' and ${NaturalGas}='Yes'",
     FlexibleGasLines:              "${SurveyType}!='Did Not Screen' and ${NonstructuralReview}='Yes' and ${NaturalGas}='Yes'",
@@ -1583,6 +1587,7 @@ const CONFIG = {
     OnsiteGenerator:     "${SurveyType}!='Did Not Screen'",
     Anchored:            "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
     Isolators:           "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes'",
+    GeneratorFlexLines:  "${SurveyType}!='Did Not Screen' and ${OnsiteGenerator}='Yes' and (${GeneratorFuelType}='natural_gas' or ${GeneratorFuelType}='propane')",
     NaturalGas:          "${SurveyType}!='Did Not Screen'",
     GasShutoff:          "${SurveyType}!='Did Not Screen' and ${NaturalGas}='Yes'",
     Interior:            "${SurveyType}!='Did Not Screen'",
@@ -1714,6 +1719,12 @@ const CHOICE_LABELS = {
   NonstructuralSeismicPerformance: { detailed_eval_recommended:'Detailed evaluation recommended', no_eval_hazards_exist:'Hazards exist, no detailed evaluation needed', no_hazard:'No hazard' },
   VertIrregularitiesPresent: { sloping_site:'Sloping Site', unbraced_cripple_wall:'Unbraced Cripple Wall', weak_soft_story:'Weak and/or Soft Story', out_of_plane_setback:'Out-of-Plane Setback', in_plane_setback:'In-Plane Setback', short_column:'Short Column/Pier', split_levels:'Split Levels' },
   PlanIrregularitiesPresent: { torsion:'Torsion', non_parallel_system:'Non-Parallel System', reentrant_corner:'Re-entrant Corner', diaphragm_opening:'Diaphragm Opening', beams_misaligned:'Beams Misaligned' },
+  // Generator questions (survey lists list_yes_no_unk_na / generator_fuel / generator_size / list_yes_no_unk)
+  Isolators: { Yes:'Yes', No:'No', Unknown:'Unknown', NA:'N/A' },
+  GeneratorFuelType: { diesel:'Diesel', natural_gas:'Natural Gas', propane:'Propane', other:'Other' },
+  GeneratorFlexLines: { Yes:'Yes', No:'No', Unknown:'Unknown' },
+  GeneratorSize: { kw_lt20:'Under 20 kW', kw_20_60:'20 - 60 kW', kw_60_150:'60 - 150 kW', kw_150_500:'150 - 500 kW',
+                   kw_500_1000:'500 - 1,000 kW', kw_gt1000:'Over 1,000 kW', unknown:'Unknown' },
 };
 ['Liquefaction','Landslide','SurfaceRupture','Additions','DrawingsReviewed','YearBuiltEstimated',
  'NonstructuralReview','OnsiteGenerator','IsShelter',
@@ -1815,7 +1826,7 @@ const DETAIL_IDENTITY_FIELDS = ['Address', 'City', 'ZIP', 'County', 'Screener', 
 const DETAIL_GROUPS = [
   { title: 'Screening Type & Extent', fields: ['SurveyType', 'Exterior', 'Interior', 'NonstructuralReview', 'Phase', 'DnsReason', 'DnsOther'] },
   { title: 'Building Details & Screening Information', fields: ['YearBuilt', 'YearBuiltEstimated', 'Additions', 'AdditionsYearBuilt', 'TotalFloorArea', 'StoriesAboveGrade', 'StoriesBelowGrade', 'Use', 'EssentialFacility', 'IsShelter', 'Occupancy', 'OccupancyOthers', 'HAZUSOccupancy', 'FEMABuildingType', 'Units', 'Seismicity', 'SeismicitySource', 'SsSpectralAcc', 'SeismicitySs', 'S1SpectralAcc', 'SeismicityS1', 'SoilType', 'CodeYear', 'DrawingsReviewed', 'OnsiteGenerator', 'OtherIdentifiers'] },
-  { title: 'Score Modifiers', fields: ['VertIrregularities', 'VertIrregularitiesType', 'VertIrregularitiesPresent', 'PlanIrregularities', 'PlanIrregularitiesType', 'PlanIrregularitiesPresent', 'TorsionalIrr', 'NonParallelSystem', 'ReentrantCorner', 'DiaphragmOpening', 'C1C2BuildingOutofPlane', 'OtherPlanIrregularity', 'PoundingAlign', 'PoundingTaller', 'PoundingEnd', 'PoundingSeparationGap', 'PoundingStories', 'S2Building', 'C1Building', 'PC1RM1BuildingQ1', 'PC1RM1BuildingQ2', 'URMQ1', 'MHQ1', 'Redundancy', 'RetrofitQ1', 'PreCodeQ', 'PostBenchmarkQ', 'WeakSoftStory', 'Adjacency', 'Anchored', 'Isolators'] },
+  { title: 'Score Modifiers', fields: ['VertIrregularities', 'VertIrregularitiesType', 'VertIrregularitiesPresent', 'PlanIrregularities', 'PlanIrregularitiesType', 'PlanIrregularitiesPresent', 'TorsionalIrr', 'NonParallelSystem', 'ReentrantCorner', 'DiaphragmOpening', 'C1C2BuildingOutofPlane', 'OtherPlanIrregularity', 'PoundingAlign', 'PoundingTaller', 'PoundingEnd', 'PoundingSeparationGap', 'PoundingStories', 'S2Building', 'C1Building', 'PC1RM1BuildingQ1', 'PC1RM1BuildingQ2', 'URMQ1', 'MHQ1', 'Redundancy', 'RetrofitQ1', 'PreCodeQ', 'PostBenchmarkQ', 'WeakSoftStory', 'Adjacency', 'Anchored', 'Isolators', 'GeneratorFuelType', 'GeneratorFuelOther', 'GeneratorFlexLines', 'GeneratorSize'] },
   { title: 'Hazards', fields: ['OtherHazards', 'ExtFallingHazards', 'FallingHazardsOther', 'Landslide', 'SurfaceRupture', 'Liquefaction', 'NaturalGas', 'GasShutoff', 'FlexibleGasLines', 'EmergencyWaterandFoodSupplies', 'FurnitureFixturesEquipment', 'WaterHeaters', 'FireSuppression', 'DropCeilings', 'LayInLightFixtures', 'BoilersChillersHVACsystems', 'HeavyEquipment', 'GasFiredEquipment', 'OtherMEPEquipment', 'FuelorPropaneTanks', 'EgressRoutes', 'OtherNonstructural', 'NonstructuralSeismicPerformance', 'EQ1', 'EQ2', 'EQ3', 'EQ4', 'EQ5', 'EQ6', 'EQ7', 'IQ1', 'IQ2', 'ObservableDamage'] },
   { title: 'Score', fields: ['BasicScore', 'Level1Score', 'FinalSL1Score', 'VL1', 'PL1', 'AdjustedBaselineScore', 'DetailedEvalRecommended', 'DetailedEvalRequired', 'IsDetailedRequired'] },
   { title: 'Comments', fields: ['Level1Comments', 'ReviewComments', 'ScreenerCommentsBuilding', 'ScreenerCommentsExterior', 'ScreenerCommentsInterior', 'EngineerCommentsExterior', 'EngineerCommentsVertical', 'EngineerCommentsPlan', 'EngineerCommentsInterior', 'EngineerReview', 'EngineerReviewExterior', 'EngineerReviewVertical', 'EngineerReviewPlan', 'EngineerReviewInterior'] },
@@ -2737,7 +2748,9 @@ function isRelevant(f) { const ph = phaseCfg(); const r = (ph ? (ph.relevant || 
 // Follow-up questions only show while their lead question is Yes (generator → anchored / isolators,
 // natural gas → auto shut-off / flexible lines). Everything else stays visible; the form's other
 // relevant conditions are only used for "required".
-const DEPENDENT_QS = { OnsiteGenerator: /anchor|isolator/i, NaturalGas: /shut.?off|flexible/i };   // follow-up field names (whatever the layer calls them)
+const DEPENDENT_QS = { OnsiteGenerator: /anchor|isolator|^generator(fuel|flex|size)/i, NaturalGas: /shut.?off|flexible/i };   // follow-up field names (whatever the layer calls them)
+// Follow-ups that depend on the generator fuel answer, not just Yes/No
+const FUEL_DEPENDENT_QS = { GeneratorFuelOther: ['other'], GeneratorFlexLines: ['natural_gas', 'propane'] };
 const kidsOf = lead => { const re = DEPENDENT_QS[lead]; if (!re) return [];
   const names = new Set([...Object.keys(EDIT.orig || {}), ...Object.keys(EDIT.draft || {}), ...[...document.querySelectorAll('#sheet-body .ed-row[data-f]')].map(r => r.dataset.f)]);
   return [...names].filter(n => n !== lead && re.test(n) && !/comment|note|obs/i.test(n)); };
@@ -2745,6 +2758,8 @@ const leadIsYes = f => { const v = editVal(f); return isYes(v) || isYes(choiceLa
 function syncRelevance() {
   const scope = [document.getElementById('sheet-body'), document.getElementById('ed-wizard')].filter(Boolean);
   const hide = new Set(); Object.keys(DEPENDENT_QS).forEach(lead => { if (EDIT.on && !leadIsYes(lead)) kidsOf(lead).forEach(k => hide.add(k)); });
+  if (EDIT.on) { const fuel = String(editVal('GeneratorFuelType') ?? '').trim();
+    Object.entries(FUEL_DEPENDENT_QS).forEach(([f, ok]) => { if (!ok.includes(fuel)) hide.add(f); }); }
   scope.forEach(root => {
     root.querySelectorAll('.ed-row[data-f]').forEach(row => { row.hidden = hide.has(row.dataset.f); });
   });
@@ -3969,7 +3984,12 @@ function EDIT_TABS(a) {
         ['FallingHazardsOther', 'Other falling hazard (describe)', 'text'], ['Level1Comments', 'Screener comments (Level 1)', 'textarea']]],
     ],
     nonstruct: [
-      ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['Isolators', 'Seismic / vibration isolators', 'yesno'], ['NaturalGas', 'Natural gas service', 'yesno'],
+      ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['Isolators', 'Seismic / vibration isolators', 'select'],
+        // newer generator questions: only offered once the layer has them (republished survey)
+        ...[['GeneratorFuelType', 'Generator fuel type', 'select'], ['GeneratorFuelOther', 'Other fuel (describe)', 'text'],
+            ['GeneratorFlexLines', 'Generator flexible supply lines', 'select'], ['GeneratorSize', 'Generator size (kW)', 'select']]
+          .filter(([f]) => Object.prototype.hasOwnProperty.call(a.attrs || {}, f) || (LAYER_FIELD_TYPES || {})[f]),
+        ['NaturalGas', 'Natural gas service', 'yesno'],
         ['GasShutoff', 'Auto gas shut-off', 'yesno'], ['FlexibleGasLines', 'Flexible gas lines', 'yesno'], ['EgressRoutes', 'Egress routes clear', 'yesno']]],
       ['Bracing / Restraint', [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies', 'brace'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents', 'brace'],
         ['WaterHeaters', 'Water Heaters', 'brace'], ['FireSuppression', 'Fire Suppression', 'brace'], ['DropCeilings', 'Drop Ceilings', 'brace'], ['LayInLightFixtures', 'Lay-In Light Fixtures', 'brace'],
@@ -5955,7 +5975,7 @@ function buildDetailHTML(a) {
       <div class="ov-card ov-stat" data-ie="Exterior,Interior"><div class="ov-stat-label">Extent of Review</div>
         <div class="p2-dse"><span class="p2-dse-k">Exterior:</span> ${escHtml(fieldValue('Exterior') || '-')}</div>
         <div class="p2-dse"><span class="p2-dse-k">Interior:</span> ${escHtml(fieldValue('Interior') || '-')}</div></div>
-      ${htmlCard('Emergency Generator', genBig, genSub, `OnsiteGenerator,${editField(a, 'Anchored', [/^anchored$/i, /generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i])},Isolators`)}
+      ${htmlCard('Emergency Generator', genBig, genSub, `OnsiteGenerator,${editField(a, 'Anchored', [/^anchored$/i, /generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i])},Isolators,GeneratorFuelType,GeneratorFuelOther,GeneratorFlexLines,GeneratorSize`)}
       ${htmlCard('Auto Gas Shut-off', gasBig, gasSub, 'NaturalGas,GasShutoff,FlexibleGasLines')}
       ${htmlCard('Egress Routes Clear', (v => v === '-' ? 'N/A' : v)(ynTxt(attrs.EgressRoutes, 'EgressRoutes')), '', 'EgressRoutes')}
     </div>`;
