@@ -1470,7 +1470,7 @@ const CONFIG = {
   // an entry on every save. If the layer doesn't have it yet, the Notes tab shows
   // only "created" / "last edited" from editor tracking.
   historyField: 'EditHistory',
-  scoreCutoff: 2.0,                 // FEMA P-154 cut-off: "Yes, score less than the cut-off" only applies at or below this
+  scoreCutoff: 2.0,                 // FEMA P-154 cut-off: "Yes, score less than the cut-off" applies only BELOW this (2.0 itself is not low), same as the survey
   // Edit history table: one row per save. ParentGlobalId = the building's globalid on the parent layer
   // (CONFIG.reports.parentItemId), History = what changed, EditDate = when, Editor = who.
   editHistory: { itemId: '553d75fdf8df4ef29d9bc6ea2cb309ac', layerIndex: 0,
@@ -2325,7 +2325,7 @@ const FACILITY_TYPES = {
 const FACILITY_KEYS = Object.keys(FACILITY_TYPES).filter(k => k !== NO_FACILITY).concat(NO_FACILITY);   // "No Facility Type" last in the filter
 
 // ── Score helpers ────────────────────────────────────────────────
-// Matches Arcade logic: ≤2.0 = red, >2.0 = green, Nonstructural = amber
+// Below the cut-off (< 2.0) = low score, 2.0 and above = not low, Nonstructural = amber
 // Score colors removed (red/green/amber) - every score uses one neutral style.
 const SCORE_NEUTRAL = '#3a4150';
 function scoreColor(score, surveyType) { return SCORE_NEUTRAL; }
@@ -2338,8 +2338,8 @@ function scoreDisplay(score, surveyType) {
 function scoreLabel(score, surveyType) {
   if (surveyType === 'Nonstructural Screening') return { short: 'N/A', desc: 'Nonstructural Screening - structural score not applicable' };
   if (score === null || score === undefined || isNaN(score)) return { short: '-', desc: 'No score recorded' };
-  if (score > 2.0) return { short: score.toFixed(1), desc: 'Score above cut-off - detailed structural evaluation not indicated' };
-  return { short: score.toFixed(1), desc: 'Score at or below cut-off - detailed structural evaluation recommended' };
+  if (!belowCutoff(score)) return { short: score.toFixed(1), desc: 'Score at or above the cut-off - detailed structural evaluation not indicated' };
+  return { short: score.toFixed(1), desc: 'Score below the cut-off - detailed structural evaluation recommended' };
 }
 const CONFIG_SCORE = {
   green:  { color: '#228B22', bg: '#e8f5e9' },
@@ -3133,7 +3133,7 @@ const MULTI_FILTERS = {
             options: ['le2', 'urm', 'shelter'],
             tags: a => {
               const at = a.attrs || {}, t = [];
-              if (a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score !== undefined && a.level1Score <= 2.0) t.push('le2');
+              if (a.surveyType !== 'Nonstructural Screening' && belowCutoff(a.level1Score)) t.push('le2');   // key kept for saved filters
               const ft = String(at.FEMABuildingType ?? '').trim();
               if (/^urm\b/i.test(ft) || /^urm\b/i.test(String(choiceLabel('FEMABuildingType', ft) || ''))) t.push('urm');
               const occ = `${at.Occupancy ?? ''} ${at.OccupancyOthers ?? ''} ${choiceLabel('OccupancyOthers', at.OccupancyOthers) || ''}`;
@@ -3332,7 +3332,7 @@ function renderList() {
   if (!assets.length) { const sb = document.getElementById('stats-bar'); if (sb) { sb.hidden = true; sb.style.display = 'none'; } }
   if (assets.length) {
     const total = filtered.length;
-    const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && a.level1Score !== null && a.level1Score <= 2.0).length;
+    const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && belowCutoff(a.level1Score)).length;
     const phases = [...activePhases];
     const totalLabel = !EDIT_URL_ON ? 'Screenings' : phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
                      : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
@@ -3354,7 +3354,7 @@ function renderList() {
         <div class="stats-num">${total.toLocaleString()}</div>
       </div>
       <div class="stats-tile">
-        <div class="stats-label">L1 Score ≤2.0</div>
+        <div class="stats-label">L1 Score &lt;${(CONFIG.scoreCutoff ?? 2).toFixed(1)}</div>
         <div class="stats-num">${atRisk.toLocaleString()}</div>
       </div>`;
     fitStatsLabels();
@@ -5214,15 +5214,18 @@ async function saveReports(a, changes) {
 
 // ── "Yes, score less than the cut-off" ──
 // Records can arrive with it ticked because the survey worked it out while the score was still 0
-// (before the calculations ran). It should only stay ticked when the score really is at or below
-// the cut-off, or when the user ticks it themselves.
+// (before the calculations ran). It should only stay ticked when the score really is below
+// the cut-off (FEMA: "less than"; 2.0 itself is not low), or when the user ticks it themselves.
 function lowScoreCode() {
   const ch = Object.assign({}, CHOICE_LABELS.DetailedEvalRequired || {}, DOMAIN_LABELS.DetailedEvalRequired || {});
   const hit = Object.entries(ch).find(([c, l]) => /score|cut.?off|low/i.test(`${c} ${l}`));
   return hit ? hit[0] : 'yes_low_score';
 }
 function liveScore(a, get) { const c = computeP154(get || (f => (a.attrs || {})[f])); return c.T ? c.final : a.level1Score; }
-const aboveCutoff = s => typeof s === 'number' && !isNaN(s) && s > (CONFIG.scoreCutoff ?? 2.0);
+// One rule everywhere (list badge, stats tile, filter, labels, auto-untick): low = BELOW the cut-off.
+// A score exactly at the cut-off is not low (FEMA P-154 "score less than the cut-off"; the survey uses < 2).
+function belowCutoff(s) { return typeof s === 'number' && !isNaN(s) && s < (CONFIG.scoreCutoff ?? 2.0); }
+const aboveCutoff = s => typeof s === 'number' && !isNaN(s) && !belowCutoff(s);   // at or above: not low
 // While editing: untick it if it came in with the record and the current score is above the cut-off
 function dropAutoLowScore(a) {
   const f = 'DetailedEvalRequired';
@@ -5698,8 +5701,8 @@ function buildDetailHTML(a) {
   let detailedEvalText = '';
   if (a.detailedReq) {
     const v = a.detailedReq.toLowerCase();
-    if (v === 'yes' || v === 'y') detailedEvalText = aboveCutoff(liveScore(a)) ? 'No, score above the cut-off' : 'Yes, score less than the cut-off';
-    else if (v === 'no' || v === 'n') detailedEvalText = 'No, score above the cut-off';
+    if (v === 'yes' || v === 'y') detailedEvalText = aboveCutoff(liveScore(a)) ? 'No, score not below the cut-off' : 'Yes, score less than the cut-off';
+    else if (v === 'no' || v === 'n') detailedEvalText = 'No, score not below the cut-off';
     else detailedEvalText = choiceLabel('DetailedEvalRequired', a.detailedReq);
   }
 
