@@ -4240,8 +4240,9 @@ function checkPrePost() {
   });
 }
 function editMulti(f, code, checked, el) {
-  const orig = _raw(EDIT.orig[f]);
-  const sep = orig.includes(',') || !orig.trim() ? ',' : ' ';          // keep the record's own separator (Survey123 uses commas)
+  // always comma-separated, like Survey123. (It used to copy the record's separator, so a record with ONE
+  // answer had a second one added with a space: "torsion reentrant_corner", which Survey123 can't read.)
+  const sep = ',';
   const set = multiCodes(editVal(f)); checked ? set.add(code) : set.delete(code);
   if (f === 'DetailedEvalRequired') EDIT.autoLowVal = undefined;
   if (isRequired(f) && !set.size && el) { const host = el.closest('.ed-ms') || el.closest('.cb-checks'); const err = host && host.parentNode.querySelector('.ed-err'); if (err) { err.hidden = false; err.textContent = 'Required - pick at least one'; } }
@@ -5230,8 +5231,10 @@ function dropAutoLowScore(a) {
   if (!orig.has(code)) return;
   const s = liveScore(a, x => editCurrent(x) ?? (a.attrs || {})[x]);
   if (!aboveCutoff(s)) { if (EDIT.autoLowVal !== undefined) { delete EDIT.draft[f]; EDIT.autoLowVal = undefined; } return; }
-  const sep = _raw(EDIT.orig[f]).includes(',') ? ',' : ' ';
-  EDIT.autoLowVal = [...orig].filter(c => c !== code).join(sep); EDIT.draft[f] = EDIT.autoLowVal;
+  // the score is now above the cut-off: drop "Yes, score less than the cut-off". If that was the only
+  // reason, the answer becomes "No" (it used to be saved blank). Survey123 stores answers comma-separated.
+  const rest = [...orig].filter(c => c !== code);
+  EDIT.autoLowVal = rest.length ? rest.join(',') : 'no'; EDIT.draft[f] = EDIT.autoLowVal;
 }
 // While editing, the photos open in a floating panel over the edit steps (close it to carry on editing);
 // otherwise the link just switches to the Photos tab.
