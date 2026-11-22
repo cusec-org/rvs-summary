@@ -3133,7 +3133,7 @@ const MULTI_FILTERS = {
             options: ['le2', 'urm', 'shelter'],
             tags: a => {
               const at = a.attrs || {}, t = [];
-              if (a.surveyType !== 'Nonstructural Screening' && belowCutoff(a.level1Score)) t.push('le2');   // key kept for saved filters
+              if (a.surveyType !== 'Nonstructural Screening' && belowCutoff(cutoffScore(a))) t.push('le2');   // key kept for saved filters
               const ft = String(at.FEMABuildingType ?? '').trim();
               if (/^urm\b/i.test(ft) || /^urm\b/i.test(String(choiceLabel('FEMABuildingType', ft) || ''))) t.push('urm');
               const occ = `${at.Occupancy ?? ''} ${at.OccupancyOthers ?? ''} ${choiceLabel('OccupancyOthers', at.OccupancyOthers) || ''}`;
@@ -3332,7 +3332,7 @@ function renderList() {
   if (!assets.length) { const sb = document.getElementById('stats-bar'); if (sb) { sb.hidden = true; sb.style.display = 'none'; } }
   if (assets.length) {
     const total = filtered.length;
-    const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && belowCutoff(a.level1Score)).length;
+    const atRisk = filtered.filter(a => a.surveyType !== 'Nonstructural Screening' && belowCutoff(cutoffScore(a))).length;
     const phases = [...activePhases];
     const totalLabel = !EDIT_URL_ON ? 'Screenings' : phases.length === 1 ? (phases[0] === 'Complete' ? 'Screenings Complete' : `Screenings - ${phaseName(phases[0])}`)
                      : phases.length > 1 ? `Screenings (${phases.length} phases)` : 'All Screenings';
@@ -3354,7 +3354,7 @@ function renderList() {
         <div class="stats-num">${total.toLocaleString()}</div>
       </div>
       <div class="stats-tile">
-        <div class="stats-label">L1 Score &lt;${(CONFIG.scoreCutoff ?? 2).toFixed(1)}</div>
+        <div class="stats-label">Score &lt;${(CONFIG.scoreCutoff ?? 2).toFixed(1)}</div>
         <div class="stats-num">${atRisk.toLocaleString()}</div>
       </div>`;
     fitStatsLabels();
@@ -5226,13 +5226,24 @@ function liveScore(a, get) { const c = computeP154(get || (f => (a.attrs || {})[
 // A score exactly at the cut-off is not low (FEMA P-154 "score less than the cut-off"; the survey uses < 2).
 function belowCutoff(s) { return typeof s === 'number' && !isNaN(s) && s < (CONFIG.scoreCutoff ?? 2.0); }
 const aboveCutoff = s => typeof s === 'number' && !isNaN(s) && !belowCutoff(s);   // at or above: not low
+// The score compared with the cut-off is the FINAL score (FEMA P-154): the Level 2 score SL2 when a Level 2
+// screening was done, otherwise the Level 1 score. (The survey and the upload use the same rule.)
+function level2Final(a, get) {
+  get = get || (f => (a.attrs || {})[f]);
+  if (String(get('PerformLevel2') ?? '').trim().toLowerCase() !== 'yes') return null;
+  const raw = get('Level2Score');
+  const n = (raw === null || raw === undefined || String(raw).trim() === '') ? NaN : Number(raw);
+  return isNaN(n) ? null : n;
+}
+function cutoffScore(a) { const s2 = level2Final(a); return s2 !== null ? s2 : a.level1Score; }               // stored values (list, filters)
+function cutoffScoreLive(a, get) { const s2 = level2Final(a, get); return s2 !== null ? s2 : liveScore(a, get); }   // while editing
 // While editing: untick it if it came in with the record and the current score is above the cut-off
 function dropAutoLowScore(a) {
   const f = 'DetailedEvalRequired';
   if (Object.prototype.hasOwnProperty.call(EDIT.draft, f) && EDIT.autoLowVal === undefined) return;      // the user has set it
   const orig = multiCodes(EDIT.orig[f]), code = lowScoreCode();
   if (!orig.has(code)) return;
-  const s = liveScore(a, x => editCurrent(x) ?? (a.attrs || {})[x]);
+  const s = cutoffScoreLive(a, x => editCurrent(x) ?? (a.attrs || {})[x]);
   if (!aboveCutoff(s)) { if (EDIT.autoLowVal !== undefined) { delete EDIT.draft[f]; EDIT.autoLowVal = undefined; } return; }
   // the score is now above the cut-off: drop "Yes, score less than the cut-off". If that was the only
   // reason, the answer becomes "No" (it used to be saved blank). Survey123 stores answers comma-separated.
@@ -5701,7 +5712,7 @@ function buildDetailHTML(a) {
   let detailedEvalText = '';
   if (a.detailedReq) {
     const v = a.detailedReq.toLowerCase();
-    if (v === 'yes' || v === 'y') detailedEvalText = aboveCutoff(liveScore(a)) ? 'No, score not below the cut-off' : 'Yes, score less than the cut-off';
+    if (v === 'yes' || v === 'y') detailedEvalText = aboveCutoff(cutoffScoreLive(a)) ? 'No, score not below the cut-off' : 'Yes, score less than the cut-off';
     else if (v === 'no' || v === 'n') detailedEvalText = 'No, score not below the cut-off';
     else detailedEvalText = choiceLabel('DetailedEvalRequired', a.detailedReq);
   }
@@ -5924,7 +5935,7 @@ function buildDetailHTML(a) {
     if (!raw) return 'Not recorded';
     const one = t => /unknown/.test(t) ? 'Yes, unknown building type' : /other/.test(t) ? 'Yes, other hazards present'
       : (/low|score|cut/.test(t) || /^y(es)?$/.test(t)) ? 'Yes, score below cut-off' : /^n/.test(t) ? 'No' : choiceLabel('DetailedEvalRequired', t);
-    const high = aboveCutoff(liveScore(a));
+    const high = aboveCutoff(cutoffScoreLive(a));
     const items = [...new Set(raw.split(/[,\s]+/).filter(Boolean).map(one))].filter(t => !(high && t === 'Yes, score below cut-off'));
     return items.length ? items.join('; ') : 'Not recorded';
   })();
