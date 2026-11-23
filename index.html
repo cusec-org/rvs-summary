@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#003087">
 <meta name="referrer" content="no-referrer-when-downgrade">
+<script>if(!/edit=/.test(location.search)&&location.protocol!=='blob:'){try{history.replaceState(null,'',location.pathname+'?edit=1&phase=all')}catch(e){}}</script>
 <script>
   (function() {
     const p = new URLSearchParams(window.location.search);
@@ -626,6 +627,10 @@
   .nt-na { font-size: 13px; color: var(--text3); font-style: italic; padding: 4px 0; }
   .nt-c + .nt-c { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e6e9ef; }
   .nt-c-k { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #4a5363; margin-bottom: 2px; }
+  .note-list { display: flex; flex-direction: column; gap: 8px; }
+  .note-i { border-left: 3px solid #c9d4e8; background: #f7f9fc; border-radius: 0 6px 6px 0; padding: 6px 10px; }
+  .note-k { font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: #5a6b87; margin-bottom: 2px; }
+  .note-v { font-size: 13px; line-height: 1.5; color: #13233d; white-space: pre-line; overflow-wrap: anywhere; }
   .nt-c-v { font-size: 13px; color: #13233d; line-height: 1.5; white-space: pre-line; }
   .nt-table { border: 1px solid #dfe3ea; font-size: 12.5px; }
   #nt-hist-rows { display: contents; }
@@ -874,7 +879,7 @@
   .ns-not-done { position: relative; overflow: hidden; }
   .ns-not-done > *:not(.ns-wm):not(.sr-only) { position: relative; z-index: 1; }
   .ns-wm { position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; text-align: center;
-    font: 800 clamp(20px, 4.2cqi, 40px)/1.15 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 2px; color: rgba(179, 38, 30, 0.14);
+    font: 800 clamp(20px, 4.2cqi, 40px)/1.15 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 2px; color: rgba(179, 38, 30, 0.2);
     transform: rotate(-14deg); padding: 0 6%; }
   .calc-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .calc-save:not(:disabled) { background: #0B2E6B; color: #fff; }
@@ -1168,7 +1173,13 @@
   .lb-stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
   .lb-tag { position: absolute; font-size: 14px; padding: 7px 10px; border-radius: 0 0 4px 4px; pointer-events: none; }
   .lb-tag[hidden] { display: none; }
-  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none; }
+  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none; touch-action: none; transform-origin: center center; will-change: transform; cursor: zoom-in; }
+  .lb-zoom { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; display: flex; align-items: center; background: rgba(0,0,0,0.6); border: 1.5px solid rgba(255,255,255,0.85); border-radius: 999px; overflow: hidden; z-index: 2; }
+  .lb-zoom button { background: none; border: 0; color: #fff; font: 700 20px/1 'DM Sans', sans-serif; width: 40px; height: 40px; cursor: pointer; min-height: 0; }
+  .lb-zoom button:hover { background: rgba(255,255,255,0.2); }
+  .lb-zoom .lb-zl { width: 74px; height: 40px; font-size: 13px; font-family: 'DM Mono', monospace; color: #fff; background: transparent; border: 0; border-left: 1px solid rgba(255,255,255,0.35); border-right: 1px solid rgba(255,255,255,0.35); text-align: center; text-align-last: center; cursor: pointer; appearance: none; -webkit-appearance: none; padding: 0 14px 0 4px; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='white' stroke-width='1.6' fill='none'/></svg>") no-repeat right 6px center; }
+  .lb-zoom .lb-zl option { color: #111; background: #fff; }
+  @media (max-width: 600px) { .lb-zoom { top: auto; left: 50%; transform: translateX(-50%); bottom: calc(64px + env(safe-area-inset-bottom)); } }
   .lb-bar { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; text-align: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
   .lb-caption { font-size: 13px; font-weight: 700; }
   .lb-caption:empty { display: none; }
@@ -1453,6 +1464,11 @@
   <button class="lb-nav lb-next" id="lb-next" onclick="lightboxStep(1)" aria-label="Next photo">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
+  <div class="lb-zoom" role="group" aria-label="Zoom photo">
+    <button type="button" onclick="lbZoomBy(1 / 1.4)" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+    <select class="lb-zl" id="lb-zl" onchange="lbZoomTo(+this.value)" aria-label="Zoom level" title="Zoom level (0 resets)"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option><option value="4">400%</option><option value="6">600%</option></select>
+    <button type="button" onclick="lbZoomBy(1.4)" aria-label="Zoom in" title="Zoom in (+)">+</button>
+  </div>
   <button class="close" onclick="closeLightbox()" aria-label="Close photo viewer">×</button>
 </div>
 
@@ -5158,7 +5174,7 @@ function notesTabHTML(a) {
   return `<div class="rp-wrap">
     <div class="nt-two">
       <div class="ov-card p2-card"><div class="ov-card-title">Screener Comments for Engineer</div>${editing
-        ? comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Screener comments for engineer') : (joinedEngineerComments(at) ? `<div class="nt-c"><div class="nt-c-v">${escHtml(joinedEngineerComments(at))}</div></div>` : '<div class="nt-na">N/A</div>')}</div>
+        ? comboTextBox(a, 'ReviewComments', joinedEngineerComments(at), 'Screener comments for engineer') : (engineerSourcesHTML(at) || '<div class="nt-na">N/A</div>')}</div>
       <div class="ov-card p2-card"><div class="ov-card-title">Supervising Engineer Notes</div>${editing
         ? engNotesBox(a, 'nt') : (String(at.EngineerNotes ?? '').trim() ? `<div class="nt-c"><div class="nt-c-v">${escHtml(String(at.EngineerNotes).trim())}</div></div>` : '<div class="nt-na">N/A</div>')}</div>
     </div>
@@ -5183,11 +5199,15 @@ function comboP154HTML(a) {
       <button class="view-all-link" onclick="viewAllPhotos()">${photoLinkLabel()}</button>
     </div></div>`;
 }
+function yearBuiltEst(year, est) {
+  const y = String(year ?? '').trim();
+  return y && y !== 'Unknown' && typeof isYes === 'function' && isYes(est) ? `${y} (est.)` : y;
+}
 // Read-only "Year Built / Code Year" at the top of the P-154 edit step (both are edited on Facility Overview)
 function ybcyText() {
   const v = f => { const x = editVal(f); return String(x ?? '').trim(); };
   const cy = v('CodeYear');
-  return `${v('YearBuilt') || 'Unknown'} / ${cy ? String(choiceLabel('CodeYear', cy)) : 'Unknown'}`;
+  return `${yearBuiltEst(v('YearBuilt'), v('YearBuiltEstimated')) || 'Unknown'} / ${cy ? String(choiceLabel('CodeYear', cy)) : 'Unknown'}`;
 }
 function ybcyRowHTML() {
   return `<div class="ed-row" data-f="__ybcy"><label class="ed-k">Year Built / Code Year</label><div class="ed-v"><div class="ed-locked" id="ed-ybcy" title="View only - edit these on Facility Overview">${escHtml(ybcyText())}</div></div></div>`;
@@ -5824,6 +5844,16 @@ function joinedScreenerComments(at) {
   return [at.Level1Comments, at.ScreenerCommentsBuilding, at.ScreenerCommentsExterior, at.ScreenerCommentsInterior]
     .map(x => String(x ?? '').trim()).filter(Boolean).filter((v, k, arr) => arr.indexOf(v) === k && !arr.some((o, j) => j !== k && o.length > v.length && o.includes(v))).join('\n\n');
 }
+// Read-only: one block per note. Splits on line breaks and " | ", so notes that were joined into one string stay distinct.
+function noteBlocksHTML(text, label) {
+  const parts = String(text ?? '').split(/\r?\n+|\s+\|\s+/).map(x => x.trim()).filter(Boolean);
+  if (!parts.length) return '';
+  return parts.map((p, i) => `<div class="note-i">${label && !i ? `<div class="note-k">${escHtml(label)}</div>` : ''}<div class="note-v">${escHtml(p)}</div></div>`).join('');
+}
+function engineerSourcesHTML(at) {
+  const items = screenerForEngineer(at).filter(([, v]) => v);
+  return items.length ? `<div class="note-list">${items.map(([k, v]) => noteBlocksHTML(v, k)).join('')}</div>` : '';
+}
 function commentBlock(items) {
   return items.map(([k, v]) => `<div class="nt-c"><div class="nt-c-k">${escHtml(k)}</div>${v ? `<div class="nt-c-v">${escHtml(v)}</div>` : '<div class="nt-na">N/A</div>'}</div>`).join('');
 }
@@ -6098,7 +6128,7 @@ function buildDetailHTML(a) {
     ['Extent of Review', [line('Exterior', fieldValue('Exterior')), line('Interior', fieldValue('Interior')), line('Nonstructural Review', fieldValue('NonstructuralReview'))]],
     ['Date of Screening', [fmtShort(a.dateRaw) || a.dateStr || 'Not recorded']],
     ['Building Details & Screening Information', [
-      line('Year Built', fieldValue('YearBuilt')), line('Additions', fieldValue('Additions')), line('Additions Year Built', addlYear),
+      line('Year Built', yearBuiltEst(fieldValue('YearBuilt'), attrs.YearBuiltEstimated)), line('Additions', fieldValue('Additions')), line('Additions Year Built', addlYear),
       line('Square Feet', fieldValue('TotalFloorArea')), line('# of Stories Above Grade', fieldValue('StoriesAboveGrade')), line('# of Stories Below Grade', fieldValue('StoriesBelowGrade')),
       line('Facility Type', a.facilityType), line('Is Shelter', fieldValue('IsShelter')), line('Construction Type', constructionType),
       line('FEMA Building Type', fieldValue('FEMABuildingType')), line('Seismicity', fieldValue('Seismicity')), line('Soil Type', fieldValue('SoilType'))]],
@@ -6125,7 +6155,7 @@ function buildDetailHTML(a) {
   const soilLbl = fieldValue('SoilType');
   const soilM = String(soilLbl).match(/^([A-F])\s*[:\--]\s*(.+)$/i);
   const femaLbl = fieldValue('FEMABuildingType');
-  const yb = fieldValue('YearBuilt');
+  const yb = yearBuiltEst(fieldValue('YearBuilt'), attrs.YearBuiltEstimated);
   const addlNote = isYes(attrs.Additions) ? 'with additions'
                  : (String(attrs.Additions || '').toLowerCase() === 'no' ? 'with no additions' : '');
   const statCard = (label, big, sub, subHtml, ie) => `<div class="ov-card ov-stat"${ie ? ` data-ie="${ie}"` : ''}><div class="ov-stat-label">${escHtml(label)}</div><div class="ov-stat-val">${escHtml(String(dash(big)))}</div>${subHtml ? `<div class="ov-stat-sub">${subHtml}</div>` : sub ? `<div class="ov-stat-sub">${escHtml(sub)}</div>` : ''}</div>`;
@@ -6285,7 +6315,7 @@ function buildDetailHTML(a) {
   // Code Year box: the recorded code (e.g. "2018 IBC") or "Unknown";
   // under it, Pre-Code / Post-Benchmark when the record says so.
   const codeYearTxt = (attrs.CodeYear !== undefined && attrs.CodeYear !== null && String(attrs.CodeYear).trim() !== '') ? String(choiceLabel('CodeYear', attrs.CodeYear)) : 'Unknown';
-  const ybTxt = String(attrs.YearBuilt ?? '').trim() || 'Unknown';   // shown with the code year: "1966 / 2006 IBC"
+  const ybTxt = yearBuiltEst(attrs.YearBuilt, attrs.YearBuiltEstimated) || 'Unknown';   // shown with the code year: "1966 / 2006 IBC"
   const codeEra = [isYes(attrs.PreCodeQ) ? 'Pre-Code' : '', isYes(attrs.PostBenchmarkQ) ? 'Post-Benchmark' : ''].filter(Boolean).join(', ');
   const boxes = `<div class="ov-stats p2-stats">
       ${statCard('Type of Screening', isNS ? 'Nonstructural Only' : 'P-154 L1', isNS ? '' : 'Rapid Visual Screening', '', 'SurveyType')}
@@ -6373,7 +6403,7 @@ function buildDetailHTML(a) {
   // 3) Screener comments
   const c1 = attrs.Level1Comments ? String(attrs.Level1Comments).trim() : '';
   const commentsBox = `<div class="ov-card p2-card p2-comments"><div class="ov-card-title">Screener Comments</div>
-      <div class="p2-cm" data-ie="Level1Comments"><div class="p2-cm-k">Level 1</div><div class="p2-cm-v">${c1 ? escHtml(c1) : '<span class="p2-none">No Level 1 comments.</span>'}</div></div>
+      <div class="p2-cm" data-ie="Level1Comments"><div class="p2-cm-k">Level 1</div><div class="p2-cm-v">${c1 ? `<div class="note-list">${noteBlocksHTML(c1)}</div>` : '<span class="p2-none">No Level 1 comments.</span>'}</div></div>
     </div>`;
 
   const p154HTML = `
@@ -6460,7 +6490,7 @@ function buildDetailHTML(a) {
   // Nonstructural Observations: the OtherNonstructural field
   const nsObsTxt = String(attrs.OtherNonstructural ?? '').trim();
   const commentsCard = `<div class="ov-card p2-card" data-ie="OtherNonstructural"><div class="ov-card-title">Nonstructural Observations</div>
-      ${nsObsTxt ? `<div class="ns-cm">${escHtml(nsObsTxt)}</div>` : '<div class="p2-none">No nonstructural observations.</div>'}
+      ${nsObsTxt ? `<div class="note-list">${noteBlocksHTML(nsObsTxt)}</div>` : '<div class="p2-none">No nonstructural observations.</div>'}
     </div>`;
   // Bracing / restraint chart (page 2 of the building report)
   const BRACE = [['EmergencyWaterandFoodSupplies', 'Emergency Food/Water Supplies'], ['FurnitureFixturesEquipment', 'Furniture, Fixtures, & Contents'],
@@ -7000,10 +7030,76 @@ function openLightbox(url, alt) {
   if (idx < 0) { LB_ITEMS = [{ url, name: alt || '', tag: '' }]; idx = 0; }
   openLightboxAt(idx);
 }
+// ── Photo zoom: + / - buttons, mouse wheel, double-click (double-tap), drag to move around, pinch, keys + - 0 ──
+const LB_Z = { s: 1, x: 0, y: 0, pts: new Map(), pd: 0, drag: null, pinched: false }, LB_MAX = 6;
+function lbApply(anim) {
+  const img = document.getElementById('lightbox-img'); if (!img) return;
+  img.style.transition = anim ? 'transform 0.15s ease-out' : 'none';
+  img.style.transform = (LB_Z.s === 1 && !LB_Z.x && !LB_Z.y) ? '' : `translate(${LB_Z.x}px, ${LB_Z.y}px) scale(${LB_Z.s})`;
+  img.style.cursor = LB_Z.s > 1 ? (LB_Z.drag ? 'grabbing' : 'grab') : 'zoom-in';
+  const l = document.getElementById('lb-zl');
+  if (l) {                                  // show the preset closest to the current zoom; wheel/pinch values get a temporary entry
+    [...l.options].forEach(o => { if (o.dataset.tmp) o.remove(); });
+    const m = [...l.options].find(o => Math.abs(+o.value - LB_Z.s) < 0.005);
+    if (m) l.value = m.value;
+    else { const o = new Option(Math.round(LB_Z.s * 100) + '%', LB_Z.s); o.dataset.tmp = 1; l.add(o); l.value = o.value; }
+  }
+  placeLbTag();
+}
+// keep the photo from being dragged completely out of view
+function lbClamp() {
+  const img = document.getElementById('lightbox-img'), st = img.parentNode.getBoundingClientRect();
+  const mx = Math.max(0, (img.offsetWidth * LB_Z.s - st.width) / 2), my = Math.max(0, (img.offsetHeight * LB_Z.s - st.height) / 2);
+  LB_Z.x = Math.max(-mx, Math.min(mx, LB_Z.x)); LB_Z.y = Math.max(-my, Math.min(my, LB_Z.y));
+}
+// zoom to ns, keeping the point under (cx, cy) - measured from the centre of the viewer - where it is
+function lbZoomAt(ns, cx, cy, anim) {
+  ns = Math.max(1, Math.min(LB_MAX, ns)); const k = ns / LB_Z.s;
+  LB_Z.x = cx - k * (cx - LB_Z.x); LB_Z.y = cy - k * (cy - LB_Z.y); LB_Z.s = ns;
+  if (ns === 1) { LB_Z.x = 0; LB_Z.y = 0; }
+  lbClamp(); lbApply(anim);
+}
+function lbZoomTo(s) { if (s === 1) lbZoomReset(); else lbZoomAt(s, 0, 0, true); }
+function lbZoomBy(f) { lbZoomAt(LB_Z.s * f, 0, 0, true); }
+function lbZoomReset(silent) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; LB_Z.pts.clear(); LB_Z.pd = 0; LB_Z.drag = null; LB_Z.pinched = false; lbApply(!silent); }
+(function () {
+  const img = document.getElementById('lightbox-img'), st = img.parentNode;
+  const rel = (x, y) => { const r = st.getBoundingClientRect(); return [x - (r.left + r.width / 2), y - (r.top + r.height / 2)]; };
+  const dist = () => { const p = [...LB_Z.pts.values()]; return p.length < 2 ? 0 : Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); };
+  st.addEventListener('wheel', e => {
+    if (document.getElementById('lightbox').hidden) return; e.preventDefault();
+    const [cx, cy] = rel(e.clientX, e.clientY);
+    if (e.ctrlKey) { lbZoomAt(LB_Z.s * Math.exp(-e.deltaY * 0.01), cx, cy); return; }      // trackpad pinch stays smooth
+    const now = Date.now(); if (now - (LB_Z.wt || 0) < 120) return; LB_Z.wt = now;           // one wheel notch = one step, same as the + / - buttons
+    lbZoomAt(LB_Z.s * (e.deltaY < 0 ? 1.4 : 1 / 1.4), cx, cy, true);
+  }, { passive: false });
+  img.addEventListener('dblclick', e => { e.preventDefault(); const [cx, cy] = rel(e.clientX, e.clientY); lbZoomAt(LB_Z.s > 1 ? 1 : 2.5, cx, cy, true); });
+  img.addEventListener('pointerdown', e => {
+    try { img.setPointerCapture(e.pointerId); } catch {}
+    LB_Z.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (LB_Z.pts.size === 2) { LB_Z.pd = dist(); LB_Z.pinched = true; LB_Z.drag = null; }
+    else if (LB_Z.s > 1) { LB_Z.drag = { x: e.clientX - LB_Z.x, y: e.clientY - LB_Z.y }; lbApply(); }
+  });
+  img.addEventListener('pointermove', e => {
+    if (!LB_Z.pts.has(e.pointerId)) return;
+    LB_Z.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (LB_Z.pts.size === 2) {
+      const d = dist(), p = [...LB_Z.pts.values()];
+      if (LB_Z.pd) { const [cx, cy] = rel((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2); lbZoomAt(LB_Z.s * d / LB_Z.pd, cx, cy); }
+      LB_Z.pd = d;
+    } else if (LB_Z.drag) { LB_Z.x = e.clientX - LB_Z.drag.x; LB_Z.y = e.clientY - LB_Z.drag.y; lbClamp(); lbApply(); }
+  });
+  const up = e => {
+    LB_Z.pts.delete(e.pointerId); if (LB_Z.pts.size < 2) LB_Z.pd = 0;
+    if (!LB_Z.pts.size) { LB_Z.drag = null; setTimeout(() => { LB_Z.pinched = false; }, 80); lbApply(); }
+    else if (LB_Z.pts.size === 1 && LB_Z.s > 1) { const p = [...LB_Z.pts.values()][0]; LB_Z.drag = { x: p[0] - LB_Z.x, y: p[1] - LB_Z.y }; }
+  };
+  img.addEventListener('pointerup', up); img.addEventListener('pointercancel', up);
+})();
 // Sit the label bar along the bottom edge of the photo as it's shown (it's scaled to fit the screen)
 function placeLbTag() {
   const img = document.getElementById('lightbox-img'), tg = document.getElementById('lb-tag'); if (!img || !tg) return;
-  if (!tg.textContent || !img.naturalWidth) { tg.hidden = true; return; }
+  if (!tg.textContent || !img.naturalWidth || LB_Z.s !== 1) { tg.hidden = true; return; }   // hidden while zoomed
   const st = img.parentNode.getBoundingClientRect(), r = img.getBoundingClientRect();
   tg.hidden = false;
   Object.assign(tg.style, { left: (r.left - st.left) + 'px', width: r.width + 'px', top: (r.bottom - st.top - tg.offsetHeight) + 'px', bottom: 'auto', right: 'auto' });
@@ -7012,6 +7108,7 @@ window.addEventListener('resize', () => { const lb = document.getElementById('li
 function showLightboxItem() {
   const item = LB_ITEMS[LB_INDEX];
   const img = document.getElementById('lightbox-img');
+  lbZoomReset(true);                       // each photo opens fitted to the screen
   img.src = item.url;
   img.alt = item.tag || 'Photo';
   document.getElementById('lightbox-caption').textContent = '';
@@ -7031,12 +7128,18 @@ function lightboxStep(d) {
 }
 function closeLightbox() {
   const lb = document.getElementById('lightbox');
-  lb.hidden = true;
+  lb.hidden = true; lbZoomReset(true);
   document.getElementById('lightbox-img').src = '';
 }
 function lbKeydown(e) {
   if (document.getElementById('lightbox').hidden) return;
   if (e.key === 'Escape') { closeLightbox(); e.stopImmediatePropagation(); }
+  else if (e.key === '+' || e.key === '=') { lbZoomBy(1.4); e.preventDefault(); }
+  else if (e.key === '-' || e.key === '_') { lbZoomBy(1 / 1.4); e.preventDefault(); }
+  else if (e.key === '0') { lbZoomReset(); e.preventDefault(); }
+  else if (LB_Z.s > 1 && ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) {     // zoomed in: arrows move around the photo
+    LB_Z.x += e.key === 'ArrowLeft' ? 80 : e.key === 'ArrowRight' ? -80 : 0; LB_Z.y += e.key === 'ArrowUp' ? 80 : e.key === 'ArrowDown' ? -80 : 0; lbClamp(); lbApply(); e.preventDefault();
+  }
   else if (e.key === 'ArrowRight') { lightboxStep(1); e.preventDefault(); }
   else if (e.key === 'ArrowLeft') { lightboxStep(-1); e.preventDefault(); }
 }
@@ -7051,6 +7154,7 @@ document.addEventListener('keydown', lbKeydown, true);
   lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
   lb.addEventListener('touchend', e => {
     if (x0 === null) return;
+    if (LB_Z.s !== 1 || LB_Z.pinched) { x0 = y0 = null; return; }      // zoomed or pinching: no swipe to the next photo
     const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) lightboxStep(dx < 0 ? 1 : -1);
     x0 = y0 = null;
@@ -7122,6 +7226,20 @@ async function init() {
 }
 
 init();
+</script>
+<script>
+/* TEST MODE ONLY - skips sign-in, uses fake records. Not for production. */
+window.addEventListener('load',()=>setTimeout(()=>{
+  const mk=(id,ph,l2)=>featureToAsset({attributes:{objectid:id,BuildingName:'Test Building '+id,SurveyType:'P-154 Rapid Visual Screening',Seismicity:'moderatelyhigh',FEMABuildingType:'RM1',Level1Score:1.8,FinalSL1Score:1.8,AdjustedBaselineScore:1.8,Smin:0.3,Phase:ph,PerformLevel2:l2?'yes':'no',Level2Score:l2?2.4:null,TorsionalIrr:'yes',YearBuilt:1960+id*3,YearBuiltEstimated:id%2?'yes':'no',NonstructuralReview:(id===1||id===4)?'no':'yes',Level1Comments:'Roof leak noted. | Parapet cracked on north side\nStairwell door blocked',EngineerCommentsExterior:'Check parapet bracing',EngineerCommentsVertical:'Soft story at ground',ReviewComments:'General note here',OtherNonstructural:'Tanks unbraced\nGenerator not anchored'},geometry:{x:-118+id*0.01,y:39}});
+  LAYER_FIELD_TYPES={Level2Score:'esriFieldTypeDouble',VL2:'esriFieldTypeDouble',PL2:'esriFieldTypeDouble',M:'esriFieldTypeDouble',PI1:'esriFieldTypeDouble',DetailedEvalRequired:'esriFieldTypeString'};
+  USER_CAN_EDIT=true;LAYER_CAN_UPDATE=true;
+  document.getElementById('login-screen').style.display='none';document.getElementById('app').hidden=false;
+  assets=[mk(1,'Post',false),mk(2,'QA/QC',true),mk(3,'Engineer Review',false),mk(4,'Complete',true)];
+  try{renderList()}catch(e){}
+  const svg=c=>'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="'+c+'"/><g stroke="#fff" stroke-width="3" fill="none"><rect x="200" y="200" width="800" height="400"/><path d="M200 200L1000 600M1000 200L200 600"/></g><text x="600" y="130" font-size="60" fill="#fff" text-anchor="middle">Zoom test photo</text></svg>');
+  const b=document.createElement('button');b.textContent='Test photo zoom';b.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9999;padding:10px 14px;font:600 14px sans-serif';
+  b.onclick=()=>{LB_ITEMS=[{url:svg('#4a7'),tag:'Front'},{url:svg('#a64'),tag:'Rear'}];openLightboxAt(0)};document.body.appendChild(b);
+},600));
 </script>
 </body>
 </html>
