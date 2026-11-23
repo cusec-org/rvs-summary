@@ -94,12 +94,18 @@ The contract tasks these notes cover:
    - **Don't recalculate SL2 just because a record is opened or saved.** Recalculate only when a Level 2 answer is
      actually changed, and show the old and new SL2 in the review step before saving.
 
-### Known form issue (tell CUSEC; don't copy it into the app without asking)
+### Form bug to fix: VL2 leaves out W2–W5 (yours to fix; CUSEC agreed 2026-11-23)
 `VL2` adds only `W1` (weak story, W1 cripple wall) of the five weak/soft-story modifiers. `W2`–`W5`, which cover
 house over garage, W1A open front and the two non-W1 cases, are calculated but **not added to `VL2`**. So a Level 2
-with one of those weak/soft-story answers scores too high. CUSEC needs to decide whether to fix the form (add
-`W2+W3+W4+W5`; only one is ever non-zero because `WeakSoftStory` is select_one) and re-score affected records. The
-app should then match the fixed form.
+with one of those weak/soft-story answers would score too high.
+
+- **No existing data is affected.** Checked on the live layer 2026-11-23: `WeakSoftStory` is blank and `W1`–`W5` are
+  0 or blank on all 2,408 records. The only Level 2 records are the 45 Jonesboro CWL uploads. No re-scoring is needed.
+- **Fix in the form:** in the XLSForm `survey` sheet, add `+number(${W2})+number(${W3})+number(${W4})+number(${W5})`
+  to the `calculation` of **both** `VL2ModifiersTotal` (row 292) and `VL2` (row 293). Only one of them is ever
+  non-zero, because `WeakSoftStory` is select_one. Then republish in Survey123 Connect, and test a Level 2 with each
+  `WeakSoftStory` answer in the field app.
+- **In the app:** include `W2`–`W5` in the `VL2` sum from the start, so the app matches the fixed form.
 
 ---
 
