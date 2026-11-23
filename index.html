@@ -1465,9 +1465,9 @@
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
   <div class="lb-zoom" role="group" aria-label="Zoom photo">
-    <button type="button" onclick="lbZoomBy(1 / 1.4)" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+    <button type="button" onclick="lbZoomStep(-1)" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
     <select class="lb-zl" id="lb-zl" onchange="lbZoomTo(+this.value)" aria-label="Zoom level" title="Zoom level (0 resets)"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option><option value="4">400%</option><option value="6">600%</option></select>
-    <button type="button" onclick="lbZoomBy(1.4)" aria-label="Zoom in" title="Zoom in (+)">+</button>
+    <button type="button" onclick="lbZoomStep(1)" aria-label="Zoom in" title="Zoom in (+)">+</button>
   </div>
   <button class="close" onclick="closeLightbox()" aria-label="Close photo viewer">×</button>
 </div>
@@ -7061,6 +7061,15 @@ function lbZoomAt(ns, cx, cy, anim) {
 }
 function lbZoomTo(s) { if (s === 1) lbZoomReset(); else lbZoomAt(s, 0, 0, true); }
 function lbZoomBy(f) { lbZoomAt(LB_Z.s * f, 0, 0, true); }
+// One step to the next / previous zoom level in the dropdown (100, 150, 200, 300, 400, 600%) -
+// used by the + / - buttons, the mouse wheel and the + / - keys, so all three land on the same levels
+function lbZoomLevels() { const l = document.getElementById('lb-zl'); return l ? [...l.options].filter(o => !o.dataset.tmp).map(o => +o.value).sort((a, b) => a - b) : [1, 1.5, 2, 3, 4, 6]; }
+function lbZoomStep(dir, cx = 0, cy = 0) {
+  const lv = lbZoomLevels();
+  const ns = dir > 0 ? lv.find(v => v > LB_Z.s + 0.005) : [...lv].reverse().find(v => v < LB_Z.s - 0.005);
+  if (ns === undefined) return;
+  if (ns === 1) lbZoomReset(); else lbZoomAt(ns, cx, cy, true);
+}
 function lbZoomReset(silent) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; LB_Z.pts.clear(); LB_Z.pd = 0; LB_Z.drag = null; LB_Z.pinched = false; lbApply(!silent); }
 (function () {
   const img = document.getElementById('lightbox-img'), st = img.parentNode;
@@ -7069,9 +7078,9 @@ function lbZoomReset(silent) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; LB_Z.pts.clea
   st.addEventListener('wheel', e => {
     if (document.getElementById('lightbox').hidden) return; e.preventDefault();
     const [cx, cy] = rel(e.clientX, e.clientY);
-    if (e.ctrlKey) { lbZoomAt(LB_Z.s * Math.exp(-e.deltaY * 0.01), cx, cy); return; }      // trackpad pinch stays smooth
-    const now = Date.now(); if (now - (LB_Z.wt || 0) < 120) return; LB_Z.wt = now;           // one wheel notch = one step, same as the + / - buttons
-    lbZoomAt(LB_Z.s * (e.deltaY < 0 ? 1.4 : 1 / 1.4), cx, cy, true);
+    if (!e.deltaY) return;
+    const now = Date.now(); if (now - (LB_Z.wt || 0) < 150) return; LB_Z.wt = now;           // one wheel notch = one step, same levels as the + / - buttons
+    lbZoomStep(e.deltaY < 0 ? 1 : -1, cx, cy);
   }, { passive: false });
   img.addEventListener('dblclick', e => { e.preventDefault(); const [cx, cy] = rel(e.clientX, e.clientY); lbZoomAt(LB_Z.s > 1 ? 1 : 2.5, cx, cy, true); });
   img.addEventListener('pointerdown', e => {
@@ -7134,8 +7143,8 @@ function closeLightbox() {
 function lbKeydown(e) {
   if (document.getElementById('lightbox').hidden) return;
   if (e.key === 'Escape') { closeLightbox(); e.stopImmediatePropagation(); }
-  else if (e.key === '+' || e.key === '=') { lbZoomBy(1.4); e.preventDefault(); }
-  else if (e.key === '-' || e.key === '_') { lbZoomBy(1 / 1.4); e.preventDefault(); }
+  else if (e.key === '+' || e.key === '=') { lbZoomStep(1); e.preventDefault(); }
+  else if (e.key === '-' || e.key === '_') { lbZoomStep(-1); e.preventDefault(); }
   else if (e.key === '0') { lbZoomReset(); e.preventDefault(); }
   else if (LB_Z.s > 1 && ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) {     // zoomed in: arrows move around the photo
     LB_Z.x += e.key === 'ArrowLeft' ? 80 : e.key === 'ArrowRight' ? -80 : 0; LB_Z.y += e.key === 'ArrowUp' ? 80 : e.key === 'ArrowDown' ? -80 : 0; lbClamp(); lbApply(); e.preventDefault();
@@ -7226,20 +7235,6 @@ async function init() {
 }
 
 init();
-</script>
-<script>
-/* TEST MODE ONLY - skips sign-in, uses fake records. Not for production. */
-window.addEventListener('load',()=>setTimeout(()=>{
-  const mk=(id,ph,l2)=>featureToAsset({attributes:{objectid:id,BuildingName:'Test Building '+id,SurveyType:'P-154 Rapid Visual Screening',Seismicity:'moderatelyhigh',FEMABuildingType:'RM1',Level1Score:1.8,FinalSL1Score:1.8,AdjustedBaselineScore:1.8,Smin:0.3,Phase:ph,PerformLevel2:l2?'yes':'no',Level2Score:l2?2.4:null,TorsionalIrr:'yes',YearBuilt:1960+id*3,YearBuiltEstimated:id%2?'yes':'no',NonstructuralReview:(id===1||id===4)?'no':'yes',Level1Comments:'Roof leak noted. | Parapet cracked on north side\nStairwell door blocked',EngineerCommentsExterior:'Check parapet bracing',EngineerCommentsVertical:'Soft story at ground',ReviewComments:'General note here',OtherNonstructural:'Tanks unbraced\nGenerator not anchored'},geometry:{x:-118+id*0.01,y:39}});
-  LAYER_FIELD_TYPES={Level2Score:'esriFieldTypeDouble',VL2:'esriFieldTypeDouble',PL2:'esriFieldTypeDouble',M:'esriFieldTypeDouble',PI1:'esriFieldTypeDouble',DetailedEvalRequired:'esriFieldTypeString'};
-  USER_CAN_EDIT=true;LAYER_CAN_UPDATE=true;
-  document.getElementById('login-screen').style.display='none';document.getElementById('app').hidden=false;
-  assets=[mk(1,'Post',false),mk(2,'QA/QC',true),mk(3,'Engineer Review',false),mk(4,'Complete',true)];
-  try{renderList()}catch(e){}
-  const svg=c=>'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="'+c+'"/><g stroke="#fff" stroke-width="3" fill="none"><rect x="200" y="200" width="800" height="400"/><path d="M200 200L1000 600M1000 200L200 600"/></g><text x="600" y="130" font-size="60" fill="#fff" text-anchor="middle">Zoom test photo</text></svg>');
-  const b=document.createElement('button');b.textContent='Test photo zoom';b.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9999;padding:10px 14px;font:600 14px sans-serif';
-  b.onclick=()=>{LB_ITEMS=[{url:svg('#4a7'),tag:'Front'},{url:svg('#a64'),tag:'Rear'}];openLightboxAt(0)};document.body.appendChild(b);
-},600));
 </script>
 </body>
 </html>
