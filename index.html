@@ -1305,6 +1305,7 @@
   .l2-how { font-size: 12px; color: var(--text2); background: #f7f8fa; border-radius: 8px; padding: 9px 12px; margin-top: 10px; line-height: 1.55; } .l2-how b { color: #13233d; }
   @media (max-width: 760px) { .l2-stats { grid-template-columns: 1fr 1fr; } .l2-prow { grid-template-columns: minmax(0, 1fr) 120px 48px; } .l2-cue { display: none; } .l2-row { grid-template-columns: minmax(0, 1fr) 56px; } }
   .l2-newpill { margin-left: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: .4px; background: #fdf1d3; color: #7a4b00; padding: 2px 7px; border-radius: 999px; vertical-align: 1px; }
+  .l2-banner { margin: 18px 20px 0; } .l2-link { color: #2a5aa8; font-weight: 700; text-decoration: underline; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -3189,7 +3190,7 @@ function passesAllExcept(a, skip) {
   if (!Object.entries(MULTI_FILTERS).every(([k, f]) => k === skip || filterMatch(f, a))) return false;
   if (skip !== 'facility' && activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
   if (activeScoreFilter !== 'all') {
-    const sc = a.level1Score;
+    const sc = cutoffScore(a);   // the final score: Level 2 (SL2) when a Level 2 screening was done
     if (activeScoreFilter === 'green'  && !(sc !== null && sc >= 2.0)) return false;
     if (activeScoreFilter === 'orange' && !(sc !== null && sc >= 1.0 && sc < 2.0)) return false;
     if (activeScoreFilter === 'red'    && !(sc !== null && sc < 1.0)) return false;
@@ -3323,7 +3324,7 @@ function getFiltered(skipPhase) {
     if (!passesMultiFilters(a, skipPhase)) return false;
     if (activeFilters.size > 0 && !activeFilters.has(a.facilityType)) return false;
     if (activeScoreFilter !== 'all') {
-      const s = a.level1Score;
+      const s = cutoffScore(a);
       if (activeScoreFilter === 'green'  && !(s !== null && s >= 2.0)) return false;
       if (activeScoreFilter === 'orange' && !(s !== null && s >= 1.0 && s < 2.0)) return false;
       if (activeScoreFilter === 'red'    && !(s !== null && s < 1.0)) return false;
@@ -3344,7 +3345,7 @@ function getFiltered(skipPhase) {
   else if (sortMode === 'recent') list.sort((a,b) => ((b.hasScreenDate ? 1 : 0) - (a.hasScreenDate ? 1 : 0))
     || ((b.dateRaw ?? -Infinity) - (a.dateRaw ?? -Infinity)) || ((b.id ?? 0) - (a.id ?? 0)));
   else if (sortMode === 'distance' && userLat !== null) list.sort((a,b) => (a.distance??Infinity)-(b.distance??Infinity));
-  else if (sortMode === 'score') list.sort((a,b) => (a.level1Score??Infinity)-(b.level1Score??Infinity));
+  else if (sortMode === 'score') list.sort((a,b) => (cutoffScore(a)??Infinity)-(cutoffScore(b)??Infinity));
   else list.sort((a,b) => a.buildingName.localeCompare(b.buildingName));
   return list;
 }
@@ -3406,7 +3407,7 @@ function renderList() {
 
 function cardHTML(a) {
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
-  const sc = a.level1Score;
+  const sc = cutoffScore(a);   // final score: Level 2 (SL2) when a Level 2 screening was done, else Level 1
   const scColor = scoreColor(sc, a.surveyType);
   const scTextColor = scoreTextColor(sc, a.surveyType);
   const scText = scoreDisplay(sc, a.surveyType);
@@ -3432,7 +3433,7 @@ function cardHTML(a) {
               ${femaLabel ? `<div class="card-address">${femaLabel}</div>` : ''}
             </div>
             <div class="card-score">
-              <div class="card-score-lbl">L1 Score</div>
+              <div class="card-score-lbl">${level2Final(a) !== null ? 'L2 Score' : 'L1 Score'}</div>
               <span class="score-pill" style="background:${scColor};color:${scTextColor}">${scText}</span>
             </div>
           </div>
@@ -3811,10 +3812,18 @@ function updatePhaseChooserCounts() {
   document.querySelectorAll('#phase-chooser .pc-count').forEach(el => { const n = phaseCount(el.dataset.key); el.textContent = `${n.toLocaleString()} screening${n === 1 ? '' : 's'}`; });
 }
 // Colored bubble in the panel's title bar showing which edit phase this session is in
-function sessionPhasePill() {
+// The tag shows the phase the OPEN SCREENING is in (its Phase field), whichever phase the session is working in -
+// so with "All Phases" selected it still says Post, QA/QC, Engineer Review or Complete for that record.
+function sessionPhasePill(a) {
   if (!EDIT_URL_ON) return '';
-  const k = phaseCfg() ? phaseKey() : 'all';            // &phase=all (or no phase yet) = All Phases
   const L = { all: 'All Phases', post: 'Post Data Collection', qaqc: 'QA/QC', engineer: 'Engineer Review', complete: 'Complete' };
+  const ri = a ? recordPhaseIndex(a) : -1;
+  if (ri >= 0) { const k = PHASE_FLOW[ri].key; return `<span class="ph-pill ph-pill-${escHtml(k)}" title="This screening is in ${escHtml(L[k] || k)}">${escHtml(L[k] || k)}</span>`; }
+  if (a) {                                              // a phase that isn't one of the four, or none recorded
+    const raw = String((a.attrs || {})[FIELDS.phase] ?? a.phase ?? '').trim(), t = raw ? String(choiceLabel(FIELDS.phase, raw)) : 'No phase recorded';
+    return `<span class="ph-pill" style="background:#d9dde5;color:#3a4453" title="Phase of this screening">${escHtml(t)}</span>`;
+  }
+  const k = phaseCfg() ? phaseKey() : 'all';            // no record: the session's phase (&phase=all = All Phases)
   return `<span class="ph-pill ph-pill-${escHtml(k)}" title="You are in the ${escHtml(L[k] || k)} edit">${escHtml(L[k] || k)}</span>`;
 }
 // ?phase= value → editPhases key (post, qaqc, engineer, complete; 'field' or unknown = field collection rules)
@@ -4302,6 +4311,7 @@ function l2Refresh() {
   const a = currentRecord(); if (!a || !hasLevel2(a)) return;
   const p = document.querySelector('#sheet-body .dtab-panel[data-panel="p154l2"]');
   if (p) { const top = (document.querySelector('#sheet-body .detail-panels') || {}).scrollTop; p.innerHTML = p154L2HTML(a); const d = document.querySelector('#sheet-body .detail-panels'); if (d && top) d.scrollTop = top; }
+  const bn = document.querySelector('#sheet-body .l2-banner'); if (bn) bn.outerHTML = l2BannerHTML(a, EDIT.on && EDIT.mode === 'combo');
   l2RenderPop();
 }
 
@@ -4351,6 +4361,14 @@ function l2OnEdit(f) { if (!L2_ANSWER_FIELDS.has(f)) return; l2Recalc(); l2Refre
 function l2SyncComboSteps(a) {
   const i = COMBO_STEPS.findIndex(s => s[0] === 'p154l2'); if (i >= 0) COMBO_STEPS.splice(i, 1);
   if (hasLevel2(a)) { const k = COMBO_STEPS.findIndex(s => s[0] === 'p154'); COMBO_STEPS.splice(k + 1, 0, ['p154l2', 'P-154 Level 2']); }
+}
+
+// Banner on the P-154 Screening Details tab: points to the Level 2 tab and says which score is the final one
+function l2BannerHTML(a, combo) {
+  if (!hasLevel2(a)) return '';
+  const V = l2View(a), go = combo ? "comboGo('p154l2')" : "switchDetailTab('p154l2')";
+  const s = isNaN(V.SL2) ? '' : ` The final score (<b>${l2f(V.SL2)}</b>) comes from Level 2.`;
+  return `<div class="p2-notice l2-banner" role="note">A <b>Level 2</b> screening was performed.${s} <a class="l2-link" href="#" onclick="${go}; return false;">See the P-154 Level 2 tab</a></div>`;
 }
 
 function EDIT_TABS(a) {
@@ -6614,7 +6632,7 @@ function buildDetailHTML(a) {
 
   return `
     <!-- Title ribbon -->
-    <div class="sheet-ribbon"><span class="sr-title">Rapid Visual Screening Summary</span>${sessionPhasePill()}</div>
+    <div class="sheet-ribbon"><span class="sr-title">Rapid Visual Screening Summary</span>${sessionPhasePill(a)}</div>
 
     <!-- Icon + name + address (Street View link) | Final RVS Score + reports -->
     <div class="sheet-header sheet-header-row">
@@ -6646,7 +6664,7 @@ function buildDetailHTML(a) {
 
     <div class="detail-panels">
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${combo ? comboHint + overviewEditHTML : editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
-      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${combo ? comboHint + comboP154HTML(a) : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
+      <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${l2BannerHTML(a, combo)}${combo ? comboHint + comboP154HTML(a) : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
       ${hasLevel2(a) ? `<div class="dtab-panel" data-panel="p154l2" role="tabpanel" hidden>${combo ? comboHint : ''}${p154L2HTML(a)}</div>` : ''}
       <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${combo ? comboHint + nonstructHTML : editing ? editTabHTML(a, 'nonstruct') : nonstructHTML}</div>
       <div class="dtab-panel" data-panel="reports" role="tabpanel" hidden>${combo ? comboHint : ''}<div class="rp-wrap"><div class="ov-card p2-card"><div class="ov-card-title">Reports &amp; Attachments</div><div id="reports-area"><div class="attachment-tile loading" style="height:60px"></div></div></div></div></div>
