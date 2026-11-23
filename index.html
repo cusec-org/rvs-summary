@@ -1270,6 +1270,41 @@
   @media (min-width: 600px) { #app { box-shadow: var(--shadow-lg); } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  /* ── P-154 Level 2 tab ── */
+  .l2-wrap { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .l2-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .l2-gold { border-top: 3px solid var(--cusec-gold); }
+  .l2-low { color: var(--score-red); } .l2-ok { color: var(--score-green); }
+  .l2-hint { float: right; font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--text3); }
+  .l2-eq { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 700; margin: 2px 0 12px; color: #13233d; }
+  .l2-t { background: #f0f2f5; border-radius: 7px; padding: 5px 10px; text-align: center; min-width: 64px; font-size: 14px; }
+  .l2-t i { display: block; font-style: normal; font-size: 10px; font-weight: 600; color: var(--text3); }
+  .l2-t.l2-f { background: #13233d; color: #fff; } .l2-t.l2-f i { color: #c9d3e6; }
+  .l2-click { cursor: pointer; } .l2-click:hover { background: #f6f8fc; } .l2-t.l2-click:hover { outline: 2px solid var(--cusec-gold); background: #f0f2f5; }
+  .l2-click:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .l2-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 56px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
+  .l2-sub { font-family: 'DM Mono', monospace; font-size: 10.5px; color: var(--text3); font-weight: 400; margin-top: 1px; }
+  .l2-cue { font-size: 11px; font-weight: 700; color: #2a5aa8; white-space: nowrap; }
+  .l2-v.neg { color: var(--score-red); } .l2-v.pos { color: var(--score-green); } .l2-v.zero { color: #9aa2b0; font-weight: 500; }
+  .l2-mhead { border-bottom: 0 !important; padding-bottom: 2px !important; }
+  .l2-indent { margin-left: 16px; border-left: 2px solid #e6e9ef; padding-left: 10px; }
+  .l2-foot { font-size: 11.5px; color: var(--text2); margin-top: 10px; }
+  .l2-cmt { font-size: 12.5px; line-height: 1.5; color: #13233d; white-space: pre-wrap; overflow-wrap: anywhere; } .l2-cmt.l2-none { color: var(--text3); font-style: italic; }
+  .l2-warn { margin-bottom: 0; }
+  .l2-ov { position: fixed; inset: 0; z-index: 9000; background: rgba(15,17,23,.5); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .l2-popcard { background: #fff; border-radius: 12px; max-width: 580px; width: 100%; max-height: 90vh; overflow: auto; padding: 18px 20px 16px; box-shadow: 0 16px 48px rgba(0,0,0,.35); }
+  .l2-pophd { display: flex; align-items: center; margin-bottom: 8px; } .l2-pophd .ov-card-title { margin: 0; flex: 1; }
+  .l2-x { border: 0; background: #eef0f4; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; min-height: 0; }
+  .l2-gt { margin-top: 12px; }
+  .l2-prow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 150px) 52px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #e6e9ef; font-size: 12.5px; }
+  .l2-prow.l2-phead { font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-weight: 700; padding: 2px 0 6px; }
+  .l2-prow.l2-ptot { background: #f6f7f9; margin: 0 -20px; padding: 8px 20px; font-weight: 700; border-bottom: 0; }
+  .l2-prow.l2-changed { box-shadow: inset 3px 0 0 var(--cusec-gold); padding-left: 8px; margin-left: -8px; }
+  .l2-pctl { display: flex; justify-content: flex-end; } .l2-sel { width: 100%; max-width: 150px; min-height: 36px; }
+  .l2-ans { font-weight: 700; color: #13233d; text-align: right; } .l2-ans.l2-none { color: #8a93a3; font-weight: 500; }
+  .l2-how { font-size: 12px; color: var(--text2); background: #f7f8fa; border-radius: 8px; padding: 9px 12px; margin-top: 10px; line-height: 1.55; } .l2-how b { color: #13233d; }
+  @media (max-width: 760px) { .l2-stats { grid-template-columns: 1fr 1fr; } .l2-prow { grid-template-columns: minmax(0, 1fr) 120px 48px; } .l2-cue { display: none; } .l2-row { grid-template-columns: minmax(0, 1fr) 56px; } }
+  .l2-newpill { margin-left: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: .4px; background: #fdf1d3; color: #7a4b00; padding: 2px 7px; border-radius: 999px; vertical-align: 1px; }
 </style>
 </head>
 <body>
@@ -1564,6 +1599,8 @@ const CONFIG = {
         Adjacency: ['Other observed hazards (adjacency)', 'multi'], Seismicity: ['Seismicity', 'select'],
         VertIrregularitiesPresent: ['Vertical types', 'multi'], PlanIrregularitiesPresent: ['Plan types', 'multi'], PlanIrregularities: ['Plan irregularity', 'yesno'],
         ExtFallingHazards: ['Exterior falling hazards', 'multi'],
+        // Level 2 answers (the calculated modifiers / totals are in viewOnly and re-scored by the app)
+        SlopingSiteQ1: ["Sloping site (W1 building)", 'yesno'], SlopingSiteQ2: ["Sloping site (non-W1 building)", 'yesno'], WeakSoftStory: ["Weak / soft story", 'select'], SetbackQ1: ["Setback: upper story outboard", 'yesno'], SetbackQ2: ["Setback: upper stories inboard", 'yesno'], SetbackQ3: ["Setback: in-plane offset", 'yesno'], ShortColumnQ1: ["Short column: 20% of columns", 'yesno'], ShortColumnQ2: ["Short column: depth / spandrel", 'yesno'], SplitLevelQ1: ["Split level", 'yesno'], OtherIrregularityQ1: ["Other severe vertical irregularity", 'yesno'], OtherIrregularityQ2: ["Other moderate vertical irregularity", 'yesno'], TorsionalIrr: ["Torsional irregularity", 'yesno'], NonParallelSystem: ["Non-parallel system", 'yesno'], ReentrantCorner: ["Reentrant corner", 'yesno'], DiaphragmOpening: ["Diaphragm opening", 'yesno'], C1C2BuildingOutofPlane: ["C1, C2 out-of-plane offset", 'yesno'], OtherPlanIrregularity: ["Other plan irregularity", 'yesno'], PoundingAlign: ["Pounding: floors do not align", 'yesno'], PoundingTaller: ["Pounding: 2+ stories taller", 'yesno'], PoundingEnd: ["Pounding: end of block", 'yesno'], S2Building: ["S2: K bracing visible", 'yesno'], C1Building: ["C1: flat plate frame", 'yesno'], PC1RM1BuildingQ1: ["PC1/RM1: roof-to-wall ties", 'yesno'], PC1RM1BuildingQ2: ["PC1/RM1: interior walls", 'yesno'], URMQ1: ["URM: gable walls", 'yesno'], MHQ1: ["MH: supplemental bracing", 'yesno'], Redundancy: ["Redundancy", 'yesno'], RetrofitQ1: ["Comprehensive seismic retrofit", 'yesno'], Level2Comments: ['Level 2 comments', 'textarea'],
         // always editable: comments and the action questions
         Level1Comments: ['Screener comments', 'textarea'], ReviewComments: ['Comments for engineer', 'textarea'], EngineerNotes: ['Supervising Engineer Notes', 'textarea'],
         OtherHazards: ['Other hazards', 'multi'], DetailedEvalRequired: ['Detailed structural evaluation required', 'multi'],
@@ -1571,7 +1608,7 @@ const CONFIG = {
       },
       // calculated / read-only in that form: still shown in the app, never editable
       // Ss / S1 are filled by the ASCE 7-22 lookup and can't be typed over
-      viewOnly: ['SurveyDate', 'State', 'County', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType'],
+      viewOnly: ['SurveyDate', 'State', 'County', 'SsSpectralAcc', 'S1SpectralAcc', 'location', 'BasicScore', 'Level1Score', 'Smin', 'VL1', 'PL1', 'FinalSL1Score', 'AdjustedBaselineScore', 'VertIrregularities', 'VertIrregularitiesType', 'PlanIrregularitiesType', 'VL2', 'PL2', 'M', 'Level2Score', 'SS1', 'SS2', 'W1', 'W2', 'W3', 'W4', 'W5', 'S1', 'S2', 'S3', 'P1', 'P2', 'SL1', 'OI1', 'OI2', 'PI1', 'PI2', 'PI3', 'PI4', 'PI5', 'PI6', 'PA', 'PT', 'PE', 'S2B', 'C1', 'PC1', 'PC12', 'URM', 'MH', 'R', 'RM', 'PoundingCap'],
       // everything else the app can edit is hidden in that form → not part of this phase
       required: { SoilType: '', Seismicity: '' },
       // When editing starts, run the functions.js lookups and fill these in:
@@ -4051,6 +4088,271 @@ const BRACE_CHOICES = { none: 'None', some: 'Some', all: 'All', na: 'N/A', unkno
 // choices) when present, else the app's built-in list. `calc` = set by the
 // survey's calculations, shown locked.
 function editField(a, name, patterns) { const k = Object.keys(a.attrs || {}).find(n => patterns.some(re => re.test(n))); return k || name; }
+// ════════════════════════════════════════════════════════════════
+//  P-154 LEVEL 2 TAB
+//  Shown only when PerformLevel2 = 'yes'. The modifier values below are copied from the calculation
+//  column of the "RVS Major Revision 2026" Survey123 form (rows 243-359), by seismicity region
+//  [low, moderate, moderately high, high, very high]. Don't retype them from the P-154 book: the form
+//  is what produced the stored data. NOTE on field names: SL1 here is the Level 2 split-level
+//  modifier, NOT the Level 1 score (that is FinalSL1Score / Level1Score).
+// ════════════════════════════════════════════════════════════════
+const L2_MODS = {"SS1": {"v": [-1.5, -1.4, -1.3, -1.2, -0.9], "q": ["SlopingSiteQ1", "yes"]}, "SS2": {"v": [-0.4, -0.4, -0.3, -0.3, -0.2], "q": ["SlopingSiteQ2", "yes"]}, "W1": {"v": [-0.7, -0.7, -0.6, -0.6, -0.5], "q": ["WeakSoftStory", "w1_cripple_wall"]}, "W2": {"v": [-1.5, -1.4, -1.3, -1.2, -0.9], "q": ["WeakSoftStory", "w1_house_over_garage"]}, "W3": {"v": [-1.5, -1.4, -1.3, -1.2, -0.9], "q": ["WeakSoftStory", "w1a_open_front"]}, "W4": {"v": [-1.3, -1.1, -1.0, -0.9, -0.7], "q": ["WeakSoftStory", "non_w1_severe"]}, "W5": {"v": [-0.6, -0.6, -0.5, -0.5, -0.4], "q": ["WeakSoftStory", "non_w1_moderate"]}, "S1": {"v": [-1.3, -1.2, -1.0, -1.0, -0.7], "q": ["SetbackQ1", "yes"]}, "S2": {"v": [-0.6, -0.6, -0.5, -0.5, -0.4], "q": ["SetbackQ2", "yes"]}, "S3": {"v": [-0.4, -0.4, -0.3, -0.3, -0.2], "q": ["SetbackQ3", "yes"]}, "P1": {"v": [-0.6, -0.5, -0.5, -0.5, -0.4], "q": ["ShortColumnQ1", "yes"]}, "P2": {"v": [-0.6, -0.5, -0.5, -0.5, -0.4], "q": ["ShortColumnQ2", "yes"]}, "SL1": {"v": [-0.6, -0.6, -0.5, -0.5, -0.4], "q": ["SplitLevelQ1", "yes"]}, "OI1": {"v": [-1.3, -1.2, -1.0, -1.0, -0.7], "q": ["OtherIrregularityQ1", "yes"]}, "OI2": {"v": [-0.6, -0.6, -0.5, -0.5, -0.4], "q": ["OtherIrregularityQ2", "yes"]}, "PI1": {"v": [-1.1, -1.0, -0.8, -0.7, -0.5], "q": ["TorsionalIrr", "yes"]}, "PI2": {"v": [-0.6, -0.5, -0.4, -0.4, -0.2], "q": ["NonParallelSystem", "yes"]}, "PI3": {"v": [-0.6, -0.5, -0.4, -0.4, -0.2], "q": ["ReentrantCorner", "yes"]}, "PI4": {"v": [-0.4, -0.3, -0.3, -0.2, -0.2], "q": ["DiaphragmOpening", "yes"]}, "PI5": {"v": [-0.5, -0.4, -0.4, -0.4, -0.2], "q": ["C1C2BuildingOutofPlane", "yes"]}, "PI6": {"v": [-1.1, -1.0, -0.8, -0.7, -0.5], "q": ["OtherPlanIrregularity", "yes"]}, "PA": {"v": [-1.3, -1.2, -1.0, -1.0, -0.7], "q": ["PoundingAlign", "yes"]}, "PT": {"v": [-1.3, -1.2, -1.0, -1.0, -0.7], "q": ["PoundingTaller", "yes"]}, "PE": {"v": [-0.6, -0.6, -0.5, -0.5, -0.4], "q": ["PoundingEnd", "yes"]}, "S2B": {"v": [-1.3, -1.2, -1.0, -1.0, -0.7], "q": ["S2Building", "yes"]}, "C1": {"v": [-0.6, -0.5, -0.5, -0.4, -0.3], "q": ["C1Building", "yes"]}, "PC1": {"v": [0.4, 0.4, 0.3, 0.3, 0.2], "q": ["PC1RM1BuildingQ1", "yes"]}, "PC12": {"v": [0.4, 0.4, 0.3, 0.3, 0.2], "q": ["PC1RM1BuildingQ2", "yes"]}, "URM": {"v": [-0.6, -0.5, -0.4, -0.4, -0.3], "q": ["URMQ1", "yes"]}, "MH": {"v": [1.8, 1.2, 1.2, 1.2, 0.5], "q": ["MHQ1", "yes"]}, "R": {"v": [0.4, 0.4, 0.3, 0.3, 0.2], "q": ["Redundancy", "yes"]}, "RM": {"v": [1.6, 1.4, 1.4, 1.4, 1.2], "q": ["RetrofitQ1", "yes"]}, "VL2cap": {"v": [-1.5, -1.4, -1.3, -1.2, -0.9], "q": null}, "PL2cap": {"v": [-1.6, -1.4, -1.3, -1.1, -0.7], "q": null}, "PoundingCap": {"v": [-1.5, -1.4, -1.3, -1.2, -0.9], "q": null}};
+const L2_QLABEL = {
+"SlopingSiteQ1": "W1 Bldg: There is at least a full story grade change from one side of the building to the other",
+"SlopingSiteQ2": "Non-W1 Bldg: There is at least a full story grade change from one side of the building to the other",
+"WeakSoftStory": "Weak and/or Soft Story",
+"SetbackQ1": "Vertical elements of the lateral system at an upper story are outboard of those at the story below causing the diaphragm to cantilever at the offset.",
+"SetbackQ2": "Vertical elements of the lateral system at upper stories are inboard of those at lower stories.",
+"SetbackQ3": "There is an in-plane offset of the lateral elements that is greater than the length of the elements.",
+"ShortColumnQ1": "C1,C2,C3,PC1,PC2,RM1,RM2: At least 20% of columns (or piers) along a column line in the lateral system have height/depth ratios less than 50% of the nominal height/depth ratio at that level.",
+"ShortColumnQ2": "C1,C2,C3,PC1,PC2,RM1,RM2: The column depth (or pier width) is less than one half of the depth of the spandrel, or there are infill walls or adjacent floors that shorten the column.",
+"SplitLevelQ1": "There is a split level at one of the floor levels or at the roof.",
+"OtherIrregularityQ1": "There is another observable severe vertical irregularity that obviously affects the building's seismic performance.",
+"OtherIrregularityQ2": "There is another observable moderate vertical irregularity that may affect the building's seismic performance.",
+"TorsionalIrr": "Torsional irregularity : Lateral system does not appear relatively well distributed in plan in either or both directions. (Do not include the W1A open front irregularity listed above.)",
+"NonParallelSystem": "Non-parallel system: There are one or more major vertical elements of the lateral system that are not orthogonal to each other.",
+"ReentrantCorner": "Reentrant corner: Both projections from an interior corner exceed 25% of the overall plan dimension in that direction.",
+"DiaphragmOpening": "Diaphragm opening: There is an opening in the diaphragm with a width over 50% of the total diaphragm width at that level.",
+"C1C2BuildingOutofPlane": "C1, C2 building out-of-plane offset: The exterior beams do not align with the columns in plan.",
+"OtherPlanIrregularity": "Other irregularity: There is another observable plan irregularity that obviously affects the building's seismic performance.",
+"PoundingAlign": "The floors do not align vertically within 2 feet.",
+"PoundingTaller": "One building is 2 or more stories taller than the other.",
+"PoundingEnd": "The building is at the end of the block.",
+"S2Building": "S2 Building: K bracing geometry is visible.",
+"C1Building": "C1 Building: Flat plate serves as the beam in the moment frame.",
+"PC1RM1BuildingQ1": "PC1/RM1 Bldg: There are roof-to-wall ties that are visible or known from drawings that do not rely on cross-grain bending. (Do not combine with post-benchmark or retrofit modifier.)",
+"PC1RM1BuildingQ2": "PC1/RM1 Bldg: The building has closely spaced, full height interior walls (rather than an interior space with few walls such as in a warehouse).",
+"URMQ1": "URM: Gable walls are present.",
+"MHQ1": "MH: There is a supplemental seismic bracing system provided between the carriage and the ground.",
+"Redundancy": "The building has at least two bays of lateral elements on each side of the building in each direction.",
+"RetrofitQ1": "Comprehensive seismic retrofit is visible or known from drawings.",
+"Level2Comments": "Level 2 comments"
+};
+// [answer field, modifier field(s) it drives]
+const L2_GROUPS = [
+  { id: 'vert', title: 'Vertical Irregularity', tot: 'VL2', cap: 'VL2cap', items: [
+    ['SlopingSiteQ1', ['SS1']], ['SlopingSiteQ2', ['SS2']], ['WeakSoftStory', ['W1', 'W2', 'W3', 'W4', 'W5']],
+    ['SetbackQ1', ['S1']], ['SetbackQ2', ['S2']], ['SetbackQ3', ['S3']], ['ShortColumnQ1', ['P1']], ['ShortColumnQ2', ['P2']],
+    ['SplitLevelQ1', ['SL1']], ['OtherIrregularityQ1', ['OI1']], ['OtherIrregularityQ2', ['OI2']]] },
+  { id: 'plan', title: 'Plan Irregularity', tot: 'PL2', cap: 'PL2cap', items: [
+    ['TorsionalIrr', ['PI1']], ['NonParallelSystem', ['PI2']], ['ReentrantCorner', ['PI3']], ['DiaphragmOpening', ['PI4']],
+    ['C1C2BuildingOutofPlane', ['PI5']], ['OtherPlanIrregularity', ['PI6']]] },
+  { id: 'pound', title: 'Pounding', tot: 'PoundingTotal', cap: 'PoundingCap', items: [
+    ['PoundingAlign', ['PA']], ['PoundingTaller', ['PT']], ['PoundingEnd', ['PE']]] },
+  { id: 'other', title: 'Building Type, Redundancy & Retrofit', tot: null, items: [
+    ['S2Building', ['S2B']], ['C1Building', ['C1']], ['PC1RM1BuildingQ1', ['PC1']], ['PC1RM1BuildingQ2', ['PC12']],
+    ['URMQ1', ['URM']], ['MHQ1', ['MH']], ['Redundancy', ['R']], ['RetrofitQ1', ['RM']]] },
+];
+const L2_ANSWER_FIELDS = new Set(L2_GROUPS.flatMap(g => g.items.map(i => i[0])));
+const L2_MOD_FIELDS = L2_GROUPS.flatMap(g => g.items.flatMap(i => i[1]));
+const L2_TOTAL_FIELDS = ['VL2', 'PL2', 'M', 'Level2Score'];
+const L2_TITLES = { vert: 'Vertical Irregularity (VL2)', plan: 'Plan Irregularity (PL2)', pound: 'Pounding', other: 'Building Type, Redundancy & Retrofit', mods: 'Modifiers (M)' };
+const L2_UI = { open: null };
+const L2_WSS_SHORT = { no_selection: 'No selection', w1_cripple_wall: 'W1 cripple wall', w1_house_over_garage: 'W1 house over garage', w1a_open_front: 'W1A open front', non_w1_severe: 'Non-W1, severe', non_w1_moderate: 'Non-W1, moderate' };
+
+function hasLevel2(a) { return !!a && a.surveyType !== 'Nonstructural Screening' && String(((a.attrs || {}).PerformLevel2) ?? '').trim().toLowerCase() === 'yes'; }
+const l2r3 = x => Math.round(x * 1000) / 1000;
+const l2num = v => (v === null || v === undefined || String(v).trim() === '') ? NaN : Number(v);
+function l2Idx(get) {
+  const raw = get('Seismicity') || '';
+  const t = (String(choiceLabel('Seismicity', raw)) + ' ' + String(raw)).toLowerCase().replace(/[^a-z]/g, '');
+  return /veryhigh/.test(t) ? 4 : /moderatelyhigh|modhigh/.test(t) ? 2 : /high/.test(t) ? 3 : /moderate/.test(t) ? 1 : /low/.test(t) ? 0 : -1;
+}
+function l2IsYes(f, v) { return isYes(v) || String(choiceLabel(f, v)).trim().toLowerCase() === 'yes'; }
+// Value of one modifier field for the current answers (0 when its answer doesn't apply, like the form)
+function l2ModVal(m, get, idx) {
+  const q = L2_MODS[m].q, v = get(q[0]);
+  const on = q[1] === 'yes' ? l2IsYes(q[0], v) : String(v ?? '').trim() === q[1];
+  return on ? L2_MODS[m].v[idx] : 0;
+}
+// The form's own Level 2 calculation. VL2 includes W2-W5 (the published form left them out; fixed in the form
+// on 2026-11-23, so the app matches it).
+function l2Compute(get) {
+  const idx = l2Idx(get); if (idx < 0) return { ok: false, why: 'region' };
+  const mods = {}; L2_MOD_FIELDS.forEach(m => { mods[m] = l2ModVal(m, get, idx); });
+  const capOf = k => L2_MODS[k].v[idx];
+  const grp = {};
+  L2_GROUPS.forEach(g => {
+    const raw = l2r3(g.items.reduce((s, it) => s + it[1].reduce((t, m) => t + mods[m], 0), 0));
+    const cap = g.cap ? capOf(g.cap) : null;
+    const tot = cap === null ? raw : (raw < cap ? cap : raw);
+    grp[g.id] = { raw, cap, tot, capped: cap !== null && raw < cap };
+  });
+  const VL2 = grp.vert.tot, PL2 = grp.plan.tot, pound = grp.pound.tot, other = grp.other.tot;
+  const M = l2r3(pound + other);
+  let sp = l2num(get('AdjustedBaselineScore'));
+  if (isNaN(sp)) { let fs = l2num(get('FinalSL1Score')); if (isNaN(fs)) fs = l2num(get('Level1Score')); sp = isNaN(fs) ? NaN : l2r3(fs - (l2num(get('VL1')) || 0) - (l2num(get('PL1')) || 0)); }
+  if (isNaN(sp)) return { ok: false, why: 'score' };
+  let smin = l2num(get('Smin')); if (isNaN(smin)) { const c = computeP154(get); smin = c.T ? c.T.smin : 0; }
+  const SL2 = Math.max(l2r3(sp + VL2 + PL2 + M), smin);
+  return { ok: true, idx, mods, grp, VL2, PL2, pound, other, M, sp, smin, SL2 };
+}
+const l2f = (v, sign) => { if (v === null || v === undefined || isNaN(v)) return '-'; const t = (Math.round(v * 10) / 10).toFixed(1); return (sign && v > 0 ? '+' : '') + t.replace('-', '−'); };
+const l2cls = v => v < 0 ? 'neg' : v > 0 ? 'pos' : 'zero';
+const l2Editing = a => !!a && EDIT.on && String(EDIT.id) === String(a.id);
+const l2Get = a => l2Editing(a) ? (x => editCurrent(x) ?? (a.attrs || {})[x]) : (x => (a.attrs || {})[x]);
+// What to show: the stored value when the record has one (uploaded Level 2 records keep the engineer's own
+// SL2 with VL2 / PL2 / M blank), else the value worked out from the answers.
+function l2View(a) {
+  const get = l2Get(a), c = l2Compute(get);
+  const pick = (f, calc) => { const s = l2num(get(f)); return isNaN(s) ? calc : s; };
+  const SL2 = pick('Level2Score', c.ok ? c.SL2 : NaN);
+  const out = { c, get, SL2, L1: l2num(get('FinalSL1Score')) };
+  if (isNaN(out.L1)) out.L1 = l2num(get('Level1Score'));
+  out.VL2 = pick('VL2', c.ok ? c.VL2 : NaN); out.PL2 = pick('PL2', c.ok ? c.PL2 : NaN); out.M = pick('M', c.ok ? c.M : NaN);
+  out.sp = c.ok ? c.sp : NaN; out.smin = c.ok ? c.smin : NaN;
+  out.mismatch = c.ok && !isNaN(l2num(get('Level2Score'))) && Math.abs(c.SL2 - l2num(get('Level2Score'))) > 0.05;
+  return out;
+}
+const l2Label = f => (L2_QLABEL[f] || f);
+function l2CanEdit(a, f) { return l2Editing(a) && (!phaseCfg() || phaseMode(f) === 'edit'); }
+
+function l2RowBtn(id, label, sub, val, editing) {
+  return `<div class="l2-row l2-click" tabindex="0" role="button" onclick="l2Open('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();l2Open('${id}')}">
+    <div class="p2-k">${label}<div class="l2-sub">${sub}</div></div><div class="l2-cue">${editing ? 'Edit answers' : 'View breakdown'} &rsaquo;</div><div class="p2-v l2-v ${l2cls(val)}">${l2f(val, true)}</div></div>`;
+}
+function p154L2HTML(a) {
+  const ed = l2Editing(a), V = l2View(a), c = V.c, low = belowCutoff(V.SL2);
+  if (!c.ok && isNaN(V.SL2)) {
+    return `<div class="l2-wrap"><div class="p2-notice">${c.why === 'region' ? 'This record needs a Seismicity region before the Level 2 score can be worked out.' : 'This record needs a Level 1 score before the Level 2 score can be worked out.'}</div></div>`;
+  }
+  const eq = c.ok ? `<div class="l2-eq" aria-label="Level 2 score calculation">
+      <div class="l2-t"><i>S&prime;</i>${l2f(V.sp)}</div><span>+</span>
+      <div class="l2-t l2-click" tabindex="0" role="button" onclick="l2Open('vert')"><i>VL2</i>${l2f(V.VL2, true)}</div><span>+</span>
+      <div class="l2-t l2-click" tabindex="0" role="button" onclick="l2Open('plan')"><i>PL2</i>${l2f(V.PL2, true)}</div><span>+</span>
+      <div class="l2-t l2-click" tabindex="0" role="button" onclick="l2Open('mods')"><i>M</i>${l2f(V.M, true)}</div><span>=</span>
+      <div class="l2-t l2-f"><i>S<sub>L2</sub></i>${l2f(V.SL2)}</div></div>` : '';
+  const warn = V.mismatch ? `<div class="p2-notice l2-warn">The Level 2 answers add up to <b>${l2f(c.SL2)}</b>, but the stored Level 2 score is <b>${l2f(V.SL2)}</b> (for example, a score uploaded from the engineer's workbook). The stored score is the one used for the cut-off. It is only recalculated when a Level 2 answer is changed.</div>` : '';
+  const cmt = String(l2Get(a)('Level2Comments') ?? '').trim();
+  const cmtBox = l2CanEdit(a, 'Level2Comments')
+    ? `<div class="ed-row${_raw(editVal('Level2Comments')) !== _raw(EDIT.orig.Level2Comments) ? ' ed-changed' : ''}" data-f="Level2Comments"><textarea id="ed_Level2Comments" data-f="Level2Comments" class="ed-in ed-ta" rows="4" maxlength="4000" aria-label="Level 2 comments" oninput="editSet('Level2Comments', this.value)">${escHtml(_raw(editVal('Level2Comments')))}</textarea></div>`
+    : (cmt ? `<div class="l2-cmt">${escHtml(cmt)}</div>` : `<div class="l2-cmt l2-none">No Level 2 comments recorded.</div>`);
+  return `<div class="l2-wrap">
+    <div class="ov-stats l2-stats">
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Final Level 1 Score</div><div class="ov-stat-val">${l2f(V.L1)}</div><div class="ov-stat-sub">S<sub>L1</sub></div></div>
+      <div class="ov-card ov-stat l2-gold"><div class="ov-stat-label">Final Level 2 Score</div><div class="ov-stat-val">${l2f(V.SL2)}</div><div class="ov-stat-sub">S<sub>L2</sub> &middot; used for the cut-off</div></div>
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Cut-off (${(CONFIG.scoreCutoff ?? 2.0).toFixed(1)})</div><div class="ov-stat-val ${low ? 'l2-low' : 'l2-ok'}">${low ? 'Below' : 'Not low'}</div><div class="ov-stat-sub">S<sub>L2</sub> ${low ? '&lt;' : '&ge;'} ${(CONFIG.scoreCutoff ?? 2.0).toFixed(1)}</div></div>
+      <div class="ov-card ov-stat"><div class="ov-stat-label">Perform Level 2</div><div class="ov-stat-val">Yes</div><div class="ov-stat-sub">${low ? 'Detailed evaluation: low score' : 'Level 2 done'}</div></div>
+    </div>
+    ${warn}
+    <div class="ov-card p2-card l2-score"><div class="ov-card-title">Level 2 Score Details<span class="l2-hint">Select a row to see how it was calculated${ed ? ' and edit the answers' : ''}</span></div>
+      ${eq}
+      <div class="p2-row p2-strong"><div class="p2-k">Adjusted Baseline Score (S&prime;)<div class="l2-sub">FinalSL1Score &minus; VL1 &minus; PL1</div></div><div class="p2-v">${l2f(V.sp)}</div></div>
+      ${c.ok ? l2RowBtn('vert', 'Vertical Irregularity (VL2)', 'slope, weak / soft story, setback, short column, split level, other', V.VL2, ed) : ''}
+      ${c.ok ? l2RowBtn('plan', 'Plan Irregularity (PL2)', 'torsion, non-parallel, reentrant corner, diaphragm opening, offset, other', V.PL2, ed) : ''}
+      <div class="p2-row p2-strong l2-mhead"><div class="p2-k">Modifiers (M)</div><div class="p2-v l2-v ${l2cls(V.M)}">${l2f(V.M, true)}</div></div>
+      ${c.ok ? `<div class="l2-indent">${l2RowBtn('pound', 'Pounding', 'alignment, taller neighbor, end of block', c.pound, ed)}${l2RowBtn('other', 'Building type, redundancy &amp; retrofit', 'building-type statements, redundancy, retrofit', c.other, ed)}</div>` : ''}
+      <div class="p2-row p2-final"><div class="p2-k">Final Level 2 Score (S<sub>MIN</sub> = ${l2f(V.smin)})<div class="l2-sub">used for the cut-off</div></div><div class="p2-v">${l2f(V.SL2)}</div></div>
+      <div class="l2-foot">Level 1: <b>${l2f(V.L1)}</b> &rarr; Level 2: <b>${l2f(V.SL2)}</b> &middot; Cut-off ${(CONFIG.scoreCutoff ?? 2.0).toFixed(1)}: <b class="${low ? 'l2-low' : 'l2-ok'}">${low ? 'below (low score)' : 'not low'}</b></div>
+    </div>
+    <div class="ov-card p2-card l2-comments"><div class="ov-card-title">Level 2 Comments</div>${cmtBox}</div>
+  </div>`;
+}
+
+// ── Breakdown pop-up (view and edit) ──
+function l2PopGroup(a, V, g, showTitle) {
+  const gr = V.c.grp[g.id], ed = l2Editing(a), get = V.get;
+  const rows = g.items.map(([f, ms]) => {
+    const v = get(f), mv = ms.reduce((t, m) => t + V.c.mods[m], 0), yes = f === 'WeakSoftStory' ? (String(v ?? '').trim() !== '' && v !== 'no_selection') : l2IsYes(f, v);
+    let ctl;
+    if (l2CanEdit(a, f)) {
+      const ch = editChoices(f, f === 'WeakSoftStory' ? 'select' : 'yesno');
+      ctl = ch ? `<select class="ed-in l2-sel${_raw(editVal(f)) !== _raw(EDIT.orig[f]) ? ' ed-changed' : ''}" aria-label="${escHtml(l2Label(f))}" onchange="editSet('${f}', this.value)">
+          <option value="">- None Selected -</option>${Object.entries(ch).map(([k, l]) => `<option value="${escHtml(k)}" ${k === _raw(v) ? 'selected' : ''}>${escHtml(f === 'WeakSoftStory' ? (L2_WSS_SHORT[k] || l) : l)}</option>`).join('')}</select>`
+        : `<span class="l2-ans l2-none">${escHtml(_raw(v) || '-')}</span>`;
+    } else if (f === 'WeakSoftStory') ctl = `<span class="l2-ans${yes ? '' : ' l2-none'}">${escHtml(_raw(v) ? (L2_WSS_SHORT[_raw(v)] || choiceLabel(f, v)) : '-')}</span>`;
+    else ctl = `<span class="cb-blank-wrap"><span class="ov-blank">${yes ? 'X' : ''}</span></span>`;
+    const changed = ed && _raw(editVal(f)) !== _raw(EDIT.orig[f]);
+    return `<div class="l2-prow${changed ? ' l2-changed' : ''}"><div class="p2-k">${escHtml(l2Label(f))}<div class="l2-sub">${f} &rarr; ${ms.join(', ')}</div></div><div class="l2-pctl">${ctl}</div><div class="p2-v l2-v ${l2cls(mv)}">${mv === 0 ? '0.0' : l2f(mv, true)}</div></div>`;
+  }).join('');
+  const totLabel = g.id === 'vert' ? 'Vertical total (VL2)' : g.id === 'plan' ? 'Plan total (PL2)' : g.id === 'pound' ? 'Pounding total' : 'Building type, redundancy &amp; retrofit total';
+  const how = g.cap ? `<div class="l2-how">Sum of modifiers <b>${l2f(gr.raw, true)}</b>; cap <b>${l2f(gr.cap, true)}</b> &rarr; ${gr.capped ? `<b>cap applied</b>, total ${l2f(gr.tot, true)}` : 'cap not reached'}.</div>` : '';
+  return `${showTitle ? `<div class="ov-card-title l2-gt">${g.title}</div>` : ''}<div class="l2-prow l2-phead"><div>Question</div><div>Answer</div><div style="text-align:right">Mod.</div></div>${rows}
+    <div class="l2-prow l2-ptot"><div class="p2-k">${totLabel}</div><div></div><div class="p2-v l2-v ${l2cls(gr.tot)}">${l2f(gr.tot, true)}</div></div>${how}`;
+}
+function l2RenderPop() {
+  let box = document.getElementById('l2-pop');
+  const a = currentRecord();
+  if (!L2_UI.open || !a || !hasLevel2(a)) { if (box) box.remove(); document.removeEventListener('keydown', l2PopKey, true); return; }
+  const V = l2View(a); if (!V.c.ok) return;
+  const id = L2_UI.open, g = id => L2_GROUPS.find(x => x.id === id);
+  let body = '', note = '';
+  if (id === 'mods') { body = l2PopGroup(a, V, g('pound'), true) + l2PopGroup(a, V, g('other'), true); note = `M = pounding total (<b>${l2f(V.c.pound, true)}</b>) + building type, redundancy &amp; retrofit (<b>${l2f(V.c.other, true)}</b>) = <b>${l2f(V.c.M, true)}</b>`; }
+  else { body = l2PopGroup(a, V, g(id), false);
+    note = id === 'vert' ? 'VL2 = max(W1&ndash;W5 + SS1 + SS2 + S1&ndash;S3 + P1 + P2 + SL1 + OI1 + OI2, VL2 cap). Only one weak / soft story answer can apply.'
+         : id === 'plan' ? 'PL2 = max(PI1 + &hellip; + PI6, PL2 cap).' : id === 'pound' ? 'Pounding total = max(PA + PT + PE, pounding cap). It feeds into M.' : 'Building-type statements, redundancy (R) and retrofit (RM) are added to M with no cap.'; }
+  const html = `<div class="l2-popcard" role="dialog" aria-modal="true" aria-labelledby="l2-pt"><div class="l2-pophd"><div class="ov-card-title" id="l2-pt">${L2_TITLES[id]}</div><button type="button" class="l2-x" aria-label="Close" onclick="l2Close()">&times;</button></div>
+    ${l2Editing(a) ? '<div class="l2-how l2-editnote">Changing an answer recalculates the Level 2 score.</div>' : ''}${body}
+    <div class="l2-how">${note}</div>
+    <div class="l2-how">Level 2 score = max(S&prime; <b>${l2f(V.c.sp)}</b> + VL2 <b>${l2f(V.c.VL2, true)}</b> + PL2 <b>${l2f(V.c.PL2, true)}</b> + M <b>${l2f(V.c.M, true)}</b>, S<sub>MIN</sub> ${l2f(V.c.smin)}) = <b>${l2f(V.c.SL2)}</b>${V.mismatch ? ' (the stored score differs, see above)' : ''}</div></div>`;
+  if (!box) {
+    box = document.createElement('div'); box.id = 'l2-pop'; box.className = 'l2-ov';
+    box.addEventListener('mousedown', e => { if (e.target === box) l2Close(); });
+    document.body.appendChild(box);
+    document.addEventListener('keydown', l2PopKey, true);
+  }
+  const keep = box.querySelector('.l2-popcard'), top = keep ? keep.scrollTop : 0;
+  box.innerHTML = html; const nc = box.querySelector('.l2-popcard'); if (nc) nc.scrollTop = top;
+}
+function l2PopKey(e) { if (e.key === 'Escape' && L2_UI.open) { e.stopImmediatePropagation(); e.preventDefault(); l2Close(); } }
+function l2Open(id) { L2_UI.open = id; l2RenderPop(); const x = document.querySelector('#l2-pop .l2-x'); if (x) x.focus(); }
+function l2Close() { L2_UI.open = null; l2RenderPop(); }
+// Re-draw the tab (and the pop-up if it is open) after an answer changes
+function l2Refresh() {
+  const a = currentRecord(); if (!a || !hasLevel2(a)) return;
+  const p = document.querySelector('#sheet-body .dtab-panel[data-panel="p154l2"]');
+  if (p) { const top = (document.querySelector('#sheet-body .detail-panels') || {}).scrollTop; p.innerHTML = p154L2HTML(a); const d = document.querySelector('#sheet-body .detail-panels'); if (d && top) d.scrollTop = top; }
+  l2RenderPop();
+}
+
+// ── Editing: when a Level 2 answer changes, work out the form's calculated fields and put them in the draft, so
+// the normal review / save writes them (modifier fields, VL2, PL2, M, Level2Score). Nothing is recalculated just
+// because a record is opened or saved: only when a Level 2 answer is actually different from what was stored.
+function l2Recalc() {
+  const a = currentRecord(); if (!a || !EDIT.on || String(EDIT.id) !== String(a.id) || !hasLevel2(a)) return;
+  const has = f => Object.prototype.hasOwnProperty.call(a.attrs || {}, f) || (LAYER_FIELD_TYPES || {})[f];
+  const derived = [...L2_MOD_FIELDS, ...L2_TOTAL_FIELDS];
+  const changedAns = [...L2_ANSWER_FIELDS].some(f => _raw(editVal(f)) !== _raw(EDIT.orig[f]));
+  if (!changedAns) { derived.forEach(f => { delete EDIT.draft[f]; }); l2SyncLow(a); return; }
+  const c = l2Compute(x => editCurrent(x) ?? (a.attrs || {})[x]); if (!c.ok) return;
+  const val = { ...c.mods, VL2: c.VL2, PL2: c.PL2, M: c.M, Level2Score: c.SL2 };
+  derived.forEach(f => {
+    if (!has(f)) { delete EDIT.draft[f]; return; }
+    const o = l2num(EDIT.orig[f]), v = val[f];
+    const trivial = L2_MOD_FIELDS.includes(f) && isNaN(o) && v === 0;      // a blank stored modifier stays blank when it is 0
+    if (trivial || o === v) delete EDIT.draft[f]; else EDIT.draft[f] = v;
+  });
+  l2SyncLow(a);
+}
+// "Yes, score less than the cut-off" follows the final (Level 2) score: set when it falls below 2.0, dropped when it rises
+// to 2.0 or more. If the user has set the answer themselves it is left alone.
+function l2SyncLow(a) {
+  const f = 'DetailedEvalRequired';
+  if (Object.prototype.hasOwnProperty.call(EDIT.draft, f) && EDIT.autoLowVal === undefined) return;
+  const has = x => Object.prototype.hasOwnProperty.call(a.attrs || {}, x) || (LAYER_FIELD_TYPES || {})[x];
+  if (!has(f)) return;
+  const code = lowScoreCode(), orig = multiCodes(EDIT.orig[f]);
+  const s = cutoffScoreLive(a, x => editCurrent(x) ?? (a.attrs || {})[x]);
+  if (typeof s !== 'number' || isNaN(s)) return;
+  const next = new Set(orig);
+  if (belowCutoff(s)) { next.add(code); next.delete('no'); } else { next.delete(code); }
+  const val = next.size ? [...next].join(',') : 'no';
+  const same = _raw(val) === _raw(EDIT.orig[f]) || (next.size === orig.size && [...next].every(c2 => orig.has(c2)));
+  if (same) { if (EDIT.autoLowVal !== undefined) { delete EDIT.draft[f]; EDIT.autoLowVal = undefined; } }
+  else { EDIT.draft[f] = val; EDIT.autoLowVal = val; }
+  if (has('IsDetailedRequired')) {
+    const y = [...next].some(c2 => c2 && c2 !== 'no') ? 'Yes' : 'No';
+    if (_raw(y) !== _raw(EDIT.orig.IsDetailedRequired)) EDIT.draft.IsDetailedRequired = y; else delete EDIT.draft.IsDetailedRequired;
+  }
+}
+function l2OnEdit(f) { if (!L2_ANSWER_FIELDS.has(f)) return; l2Recalc(); l2Refresh(); refreshHeaderScore(); }
+
+// The wizard's step list gets a "P-154 Level 2" step (right after P-154 Screening Details) only for a Level 2 record
+function l2SyncComboSteps(a) {
+  const i = COMBO_STEPS.findIndex(s => s[0] === 'p154l2'); if (i >= 0) COMBO_STEPS.splice(i, 1);
+  if (hasLevel2(a)) { const k = COMBO_STEPS.findIndex(s => s[0] === 'p154'); COMBO_STEPS.splice(k + 1, 0, ['p154l2', 'P-154 Level 2']); }
+}
+
 function EDIT_TABS(a) {
   const gen = editField(a, 'Anchored', [/^anchored$/i, /generator_?anchor/i, /^gen.*anchor/i, /anchor.*gen/i]);
   const soilSrc = editField(a, 'SoilTypeSource', [/^soil_?type_?source$/i, /soil.*source/i]);
@@ -4080,6 +4382,14 @@ function EDIT_TABS(a) {
         ['PlanIrregularitiesPresent', 'Plan types', 'multi'], ['PlanIrregularities', 'Plan irregularity', 'calc']]],
       ['Hazards & Comments', [['Adjacency', 'Other observed hazards (adjacency)', 'multi'], ['ExtFallingHazards', 'Exterior falling hazards', 'multi'],
         ['FallingHazardsOther', 'Other falling hazard (describe)', 'text'], ['Level1Comments', 'Screener comments (Level 1)', 'textarea']]],
+    ],
+    p154l2: [
+      ['Level 2 - Vertical irregularity', [['SlopingSiteQ1', "Sloping site (W1 building)", 'yesno'], ['SlopingSiteQ2', "Sloping site (non-W1 building)", 'yesno'], ['WeakSoftStory', "Weak / soft story", 'select'], ['SetbackQ1', "Setback: upper story outboard", 'yesno'], ['SetbackQ2', "Setback: upper stories inboard", 'yesno'], ['SetbackQ3', "Setback: in-plane offset", 'yesno'], ['ShortColumnQ1', "Short column: 20% of columns", 'yesno'], ['ShortColumnQ2', "Short column: depth / spandrel", 'yesno'], ['SplitLevelQ1', "Split level", 'yesno'], ['OtherIrregularityQ1', "Other severe vertical irregularity", 'yesno'], ['OtherIrregularityQ2', "Other moderate vertical irregularity", 'yesno']]],
+      ['Level 2 - Plan irregularity', [['TorsionalIrr', "Torsional irregularity", 'yesno'], ['NonParallelSystem', "Non-parallel system", 'yesno'], ['ReentrantCorner', "Reentrant corner", 'yesno'], ['DiaphragmOpening', "Diaphragm opening", 'yesno'], ['C1C2BuildingOutofPlane', "C1, C2 out-of-plane offset", 'yesno'], ['OtherPlanIrregularity', "Other plan irregularity", 'yesno']]],
+      ['Level 2 - Pounding', [['PoundingAlign', "Pounding: floors do not align", 'yesno'], ['PoundingTaller', "Pounding: 2+ stories taller", 'yesno'], ['PoundingEnd', "Pounding: end of block", 'yesno']]],
+      ['Level 2 - Building type, redundancy & retrofit', [['S2Building', "S2: K bracing visible", 'yesno'], ['C1Building', "C1: flat plate frame", 'yesno'], ['PC1RM1BuildingQ1', "PC1/RM1: roof-to-wall ties", 'yesno'], ['PC1RM1BuildingQ2', "PC1/RM1: interior walls", 'yesno'], ['URMQ1', "URM: gable walls", 'yesno'], ['MHQ1', "MH: supplemental bracing", 'yesno'], ['Redundancy', "Redundancy", 'yesno'], ['RetrofitQ1', "Comprehensive seismic retrofit", 'yesno']]],
+      ['Level 2 - Calculated (view only)', [['VL2', 'Vertical irregularity total (VL2)', 'calc'], ['PL2', 'Plan irregularity total (PL2)', 'calc'], ['M', 'Modifiers total (M)', 'calc'], ['Level2Score', 'Final Level 2 score', 'calc'], ['IsDetailedRequired', 'Detailed structural evaluation recommended?', 'calc'], ['SS1', 'Modifier SS1', 'calc'], ['SS2', 'Modifier SS2', 'calc'], ['W1', 'Modifier W1', 'calc'], ['W2', 'Modifier W2', 'calc'], ['W3', 'Modifier W3', 'calc'], ['W4', 'Modifier W4', 'calc'], ['W5', 'Modifier W5', 'calc'], ['S1', 'Modifier S1', 'calc'], ['S2', 'Modifier S2', 'calc'], ['S3', 'Modifier S3', 'calc'], ['P1', 'Modifier P1', 'calc'], ['P2', 'Modifier P2', 'calc'], ['SL1', 'Modifier SL1', 'calc'], ['OI1', 'Modifier OI1', 'calc'], ['OI2', 'Modifier OI2', 'calc'], ['PI1', 'Modifier PI1', 'calc'], ['PI2', 'Modifier PI2', 'calc'], ['PI3', 'Modifier PI3', 'calc'], ['PI4', 'Modifier PI4', 'calc'], ['PI5', 'Modifier PI5', 'calc'], ['PI6', 'Modifier PI6', 'calc'], ['PA', 'Modifier PA', 'calc'], ['PT', 'Modifier PT', 'calc'], ['PE', 'Modifier PE', 'calc'], ['S2B', 'Modifier S2B', 'calc'], ['C1', 'Modifier C1', 'calc'], ['PC1', 'Modifier PC1', 'calc'], ['PC12', 'Modifier PC12', 'calc'], ['URM', 'Modifier URM', 'calc'], ['MH', 'Modifier MH', 'calc'], ['R', 'Modifier R', 'calc'], ['RM', 'Modifier RM', 'calc'], ['PoundingCap', 'Modifier PoundingCap', 'calc']]],
+      ['Level 2 - Comments', [['Level2Comments', 'Level 2 comments', 'textarea']]],
     ],
     nonstruct: [
       ['Utilities & Egress', [['OnsiteGenerator', 'Emergency generator', 'yesno'], [gen, 'Generator anchored', 'yesno'], ['Isolators', 'Seismic / vibration isolators', 'select'],
@@ -4209,6 +4519,7 @@ function editSet(f, value, el) {
   if ((f === 'PreCodeQ' || f === 'PostBenchmarkQ') && !wasBoth && EDIT.invalid.__prepost) prePostAlert();
   document.querySelectorAll(`textarea[data-f="${CSS.escape(f)}"]`).forEach(t => { if (t !== document.activeElement && t.value !== value) t.value = value; });
   syncRequired(); syncRelevance(); refreshScorePane();
+  l2OnEdit(f);
   const row = document.querySelector(`.ed-row[data-f="${CSS.escape(f)}"]`);
   if (row) row.classList.toggle('ed-changed', _raw(EDIT.draft[f]) !== _raw(EDIT.orig[f]));
   document.querySelectorAll('#sheet-body .cb-live').forEach(el => { if (el.dataset.ie.split(',').includes(f)) cbMarkChanged(el); });
@@ -4651,6 +4962,7 @@ function comboGo(id) {
   document.querySelectorAll('#sheet-body .cb-step').forEach(b => { const k = COMBO_STEPS.findIndex(s => s[0] === b.dataset.tab), cur = COMBO_STEPS.findIndex(s => s[0] === id); b.classList.toggle('done', k < cur); });
   if (id === 'review') renderComboReview();   // (moving between steps keeps every unsaved change)
   if (id === 'p154') refreshYbcy();
+  if (id === 'p154l2') l2Refresh();
   const idx = COMBO_STEPS.findIndex(s => s[0] === id), bar = document.getElementById('ed-bar');
   if (bar) {
     bar.querySelector('.cb-back').disabled = idx === 0;
@@ -4966,13 +5278,14 @@ function refreshScorePane() { const el = document.getElementById('cb-score'); co
 const SCORE_INPUTS = ['FEMABuildingType', 'VertIrregularitiesPresent', 'PlanIrregularitiesPresent', 'PreCodeQ', 'PostBenchmarkQ', 'SoilType', 'Seismicity', 'StoriesAboveGrade'];
 function liveHeaderScore(a) {
   if (!a || !EDIT.on || String(EDIT.id) !== String(a.id) || a.surveyType === 'Nonstructural Screening') return null;
+  if (hasLevel2(a)) { const s2 = level2Final(a, f => editCurrent(f) ?? (a.attrs || {})[f]); if (s2 !== null) return s2; }
   if (!editChanged().some(f => SCORE_INPUTS.includes(f))) return null;
   const c = computeP154(f => editCurrent(f) ?? (a.attrs || {})[f]);
   return c.T ? c.final : null;
 }
 function refreshHeaderScore() {
   const a = currentRecord(); const pill = document.querySelector('#sheet-body .sheet-score-pill'); if (!a || !pill) return;
-  const live = liveHeaderScore(a), info = scoreLabel(live ?? a.level1Score, a.surveyType);
+  const live = liveHeaderScore(a), info = scoreLabel(live ?? (cutoffScore(a) ?? a.level1Score), a.surveyType);
   pill.textContent = info.short; if (pill.parentNode) pill.parentNode.title = info.desc;
 }
 
@@ -5278,6 +5591,7 @@ function viewAllPhotos() {
 function closePhotosOverlay() { const ov = document.getElementById('pv-ov'); if (ov) ov.querySelector('.pv-close').click(); }
 function startComboEdit() {
   const a = currentRecord(); if (!a || !canEditRecords()) return;
+  l2SyncComboSteps(a);
   EDIT.on = true; EDIT.mode = 'combo'; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {}; EDIT.sessionLog = [];
   Object.keys(REPORT_PENDING).forEach(k => { delete REPORT_PENDING[k]; delete REPORT_NAMES[k]; }); SKETCH_PENDING = null;
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
@@ -5314,7 +5628,7 @@ function toggleEditMode() {
   EDIT.on = true; EDIT.id = a.id; EDIT.draft = {}; EDIT.invalid = {};
   EDIT.orig = Object.assign({}, a.attrs || {}, { BuildingName: a.buildingName });
   const tab = (document.querySelector('#sheet-body .dtab.active') || {}).dataset?.tab || 'overview';
-  openDetail(a); switchDetailTab(['overview', 'p154', 'nonstruct'].includes(tab) ? tab : 'overview');
+  openDetail(a); switchDetailTab(['overview', 'p154', 'p154l2', 'nonstruct'].includes(tab) ? tab : 'overview');
   updateEditButton();
 }
 function cancelEdit(skipConfirm, then) {
@@ -5677,7 +5991,7 @@ function buildDetailHTML(a) {
   const combo = editing && EDIT.mode === 'combo';
   const comboHint = `<div class="cb-banner" role="note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor"/></svg><div><b>Editing this record.</b> Change any box below, then go to <b>Review &amp; Save</b>. Items without a box are locked or calculated.</div></div>`;
   const ft = FACILITY_TYPES[a.facilityType] || FACILITY_TYPES['Other'];
-  const sc = a.level1Score;
+  const sc = cutoffScore(a) ?? a.level1Score;   // the final score: Level 2 (SL2) when a Level 2 screening was done
   const scColor = scoreColor(sc, a.surveyType);
   const scTextColor = scoreTextColor(sc, a.surveyType);
   const scInfo = scoreLabel(sc, a.surveyType);
@@ -6322,6 +6636,7 @@ function buildDetailHTML(a) {
       ${combo ? COMBO_STEPS.map(([id, label], k) => `<button class="dtab cb-step${k === 0 ? ' active' : ''}" role="tab" aria-selected="${k === 0}" data-tab="${id}" onclick="comboGo('${id}')"><span class="cb-num">${k + 1}</span>${label}</button>`).join('')
       : `${tabBtn('overview', 'Facility Overview', true)}
       ${tabBtn('p154', 'P-154 Screening Details', false)}
+      ${hasLevel2(a) ? tabBtn('p154l2', 'P-154 Level 2', false).replace('</button>', '<span class="l2-newpill">NEW</span></button>') : ''}
       ${tabBtn('nonstruct', 'Nonstructural Review', false)}
       ${editing ? '' : tabBtn('calc', 'Calculations', false)}
       ${editing ? '' : tabBtn('photos', 'Photos', false)}
@@ -6332,6 +6647,7 @@ function buildDetailHTML(a) {
     <div class="detail-panels">
       <div class="dtab-panel" data-panel="overview" role="tabpanel">${combo ? comboHint + overviewEditHTML : editing ? editTabHTML(a, 'overview') : overviewHTML}</div>
       <div class="dtab-panel" data-panel="p154" role="tabpanel" hidden>${combo ? comboHint + comboP154HTML(a) : editing ? editTabHTML(a, 'p154') : p154HTML}</div>
+      ${hasLevel2(a) ? `<div class="dtab-panel" data-panel="p154l2" role="tabpanel" hidden>${combo ? comboHint : ''}${p154L2HTML(a)}</div>` : ''}
       <div class="dtab-panel" data-panel="nonstruct" role="tabpanel" hidden>${combo ? comboHint + nonstructHTML : editing ? editTabHTML(a, 'nonstruct') : nonstructHTML}</div>
       <div class="dtab-panel" data-panel="reports" role="tabpanel" hidden>${combo ? comboHint : ''}<div class="rp-wrap"><div class="ov-card p2-card"><div class="ov-card-title">Reports &amp; Attachments</div><div id="reports-area"><div class="attachment-tile loading" style="height:60px"></div></div></div></div></div>
       <div class="dtab-panel" data-panel="notes" role="tabpanel" hidden>${combo ? comboHint : ''}${notesTabHTML(a)}</div>
