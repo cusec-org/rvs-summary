@@ -1522,7 +1522,8 @@ const CONFIG = {
     viewItemId:   '44e9b6ccce7f46b981ec4ff01348087f',
     editItemId:   'ed145a3c9b1f4a818a97bd78f816e653',
     layerIndex: 0,
-    fields: { parent: 'ParentID', fileName: 'FileName', city: 'City', state: 'State', county: 'County', slots: ['attachment1', 'attachment2', 'attachment3'] },
+    // clientId: copied from the building, so a private client's reports can be kept apart (blank = State/County program)
+    fields: { parent: 'ParentID', fileName: 'FileName', city: 'City', state: 'State', county: 'County', clientId: 'ClientId', slots: ['attachment1', 'attachment2', 'attachment3'] },
   },
   // Questions the survey marks required (XLSForm "required" column). Required
   // dropdowns don't offer "Not answered"; required text/number boxes can't be
@@ -5541,6 +5542,7 @@ async function saveReports(a, changes) {
     put(R.fields.parent, gid);
     put(R.fields.fileName, reportFullName(REPORT_NAMES[k]) || file.name);
     put(R.fields.city, at.City ?? a.city); put(R.fields.state, at.State ?? a.state); put(R.fields.county, at.County ?? a.county);
+    put(R.fields.clientId, String(at.ClientId ?? '').trim());   // skipped while the layer has no ClientId field, or for State/County buildings
     const sf = layerField(info, R.fields.slots[0] || ''); if (sf && sf.type === 'esriFieldTypeString') put(sf.name, file.name);
     const feature = { attributes: attrs };
     if (info.geometryType && typeof a.lat === 'number' && typeof a.lng === 'number') feature.geometry = { x: a.lng, y: a.lat, spatialReference: { wkid: 4326 } };
