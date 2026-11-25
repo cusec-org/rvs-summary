@@ -1169,7 +1169,17 @@
   .lb-stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
   .lb-tag { position: absolute; font-size: 14px; padding: 7px 10px; border-radius: 0 0 4px 4px; pointer-events: none; }
   .lb-tag[hidden] { display: none; }
-  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none; }
+  #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; user-select: none; -webkit-user-drag: none;
+                  touch-action: none; transform-origin: center center; will-change: transform; transition: transform 0.12s ease-out; cursor: zoom-in; }
+  #lightbox img.lb-zoomed { cursor: grab; }
+  #lightbox img.lb-panning { cursor: grabbing; transition: none; }
+  .lb-zoom { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; z-index: 2; display: flex; gap: 6px; align-items: center; }
+  .lb-zoom button { background: rgba(0,0,0,0.6); border: 1.5px solid rgba(255,255,255,0.85); color: #fff; border-radius: 20px; min-width: 40px; height: 40px; padding: 0 12px;
+                    cursor: pointer; font: 700 18px/1 'DM Sans', sans-serif; }
+  .lb-zoom button:hover { background: rgba(255,255,255,0.2); }
+  .lb-zoom button:disabled { opacity: 0.4; cursor: default; }
+  .lb-zoom .lb-zoom-pct { color: #fff; font: 600 12px 'DM Mono', monospace; min-width: 44px; text-align: center; opacity: 0.85; }
+  .lb-zoom .lb-reset { font-size: 13px; }
   .lb-bar { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #fff; text-align: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
   .lb-caption { font-size: 13px; font-weight: 700; }
   .lb-caption:empty { display: none; }
@@ -1454,6 +1464,12 @@
   <button class="lb-nav lb-next" id="lb-next" onclick="lightboxStep(1)" aria-label="Next photo">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
+  <div class="lb-zoom" role="group" aria-label="Zoom">
+    <button type="button" id="lb-zoom-out" onclick="lbZoomBy(1 / 1.5)" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+    <span class="lb-zoom-pct" id="lb-zoom-pct" aria-live="polite">100%</span>
+    <button type="button" id="lb-zoom-in" onclick="lbZoomBy(1.5)" aria-label="Zoom in" title="Zoom in (+)">+</button>
+    <button type="button" class="lb-reset" id="lb-zoom-reset" onclick="lbZoomReset()" aria-label="Reset zoom" title="Reset zoom (0)">Reset</button>
+  </div>
   <button class="close" onclick="closeLightbox()" aria-label="Close photo viewer">×</button>
 </div>
 
@@ -1866,6 +1882,7 @@ function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
 function yearEst(yr, est) { const y = String(yr ?? '').trim(); return y && isYes(String(est ?? '').trim()) ? `${y} (est.)` : y; }
 // Nonstructural review NOT performed: anything other than a Yes - an answer of No (or any other
 // non-Yes wording from the form's domain) or no answer at all.
+const NS_WM_HTML = '<div class="ns-wm" aria-hidden="true">Nonstructural Review Not Performed</div><div class="sr-only">Nonstructural review not performed.</div>';
 function nsNotPerformed(raw) {
   const t = String(raw ?? '').trim();
   if (!t) return true;
@@ -4514,7 +4531,10 @@ function editControl(a, [f, label, type, min, max, listField, fixed]) {
 function editTabHTML(a, tab) {
   const groups = EDIT_TABS(a)[tab] || [];
   return `<div class="ed-wrap"><div class="ed-note">Editing - choice fields only offer the survey's own choices. Locked fields are calculated by the survey.</div>
-    <div class="ed-grid">${groups.map(([title, fields]) => `<div class="ov-card p2-card ed-card"><div class="ov-card-title">${escHtml(title)}</div>${fields.map(fd => editControl(a, fd)).join('')}</div>`).join('')}</div></div>`;
+    <div class="ed-grid">${groups.map(([title, fields]) => {
+      // Bracing / Restraint card: same "Nonstructural Review Not Performed" watermark as the read-only view
+      const wm = tab === 'nonstruct' && title === 'Bracing / Restraint', no = wm && nsNotPerformed(editVal('NonstructuralReview'));
+      return `<div class="ov-card p2-card ed-card${wm ? ' ed-ns-brace' : ''}${no ? ' ns-not-done' : ''}">${no ? NS_WM_HTML : ''}<div class="ov-card-title">${escHtml(title)}</div>${fields.map(fd => editControl(a, fd)).join('')}</div>`; }).join('')}</div></div>`;
 }
 function editSet(f, value, el) {
   if (isRequired(f) && String(value ?? '').trim() === '') {
@@ -5204,11 +5224,11 @@ function ybcyRowHTML() {
   return `<div class="ed-row" data-f="__ybcy"><label class="ed-k">Year Built / Code Year</label><div class="ed-v"><div class="ed-locked" id="ed-ybcy" title="View only - edit these on Facility Overview">${escHtml(ybcyText())}</div></div></div>`;
 }
 function refreshNsWatermark() {
-  const card = document.querySelector('#sheet-body .ns-brace'); if (!card) return;
+  const card = document.querySelector('#sheet-body .ns-brace, #sheet-body .ed-ns-brace'); if (!card) return;
   const no = nsNotPerformed(editVal('NonstructuralReview'));
   card.classList.toggle('ns-not-done', no);
   card.querySelectorAll('.ns-wm, .sr-only').forEach(x => x.remove());
-  if (no) card.insertAdjacentHTML('afterbegin', '<div class="ns-wm" aria-hidden="true">Nonstructural Review Not Performed</div><div class="sr-only">Nonstructural review not performed.</div>');
+  if (no) card.insertAdjacentHTML('afterbegin', NS_WM_HTML);
 }
 function refreshYbcy() { const el = document.getElementById('ed-ybcy'); if (el && EDIT.on) el.textContent = ybcyText(); }
 function comboP154Main(a) {
@@ -7023,13 +7043,14 @@ function openLightbox(url, alt) {
 // Sit the label bar along the bottom edge of the photo as it's shown (it's scaled to fit the screen)
 function placeLbTag() {
   const img = document.getElementById('lightbox-img'), tg = document.getElementById('lb-tag'); if (!img || !tg) return;
-  if (!tg.textContent || !img.naturalWidth) { tg.hidden = true; return; }
+  if (!tg.textContent || !img.naturalWidth || LB_Z.s !== 1) { tg.hidden = true; return; }   // label sits on the fitted photo, so it hides while zoomed
   const st = img.parentNode.getBoundingClientRect(), r = img.getBoundingClientRect();
   tg.hidden = false;
   Object.assign(tg.style, { left: (r.left - st.left) + 'px', width: r.width + 'px', top: (r.bottom - st.top - tg.offsetHeight) + 'px', bottom: 'auto', right: 'auto' });
 }
 window.addEventListener('resize', () => { const lb = document.getElementById('lightbox'); if (lb && !lb.hidden) placeLbTag(); });
 function showLightboxItem() {
+  lbZoomReset(true);
   const item = LB_ITEMS[LB_INDEX];
   const img = document.getElementById('lightbox-img');
   img.src = item.url;
@@ -7052,6 +7073,7 @@ function lightboxStep(d) {
 function closeLightbox() {
   const lb = document.getElementById('lightbox');
   lb.hidden = true;
+  lbZoomReset(true);
   document.getElementById('lightbox-img').src = '';
 }
 function lbKeydown(e) {
@@ -7059,7 +7081,66 @@ function lbKeydown(e) {
   if (e.key === 'Escape') { closeLightbox(); e.stopImmediatePropagation(); }
   else if (e.key === 'ArrowRight') { lightboxStep(1); e.preventDefault(); }
   else if (e.key === 'ArrowLeft') { lightboxStep(-1); e.preventDefault(); }
+  else if (e.key === '+' || e.key === '=') { lbZoomBy(1.5); e.preventDefault(); }
+  else if (e.key === '-' || e.key === '_') { lbZoomBy(1 / 1.5); e.preventDefault(); }
+  else if (e.key === '0') { lbZoomReset(); e.preventDefault(); }
 }
+// ── Photo zoom ─────────────────────────────────────────────────
+// Wheel / pinch / double-click to zoom, drag to pan, +/- buttons and keys, Reset (0). Resets for each photo.
+const LB_Z = { s: 1, x: 0, y: 0 }, LB_ZMAX = 8;
+function lbApplyZoom() {
+  const img = document.getElementById('lightbox-img'); if (!img) return;
+  img.style.transform = LB_Z.s === 1 ? '' : `translate(${LB_Z.x}px, ${LB_Z.y}px) scale(${LB_Z.s})`;
+  img.classList.toggle('lb-zoomed', LB_Z.s > 1);
+  const pct = document.getElementById('lb-zoom-pct'); if (pct) pct.textContent = Math.round(LB_Z.s * 100) + '%';
+  const zi = document.getElementById('lb-zoom-in'), zo = document.getElementById('lb-zoom-out'), zr = document.getElementById('lb-zoom-reset');
+  if (zi) zi.disabled = LB_Z.s >= LB_ZMAX; if (zo) zo.disabled = LB_Z.s <= 1; if (zr) zr.disabled = LB_Z.s === 1;
+  placeLbTag();
+}
+function lbZoomReset(quiet) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; if (!quiet) lbApplyZoom(); else { const img = document.getElementById('lightbox-img'); if (img) { img.style.transform = ''; img.classList.remove('lb-zoomed', 'lb-panning'); } lbApplyZoom(); } }
+// Keep the photo from being dragged completely out of view
+function lbClamp() {
+  const img = document.getElementById('lightbox-img'), st = img && img.parentNode; if (!st) return;
+  const mx = Math.max(0, (img.offsetWidth * LB_Z.s - st.clientWidth) / 2) + 40, my = Math.max(0, (img.offsetHeight * LB_Z.s - st.clientHeight) / 2) + 40;
+  LB_Z.x = Math.max(-mx, Math.min(mx, LB_Z.x)); LB_Z.y = Math.max(-my, Math.min(my, LB_Z.y));
+}
+// Zoom to scale ns keeping the point under (cx, cy) (screen coordinates) fixed; no point = zoom about the centre
+function lbZoomTo(ns, cx, cy) {
+  const img = document.getElementById('lightbox-img'), st = img && img.parentNode; if (!st) return;
+  ns = Math.max(1, Math.min(LB_ZMAX, ns));
+  const r = st.getBoundingClientRect(), px = (cx === undefined ? r.left + r.width / 2 : cx) - (r.left + r.width / 2), py = (cy === undefined ? r.top + r.height / 2 : cy) - (r.top + r.height / 2);
+  const k = ns / LB_Z.s;
+  LB_Z.x = px - k * (px - LB_Z.x); LB_Z.y = py - k * (py - LB_Z.y); LB_Z.s = ns;
+  if (ns === 1) { LB_Z.x = 0; LB_Z.y = 0; } else lbClamp();
+  lbApplyZoom();
+}
+function lbZoomBy(f) { lbZoomTo(LB_Z.s * f); }
+(function () {
+  const lb = document.getElementById('lightbox'), img = document.getElementById('lightbox-img'), ptrs = new Map();
+  let pinch0 = null, panned = false;
+  lb.addEventListener('wheel', e => { if (lb.hidden) return; e.preventDefault(); lbZoomTo(LB_Z.s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY); }, { passive: false });
+  img.addEventListener('dblclick', e => { e.preventDefault(); if (LB_Z.s > 1) lbZoomReset(); else lbZoomTo(2.5, e.clientX, e.clientY); });
+  img.addEventListener('pointerdown', e => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { img.setPointerCapture(e.pointerId); } catch {}
+    panned = false;
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: LB_Z.s }; }
+  });
+  img.addEventListener('pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    if (ptrs.size === 2 && pinch0) {
+      p.x = e.clientX; p.y = e.clientY;
+      const [a, b] = [...ptrs.values()];
+      img.classList.add('lb-panning');
+      lbZoomTo(pinch0.s * (Math.hypot(a.x - b.x, a.y - b.y) / pinch0.d), (a.x + b.x) / 2, (a.y + b.y) / 2);
+    } else if (ptrs.size === 1 && LB_Z.s > 1) {
+      LB_Z.x += e.clientX - p.x; LB_Z.y += e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+      panned = true; img.classList.add('lb-panning'); lbClamp(); lbApplyZoom();
+    }
+  });
+  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) img.classList.remove('lb-panning'); };
+  img.addEventListener('pointerup', up); img.addEventListener('pointercancel', up);
+  window.addEventListener('resize', () => { if (!lb.hidden && LB_Z.s > 1) { lbClamp(); lbApplyZoom(); } });
+})();
 // Capture phase so Esc closes only the photo viewer, not the detail panel too
 document.addEventListener('keydown', lbKeydown, true);
 (function () {
@@ -7068,9 +7149,9 @@ document.addEventListener('keydown', lbKeydown, true);
   lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lb-stage')) closeLightbox(); });
   // Swipe left/right on touch screens
   let x0 = null, y0 = null;
-  lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  lb.addEventListener('touchstart', e => { if (e.touches.length !== 1 || LB_Z.s !== 1) { x0 = y0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
   lb.addEventListener('touchend', e => {
-    if (x0 === null) return;
+    if (x0 === null || LB_Z.s !== 1) { x0 = y0 = null; return; }
     const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) lightboxStep(dx < 0 ? 1 : -1);
     x0 = y0 = null;
