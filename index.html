@@ -876,6 +876,8 @@
   .ns-wm { position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; text-align: center;
     font: 800 clamp(20px, 4.2cqi, 40px)/1.15 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 2px; color: rgba(179, 38, 30, 0.14);
     transform: rotate(-14deg); padding: 0 6%; }
+  /* While editing, the answer boxes are opaque and sit on top of the card, so draw the stamp over them (it ignores the mouse, so the boxes still work) */
+  .ns-not-done:has(.cb-live, .cb-target, .ed-row) > .ns-wm { z-index: 3; color: rgba(179, 38, 30, 0.24); }
   .calc-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .calc-save:not(:disabled) { background: #0B2E6B; color: #fff; }
   .calc-save:not(:disabled):hover { background: #13408f; }
@@ -1173,6 +1175,8 @@
                   touch-action: none; transform-origin: center center; will-change: transform; transition: transform 0.12s ease-out; cursor: zoom-in; }
   #lightbox img.lb-zoomed { cursor: grab; }
   #lightbox img.lb-panning { cursor: grabbing; transition: none; }
+  .lb-stage.lb-zoomed { cursor: grab; touch-action: none; }
+  .lb-stage.lb-panning { cursor: grabbing; }
   .lb-zoom { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; z-index: 2; display: flex; gap: 6px; align-items: center; }
   .lb-zoom button { background: rgba(0,0,0,0.6); border: 1.5px solid rgba(255,255,255,0.85); color: #fff; border-radius: 20px; min-width: 40px; height: 40px; padding: 0 12px;
                     cursor: pointer; font: 700 18px/1 'DM Sans', sans-serif; }
@@ -7088,16 +7092,17 @@ function lbKeydown(e) {
 // ── Photo zoom ─────────────────────────────────────────────────
 // Wheel / pinch / double-click to zoom, drag to pan, +/- buttons and keys, Reset (0). Resets for each photo.
 const LB_Z = { s: 1, x: 0, y: 0 }, LB_ZMAX = 8;
+let LB_DRAGGED = false;   // true after a drag, so letting go over the dark background doesn't close the viewer
 function lbApplyZoom() {
   const img = document.getElementById('lightbox-img'); if (!img) return;
   img.style.transform = LB_Z.s === 1 ? '' : `translate(${LB_Z.x}px, ${LB_Z.y}px) scale(${LB_Z.s})`;
-  img.classList.toggle('lb-zoomed', LB_Z.s > 1);
+  img.classList.toggle('lb-zoomed', LB_Z.s > 1); if (img.parentNode) img.parentNode.classList.toggle('lb-zoomed', LB_Z.s > 1);
   const pct = document.getElementById('lb-zoom-pct'); if (pct) pct.textContent = Math.round(LB_Z.s * 100) + '%';
   const zi = document.getElementById('lb-zoom-in'), zo = document.getElementById('lb-zoom-out'), zr = document.getElementById('lb-zoom-reset');
   if (zi) zi.disabled = LB_Z.s >= LB_ZMAX; if (zo) zo.disabled = LB_Z.s <= 1; if (zr) zr.disabled = LB_Z.s === 1;
   placeLbTag();
 }
-function lbZoomReset(quiet) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; if (!quiet) lbApplyZoom(); else { const img = document.getElementById('lightbox-img'); if (img) { img.style.transform = ''; img.classList.remove('lb-zoomed', 'lb-panning'); } lbApplyZoom(); } }
+function lbZoomReset(quiet) { LB_Z.s = 1; LB_Z.x = 0; LB_Z.y = 0; if (!quiet) lbApplyZoom(); else { const img = document.getElementById('lightbox-img'); if (img) { img.style.transform = ''; img.classList.remove('lb-zoomed', 'lb-panning'); if (img.parentNode) img.parentNode.classList.remove('lb-zoomed', 'lb-panning'); } lbApplyZoom(); } }
 // Keep the photo from being dragged completely out of view
 function lbClamp() {
   const img = document.getElementById('lightbox-img'), st = img && img.parentNode; if (!st) return;
@@ -7116,29 +7121,33 @@ function lbZoomTo(ns, cx, cy) {
 }
 function lbZoomBy(f) { lbZoomTo(LB_Z.s * f); }
 (function () {
-  const lb = document.getElementById('lightbox'), img = document.getElementById('lightbox-img'), ptrs = new Map();
-  let pinch0 = null, panned = false;
+  const lb = document.getElementById('lightbox'), img = document.getElementById('lightbox-img'), stage = img.parentNode, ptrs = new Map();
+  let pinch0 = null, d0 = null;
+  const pan = on => { img.classList.toggle('lb-panning', on); stage.classList.toggle('lb-panning', on); };
   lb.addEventListener('wheel', e => { if (lb.hidden) return; e.preventDefault(); lbZoomTo(LB_Z.s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY); }, { passive: false });
   img.addEventListener('dblclick', e => { e.preventDefault(); if (LB_Z.s > 1) lbZoomReset(); else lbZoomTo(2.5, e.clientX, e.clientY); });
-  img.addEventListener('pointerdown', e => {
-    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { img.setPointerCapture(e.pointerId); } catch {}
-    panned = false;
+  // Drag anywhere on the photo area (not just on the picture itself) to move a zoomed photo; mouse or touch
+  stage.addEventListener('pointerdown', e => {
+    if (e.button !== undefined && e.button > 0) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { stage.setPointerCapture(e.pointerId); } catch {}
+    LB_DRAGGED = false; d0 = { x: e.clientX, y: e.clientY };
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: LB_Z.s }; }
   });
-  img.addEventListener('pointermove', e => {
+  stage.addEventListener('pointermove', e => {
     const p = ptrs.get(e.pointerId); if (!p) return;
     if (ptrs.size === 2 && pinch0) {
       p.x = e.clientX; p.y = e.clientY;
       const [a, b] = [...ptrs.values()];
-      img.classList.add('lb-panning');
+      pan(true); LB_DRAGGED = true;
       lbZoomTo(pinch0.s * (Math.hypot(a.x - b.x, a.y - b.y) / pinch0.d), (a.x + b.x) / 2, (a.y + b.y) / 2);
     } else if (ptrs.size === 1 && LB_Z.s > 1) {
       LB_Z.x += e.clientX - p.x; LB_Z.y += e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
-      panned = true; img.classList.add('lb-panning'); lbClamp(); lbApplyZoom();
+      if (d0 && Math.hypot(e.clientX - d0.x, e.clientY - d0.y) > 3) LB_DRAGGED = true;
+      pan(true); lbClamp(); lbApplyZoom();
     }
   });
-  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) img.classList.remove('lb-panning'); };
-  img.addEventListener('pointerup', up); img.addEventListener('pointercancel', up);
+  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) pan(false); };
+  stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
   window.addEventListener('resize', () => { if (!lb.hidden && LB_Z.s > 1) { lbClamp(); lbApplyZoom(); } });
 })();
 // Capture phase so Esc closes only the photo viewer, not the detail panel too
@@ -7146,7 +7155,7 @@ document.addEventListener('keydown', lbKeydown, true);
 (function () {
   const lb = document.getElementById('lightbox');
   // Tap the dark background (not the photo or buttons) to close
-  lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lb-stage')) closeLightbox(); });
+  lb.addEventListener('click', e => { if (LB_DRAGGED) { LB_DRAGGED = false; return; } if (e.target === lb || e.target.classList.contains('lb-stage')) closeLightbox(); });
   // Swipe left/right on touch screens
   let x0 = null, y0 = null;
   lb.addEventListener('touchstart', e => { if (e.touches.length !== 1 || LB_Z.s !== 1) { x0 = y0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
