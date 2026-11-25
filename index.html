@@ -1823,6 +1823,13 @@ function multiCodes(raw) {
   return new Set(String(raw || '').split(/[\s,;|]+/).map(x => x.trim()).filter(Boolean));
 }
 function isYes(v) { return !!v && String(v).toLowerCase() === 'yes'; }
+// Nonstructural review NOT performed: anything other than a Yes - an answer of No (or any other
+// non-Yes wording from the form's domain) or no answer at all.
+function nsNotPerformed(raw) {
+  const t = String(raw ?? '').trim();
+  if (!t) return true;
+  return !(isYes(t) || /^y/i.test(String(choiceLabel('NonstructuralReview', t) || t)));
+}
 
 // ════════════════════════════════════════════════════════════════
 //  DETAIL-SHEET FIELD GROUPS  (copied from RVS-Side-by-Side so both
@@ -4865,7 +4872,7 @@ function ybcyRowHTML() {
 }
 function refreshNsWatermark() {
   const card = document.querySelector('#sheet-body .ns-brace'); if (!card) return;
-  const v = editVal('NonstructuralReview'), no = String(v ?? '').trim() !== '' && !isYes(v) && /^n/i.test(String(choiceLabel('NonstructuralReview', v) || v));
+  const no = nsNotPerformed(editVal('NonstructuralReview'));
   card.classList.toggle('ns-not-done', no);
   card.querySelectorAll('.ns-wm, .sr-only').forEach(x => x.remove());
   if (no) card.insertAdjacentHTML('afterbegin', '<div class="ns-wm" aria-hidden="true">Nonstructural Review Not Performed</div><div class="sr-only">Nonstructural review not performed.</div>');
@@ -6158,7 +6165,7 @@ function buildDetailHTML(a) {
   const braceRows = BRACE.map(([f, lbl]) => { const c = braceCol(attrs[f]); return `<div class="ns-br-row${c === 'none' ? ' ns-gap' : c === 'some' ? ' ns-part' : ''}" data-ie="${f}"><div class="ns-br-k">${escHtml(lbl)}</div>${COLS.map(([k]) => `<div class="ns-br-c">${c === k ? 'X' : ''}</div>`).join('')}</div>`; }).join('');
   // "Interior Nonstructural Review Conducted" (NonstructuralReview) = No → watermark behind the table
   const nsrRaw = (EDIT.on && String(EDIT.id) === String(a.id)) ? editVal('NonstructuralReview') : attrs.NonstructuralReview;
-  const nsrNo = String(nsrRaw ?? '').trim() !== '' && !isYes(nsrRaw) && /^n/i.test(String(choiceLabel('NonstructuralReview', nsrRaw) || nsrRaw));
+  const nsrNo = nsNotPerformed(nsrRaw);
   const braceCard = `<div class="ov-card p2-card ns-brace${nsrNo ? ' ns-not-done' : ''}">${nsrNo ? '<div class="ns-wm" aria-hidden="true">Nonstructural Review Not Performed</div><div class="sr-only">Nonstructural review not performed.</div>' : ''}<div class="ov-card-title">Is Bracing / Restraint Present For:</div>
       <div class="ns-br-table" role="table">
         <div class="ns-br-row ns-br-head" role="row"><div class="ns-br-k">Component</div>${COLS.map(([, l]) => `<div class="ns-br-c">${l}</div>`).join('')}</div>
