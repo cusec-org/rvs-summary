@@ -967,6 +967,13 @@
   .p2-cm-k { color: #4a5363; font-weight: 700; }
   .p2-cm-v { color: #13233d; white-space: pre-line; line-height: 1.45; }
   .p2-cm-sec + .p2-cm-sec { margin-top: 6px; }
+  .l2-final { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 700; color: #13233d; padding: 4px 0; }
+  .l2-final b { font-size: 20px; }
+  .l2-head, .l2-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 70px; gap: 10px; padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid #e6e9ef; }
+  .l2-head { font-weight: 700; color: #4a5363; text-transform: uppercase; font-size: 11px; letter-spacing: .6px; margin-top: 8px; }
+  .l2-m { text-align: right; font-family: 'DM Mono', monospace; }
+  .l2-tot { font-weight: 800; border-bottom: 2px solid #cfd5e0; }
+  .l2-block { margin-top: 6px; }
   #p154-photos { display: flex; flex-direction: column; gap: 10px; }
   #p154-photos .attachment-tile { aspect-ratio: 4 / 3; width: 100%; }
   .rp-more { display: flex; flex-direction: column; gap: 10px; }
@@ -5476,6 +5483,54 @@ function screenerL1HTML(at) {
   if (!sec.length) { const l1 = String((at && at.Level1Comments) ?? '').trim(); return l1 ? escHtml(l1) : ''; }
   return sec.map(([k, v]) => `<div class="p2-cm-sec"><b>${escHtml(k)}:</b> ${escHtml(v)}</div>`).join('');
 }
+// ── Level 2 (read-only view) ──
+// Shown only when PerformLevel2 = yes. Each row: label, the screener's answer, and the modifier it produced.
+// Modifier field names are the Survey123 form's (several look like building types: S1-S3 are setback
+// modifiers, SL1 is the split-level modifier, C1/PC1/URM/MH are the building-type statements).
+const LEVEL2_BLOCKS = [
+  ['Vertical Irregularity', [['Sloping site - Q1', 'SlopingSiteQ1', 'SS1'], ['Sloping site - Q2', 'SlopingSiteQ2', 'SS2'],
+    ['Weak / soft story', 'WeakSoftStory', ['W1', 'W2', 'W3', 'W4', 'W5']],
+    ['Setback - Q1', 'SetbackQ1', 'S1'], ['Setback - Q2', 'SetbackQ2', 'S2'], ['Setback - Q3', 'SetbackQ3', 'S3'],
+    ['Short column - Q1', 'ShortColumnQ1', 'P1'], ['Short column - Q2', 'ShortColumnQ2', 'P2'], ['Split level', 'SplitLevelQ1', 'SL1'],
+    ['Other irregularity - Q1', 'OtherIrregularityQ1', 'OI1'], ['Other irregularity - Q2', 'OtherIrregularityQ2', 'OI2']], ['Vertical irregularity total (VL2)', 'VL2']],
+  ['Plan Irregularity', [['Torsional irregularity', 'TorsionalIrr', 'PI1'], ['Non-parallel system', 'NonParallelSystem', 'PI2'], ['Reentrant corner', 'ReentrantCorner', 'PI3'],
+    ['Diaphragm opening', 'DiaphragmOpening', 'PI4'], ['C1/C2 beams out-of-plane', 'C1C2BuildingOutofPlane', 'PI5'], ['Other plan irregularity', 'OtherPlanIrregularity', 'PI6']], ['Plan irregularity total (PL2)', 'PL2']],
+  ['Pounding', [['Floors do not align', 'PoundingAlign', 'PA'], ['Adjacent building taller', 'PoundingTaller', 'PT'], ['At building end', 'PoundingEnd', 'PE']], null],
+  ['Building-Type Statements', [['S2 building', 'S2Building', 'S2B'], ['C1 building', 'C1Building', 'C1'], ['PC1/RM1 - roof-to-wall ties', 'PC1RM1BuildingQ1', 'PC1'],
+    ['PC1/RM1 - closely spaced walls', 'PC1RM1BuildingQ2', 'PC12'], ['URM - gable walls', 'URMQ1', 'URM'], ['MH - seismic bracing', 'MHQ1', 'MH']], null],
+  ['Redundancy & Retrofit', [['Redundancy', 'Redundancy', 'R'], ['Retrofit', 'RetrofitQ1', 'RM']], ['Other modifiers total (M)', 'M']],
+];
+const l2Num = v => { if (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v))) return null; return Number(v); };
+const l2Fmt = n => n === null ? '' : String(Number(n.toFixed(3)));
+function level2Active(at) { return String((at && at.PerformLevel2) ?? '').trim().toLowerCase() === 'yes'; }
+// -> { sl2, blocks: [{ title, rows: [[label, answer, modifier]], total: [label, value] | null }], comments }
+function level2Data(at, fv) {
+  const blocks = LEVEL2_BLOCKS.map(([title, defs, tot]) => {
+    const rows = defs.map(([label, af, mf]) => {
+      const ans = fv(af);
+      const mods = (Array.isArray(mf) ? mf : [mf]).map(f => l2Num(at[f]));
+      const nz = mods.find(m => m !== null && m !== 0);
+      const mod = nz !== undefined ? nz : (mods.some(m => m !== null) ? 0 : null);
+      return (ans || (mod !== null && mod !== 0)) ? [label, ans, l2Fmt(mod)] : null;
+    }).filter(Boolean);
+    const tv = tot ? l2Num(at[tot[1]]) : null;
+    return { title, rows, total: tv !== null ? [tot[0], l2Fmt(tv)] : null };
+  }).filter(b => b.rows.length || b.total);
+  return { sl2: l2Num(at.Level2Score), blocks, comments: fv('Level2Comments') };
+}
+function level2HTML(at, fv) {
+  const d = level2Data(at, fv);
+  const blocks = d.blocks.map(b => `<div class="l2-block"><div class="ov-card-title p2-sub">${escHtml(b.title)}</div>
+      ${b.rows.map(([k, ans, mod]) => `<div class="l2-row"><div class="l2-k">${escHtml(k)}</div><div class="l2-a">${escHtml(ans || '-')}</div><div class="l2-m">${escHtml(mod || '')}</div></div>`).join('')}
+      ${b.total ? `<div class="l2-row l2-tot"><div class="l2-k">${escHtml(b.total[0])}</div><div class="l2-a"></div><div class="l2-m">${escHtml(b.total[1])}</div></div>` : ''}</div>`).join('');
+  return `<div class="ov-card p2-card p2-l2"><div class="ov-card-title">Level 2 Screening</div>
+      <div class="l2-final"><span>Final Level 2 score (S<sub>L2</sub>)</span><b>${d.sl2 !== null ? escHtml(l2Fmt(d.sl2)) : 'Not recorded'}</b></div>
+      <div class="cb-score-note">Used for the 2.0 cut-off in place of the Level 1 score.</div>
+      <div class="l2-head"><div>Item</div><div>Answer</div><div>Modifier</div></div>
+      ${blocks || '<div class="p2-none">No Level 2 answers recorded.</div>'}
+      ${d.comments ? `<div class="ov-card-title p2-sub">Level 2 Comments</div><div class="p2-cm-v">${escHtml(d.comments)}</div>` : ''}
+    </div>`;
+}
 // One big editable box. Starts with every related comment joined together;
 // whatever the editor types is saved to `field`.
 function comboTextBox(a, field, joined, label) {
@@ -5792,6 +5847,8 @@ function buildDetailHTML(a) {
       line('Pre-Code', fieldValue('PreCodeQ')), line('Post-Benchmark', fieldValue('PostBenchmarkQ'))]],
     ['Hazards', [line('Other Observed Hazards', fieldValue('OtherHazards') || 'None'), line('Exterior Falling Hazards', fieldValue('ExtFallingHazards') || 'None'), line('Geologic Hazards', geo || 'None')]],
     ['Final Level 1 Score', [scInfo.short]],
+    ['Final Level 2 Score', level2Active(attrs) ? [l2Num(attrs.Level2Score) !== null ? l2Fmt(l2Num(attrs.Level2Score)) : 'Not recorded', 'Used for the 2.0 cut-off', ...level2Data(attrs, fieldValue).blocks.flatMap(b => b.total ? [line(b.total[0], b.total[1])] : [])] : []],
+    ['Level 2 Comments', level2Active(attrs) ? [fieldValue('Level2Comments')] : []],
     ['Detailed Structural Evaluation Recommended?', [detailedEvalText]],
     ['Comments', [...(screenerL1Sections(attrs).length ? screenerL1Sections(attrs).map(([k, v]) => line(k, v)) : [line('Level 1', attrs.Level1Comments)]), line('Review', attrs.ReviewComments)]],
   ];
@@ -6060,6 +6117,7 @@ function buildDetailHTML(a) {
       <div class="p2-cm" data-ie="Level1Comments"><div class="p2-cm-k">Level 1</div><div class="p2-cm-v">${c1 || '<span class="p2-none">No Level 1 comments.</span>'}</div></div>
     </div>`;
 
+  const l2Card = level2Active(attrs) ? level2HTML(attrs, fieldValue) : '';
   const p154HTML = `
     <div class="ov-grid">
       <div class="ov-main">
@@ -6067,6 +6125,7 @@ function buildDetailHTML(a) {
         ${boxes}
         <div class="ov-cards p2-cards">${scoreDetails}${irregCard}</div>
         ${commentsBox}
+        ${l2Card}
       </div>
       <div class="ov-photos">
         <div class="ov-photo-slot"><div class="attachment-tile loading"></div><div class="attachment-tile loading"></div></div>
